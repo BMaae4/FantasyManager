@@ -1,0 +1,949 @@
+{
+  "diagnostics": {
+    "fetches": [
+      {
+        "at": "2026-09-14T22:04:59Z",
+        "cache_age_seconds": 0,
+        "key": "state",
+        "note": "ok",
+        "records": 4,
+        "source": "fixture",
+        "url": "https://api.sleeper.app/v1/state/nfl"
+      },
+      {
+        "at": "2026-09-14T22:04:59Z",
+        "cache_age_seconds": 0,
+        "key": "league",
+        "note": "ok",
+        "records": 9,
+        "source": "fixture",
+        "url": "https://api.sleeper.app/v1/league/1400680781302525952"
+      },
+      {
+        "at": "2026-09-14T22:04:59Z",
+        "cache_age_seconds": 0,
+        "key": "rosters",
+        "note": "ok",
+        "records": 4,
+        "source": "fixture",
+        "url": "https://api.sleeper.app/v1/league/1400680781302525952/rosters"
+      },
+      {
+        "at": "2026-09-14T22:04:59Z",
+        "cache_age_seconds": 0,
+        "key": "users",
+        "note": "ok",
+        "records": 4,
+        "source": "fixture",
+        "url": "https://api.sleeper.app/v1/league/1400680781302525952/users"
+      },
+      {
+        "at": "2026-09-14T22:04:59Z",
+        "cache_age_seconds": 0,
+        "key": "matchups",
+        "note": "ok",
+        "records": 4,
+        "source": "fixture",
+        "url": "https://api.sleeper.app/v1/league/1400680781302525952/matchups/5"
+      },
+      {
+        "at": "2026-09-14T22:04:59Z",
+        "cache_age_seconds": 0,
+        "key": "user",
+        "note": "ok",
+        "records": 3,
+        "source": "fixture",
+        "url": "https://api.sleeper.app/v1/user/MaTrasaMaae"
+      },
+      {
+        "at": "2026-09-14T22:04:59Z",
+        "cache_age_seconds": 0,
+        "key": "players",
+        "note": "ok",
+        "records": 62,
+        "source": "fixture",
+        "url": "https://api.sleeper.app/v1/players/nfl"
+      },
+      {
+        "at": "2026-09-14T22:04:59Z",
+        "cache_age_seconds": 0,
+        "key": "projections",
+        "note": "ok",
+        "records": 62,
+        "source": "fixture",
+        "url": "https://api.sleeper.app/projections/nfl/2025/5?season_type=regular&order_by=pts_ppr"
+      },
+      {
+        "at": "2026-09-14T22:04:59Z",
+        "cache_age_seconds": 0,
+        "key": "trending_add",
+        "note": "ok",
+        "records": 3,
+        "source": "fixture",
+        "url": "https://api.sleeper.app/v1/players/nfl/trending/add?lookback_hours=24&limit=100"
+      },
+      {
+        "at": "2026-09-14T22:05:00Z",
+        "cache_age_seconds": 0,
+        "key": "transactions",
+        "note": "ok",
+        "records": 1,
+        "source": "fixture",
+        "url": "https://api.sleeper.app/v1/league/1400680781302525952/transactions/5"
+      }
+    ],
+    "players_cache_age_seconds": 0,
+    "read_only": true,
+    "transactions_available": true,
+    "trending_available": true
+  },
+  "lineup": {
+    "actions": [
+      {
+        "action": "START",
+        "below_threshold": false,
+        "current": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Ryan Bravo",
+          "player_id": "rb2",
+          "points": 11,
+          "position": "RB",
+          "status": "Active",
+          "team": "BBB"
+        },
+        "gain": 2,
+        "index": 2,
+        "recommended": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Ryan Charlie",
+          "player_id": "rb3",
+          "points": 13,
+          "position": "RB",
+          "status": "Active",
+          "team": "CCC"
+        },
+        "slot": "RB"
+      },
+      {
+        "action": "START",
+        "below_threshold": false,
+        "current": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Wes Bravo",
+          "player_id": "wr2",
+          "points": 9,
+          "position": "WR",
+          "status": "Active",
+          "team": "BBB"
+        },
+        "gain": 5,
+        "index": 4,
+        "recommended": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Wes Charlie",
+          "player_id": "wr3",
+          "points": 14,
+          "position": "WR",
+          "status": "Active",
+          "team": "CCC"
+        },
+        "slot": "WR"
+      },
+      {
+        "action": "START",
+        "below_threshold": false,
+        "current": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Tom Bravo",
+          "player_id": "te2",
+          "points": 6,
+          "position": "TE",
+          "status": "Active",
+          "team": "BBB"
+        },
+        "gain": 6,
+        "index": 6,
+        "recommended": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Ryan Echo",
+          "player_id": "rb5",
+          "points": 12,
+          "position": "RB",
+          "status": "Active",
+          "team": "EEE"
+        },
+        "slot": "FLEX"
+      }
+    ],
+    "bench": [
+      {
+        "in_player_database": true,
+        "injury_status": null,
+        "name": "Quinn Bravo",
+        "player_id": "qb2",
+        "points": 12,
+        "position": "QB",
+        "status": "Active",
+        "team": "BBB"
+      },
+      {
+        "in_player_database": true,
+        "injury_status": null,
+        "name": "Ryan Bravo",
+        "player_id": "rb2",
+        "points": 11,
+        "position": "RB",
+        "status": "Active",
+        "team": "BBB"
+      },
+      {
+        "in_player_database": true,
+        "injury_status": null,
+        "name": "Wes Bravo",
+        "player_id": "wr2",
+        "points": 9,
+        "position": "WR",
+        "status": "Active",
+        "team": "BBB"
+      },
+      {
+        "in_player_database": true,
+        "injury_status": null,
+        "name": "Tom Bravo",
+        "player_id": "te2",
+        "points": 6,
+        "position": "TE",
+        "status": "Active",
+        "team": "BBB"
+      },
+      {
+        "in_player_database": true,
+        "injury_status": null,
+        "name": "Ryan Delta",
+        "player_id": "rb4",
+        "points": 4,
+        "position": "RB",
+        "status": "Active",
+        "team": "DDD"
+      },
+      {
+        "in_player_database": true,
+        "injury_status": null,
+        "name": "Wes Delta",
+        "player_id": "wr4",
+        "points": 3.5,
+        "position": "WR",
+        "status": "Active",
+        "team": "DDD"
+      }
+    ],
+    "churn_threshold": 0.5,
+    "current_points": 96,
+    "gain": 13,
+    "optimal_points": 109,
+    "optional_actions": [],
+    "risk": [],
+    "slots": [
+      {
+        "action": "KEEP",
+        "below_threshold": false,
+        "current": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Quinn Alpha",
+          "player_id": "qb1",
+          "points": 18,
+          "position": "QB",
+          "status": "Active",
+          "team": "AAA"
+        },
+        "gain": 0,
+        "index": 0,
+        "recommended": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Quinn Alpha",
+          "player_id": "qb1",
+          "points": 18,
+          "position": "QB",
+          "status": "Active",
+          "team": "AAA"
+        },
+        "slot": "QB"
+      },
+      {
+        "action": "KEEP",
+        "below_threshold": false,
+        "current": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Ryan Alpha",
+          "player_id": "rb1",
+          "points": 16,
+          "position": "RB",
+          "status": "Active",
+          "team": "AAA"
+        },
+        "gain": 0,
+        "index": 1,
+        "recommended": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Ryan Alpha",
+          "player_id": "rb1",
+          "points": 16,
+          "position": "RB",
+          "status": "Active",
+          "team": "AAA"
+        },
+        "slot": "RB"
+      },
+      {
+        "action": "START",
+        "below_threshold": false,
+        "current": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Ryan Bravo",
+          "player_id": "rb2",
+          "points": 11,
+          "position": "RB",
+          "status": "Active",
+          "team": "BBB"
+        },
+        "gain": 2,
+        "index": 2,
+        "recommended": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Ryan Charlie",
+          "player_id": "rb3",
+          "points": 13,
+          "position": "RB",
+          "status": "Active",
+          "team": "CCC"
+        },
+        "slot": "RB"
+      },
+      {
+        "action": "KEEP",
+        "below_threshold": false,
+        "current": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Wes Alpha",
+          "player_id": "wr1",
+          "points": 15,
+          "position": "WR",
+          "status": "Active",
+          "team": "AAA"
+        },
+        "gain": 0,
+        "index": 3,
+        "recommended": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Wes Alpha",
+          "player_id": "wr1",
+          "points": 15,
+          "position": "WR",
+          "status": "Active",
+          "team": "AAA"
+        },
+        "slot": "WR"
+      },
+      {
+        "action": "START",
+        "below_threshold": false,
+        "current": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Wes Bravo",
+          "player_id": "wr2",
+          "points": 9,
+          "position": "WR",
+          "status": "Active",
+          "team": "BBB"
+        },
+        "gain": 5,
+        "index": 4,
+        "recommended": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Wes Charlie",
+          "player_id": "wr3",
+          "points": 14,
+          "position": "WR",
+          "status": "Active",
+          "team": "CCC"
+        },
+        "slot": "WR"
+      },
+      {
+        "action": "KEEP",
+        "below_threshold": false,
+        "current": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Tom Alpha",
+          "player_id": "te1",
+          "points": 8,
+          "position": "TE",
+          "status": "Active",
+          "team": "AAA"
+        },
+        "gain": 0,
+        "index": 5,
+        "recommended": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Tom Alpha",
+          "player_id": "te1",
+          "points": 8,
+          "position": "TE",
+          "status": "Active",
+          "team": "AAA"
+        },
+        "slot": "TE"
+      },
+      {
+        "action": "START",
+        "below_threshold": false,
+        "current": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Tom Bravo",
+          "player_id": "te2",
+          "points": 6,
+          "position": "TE",
+          "status": "Active",
+          "team": "BBB"
+        },
+        "gain": 6,
+        "index": 6,
+        "recommended": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Ryan Echo",
+          "player_id": "rb5",
+          "points": 12,
+          "position": "RB",
+          "status": "Active",
+          "team": "EEE"
+        },
+        "slot": "FLEX"
+      },
+      {
+        "action": "KEEP",
+        "below_threshold": false,
+        "current": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Kai Alpha",
+          "player_id": "k1",
+          "points": 7,
+          "position": "K",
+          "status": "Active",
+          "team": "AAA"
+        },
+        "gain": 0,
+        "index": 7,
+        "recommended": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Kai Alpha",
+          "player_id": "k1",
+          "points": 7,
+          "position": "K",
+          "status": "Active",
+          "team": "AAA"
+        },
+        "slot": "K"
+      },
+      {
+        "action": "KEEP",
+        "below_threshold": false,
+        "current": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Alpha Defense",
+          "player_id": "def1",
+          "points": 6,
+          "position": "DEF",
+          "status": "Active",
+          "team": "AAA"
+        },
+        "gain": 0,
+        "index": 8,
+        "recommended": {
+          "in_player_database": true,
+          "injury_status": null,
+          "name": "Alpha Defense",
+          "player_id": "def1",
+          "points": 6,
+          "position": "DEF",
+          "status": "Active",
+          "team": "AAA"
+        },
+        "slot": "DEF"
+      }
+    ]
+  },
+  "matchup": {
+    "differential": -4.7,
+    "matchup_id": 1,
+    "my_points": 0,
+    "my_projected": 96,
+    "my_team": "Trasa Titans",
+    "note": "Projection-only optimisation: correlation, game script and opponent defensive matchups are not modelled.",
+    "opponent_points": 0,
+    "opponent_projected": 100.7,
+    "opponent_roster_id": 2,
+    "opponent_team": "Team 2"
+  },
+  "metadata": {
+    "churn_threshold": 0.5,
+    "fairness": 0.1,
+    "generated_at": "2026-09-14T22:05:00Z",
+    "league_id": "1400680781302525952",
+    "league_name": "Test League",
+    "offline": true,
+    "players_source": "fixture",
+    "projections": {
+      "cache_age_seconds": 0,
+      "fetched_at": "2026-09-14T22:04:59Z",
+      "note": "Projection feed is not part of Sleeper's documented read-only API and is treated as an unstable dependency.",
+      "record_count": 62,
+      "source": "fixture",
+      "stale": false,
+      "url": "https://api.sleeper.app/projections/nfl/2025/5?season_type=regular&order_by=pts_ppr"
+    },
+    "read_only": true,
+    "roster_id": 1,
+    "roster_positions": [
+      "QB",
+      "RB",
+      "RB",
+      "WR",
+      "WR",
+      "TE",
+      "FLEX",
+      "K",
+      "DEF",
+      "BN",
+      "BN",
+      "BN",
+      "BN",
+      "BN"
+    ],
+    "scoring": {
+      "mode": "league scoring_settings",
+      "source": "league.scoring_settings x projected stats",
+      "unsupported_keys": [
+        "fum_lost",
+        "rec_td"
+      ]
+    },
+    "season": "2025",
+    "season_type": "regular",
+    "starting_slots": [
+      "QB",
+      "RB",
+      "RB",
+      "WR",
+      "WR",
+      "TE",
+      "FLEX",
+      "K",
+      "DEF"
+    ],
+    "team_name": "Trasa Titans",
+    "tool_version": "2.0.0",
+    "top_n": 10,
+    "user_id": "u1",
+    "username": "MaTrasaMaae",
+    "week": 5
+  },
+  "schema_version": "1.0",
+  "trades": {
+    "fairness_tolerance": 0.1,
+    "league_average_depth": {
+      "DEF": 6.19,
+      "K": 7.19,
+      "QB": 17.81,
+      "RB": 35.69,
+      "TE": 10.19,
+      "WR": 31.35
+    },
+    "method": "Optimal-starter points by position, bench value above replacement, and re-optimised lineups for both teams after each swap.",
+    "my_bench_above_replacement": 2,
+    "my_depth": {
+      "DEF": 6,
+      "K": 7,
+      "QB": 18,
+      "RB": 41,
+      "TE": 8,
+      "WR": 29
+    },
+    "my_needs": [
+      {
+        "league_average": 10.19,
+        "position": "TE",
+        "shortfall": 2.19,
+        "starter_points": 8
+      }
+    ],
+    "my_surplus": [
+      {
+        "above_replacement": -5.5,
+        "lineup_cost": 0,
+        "name": "Quinn Bravo",
+        "player_id": "qb2",
+        "position": "QB",
+        "projection": 12
+      },
+      {
+        "above_replacement": 2,
+        "lineup_cost": 0,
+        "name": "Ryan Bravo",
+        "player_id": "rb2",
+        "position": "RB",
+        "projection": 11
+      },
+      {
+        "above_replacement": -2,
+        "lineup_cost": 0,
+        "name": "Wes Bravo",
+        "player_id": "wr2",
+        "position": "WR",
+        "projection": 9
+      },
+      {
+        "above_replacement": 0,
+        "lineup_cost": 0,
+        "name": "Tom Bravo",
+        "player_id": "te2",
+        "position": "TE",
+        "projection": 6
+      },
+      {
+        "above_replacement": -5,
+        "lineup_cost": 0,
+        "name": "Ryan Delta",
+        "player_id": "rb4",
+        "position": "RB",
+        "projection": 4
+      }
+    ],
+    "partners": [
+      {
+        "depth_before": {
+          "DEF": 6,
+          "K": 7,
+          "QB": 17.5,
+          "RB": 24.5,
+          "TE": 12,
+          "WR": 39.9
+        },
+        "needs": [
+          {
+            "league_average": 35.69,
+            "position": "RB",
+            "shortfall": 11.19,
+            "starter_points": 24.5
+          }
+        ],
+        "packages": [
+          {
+            "fairness_gap": 0.8,
+            "get": [
+              {
+                "name": "Team2 TE1",
+                "player_id": "t2_te1",
+                "position": "TE",
+                "projection": 10.2
+              }
+            ],
+            "give": [
+              {
+                "name": "Ryan Bravo",
+                "player_id": "rb2",
+                "position": "RB",
+                "projection": 11
+              }
+            ],
+            "my_depth_after": {
+              "DEF": 6,
+              "K": 7,
+              "QB": 18,
+              "RB": 41,
+              "TE": 10.2,
+              "WR": 29
+            },
+            "my_gain": 2.2,
+            "their_gain": 2.5,
+            "value_given": 11,
+            "value_received": 10.2
+          }
+        ],
+        "roster_id": 2,
+        "surplus": [
+          {
+            "above_replacement": -7,
+            "lineup_cost": 0,
+            "name": "Team2 QB2",
+            "player_id": "t2_qb2",
+            "position": "QB",
+            "projection": 10.5
+          },
+          {
+            "above_replacement": 4.2,
+            "lineup_cost": 0,
+            "name": "Team2 TE1",
+            "player_id": "t2_te1",
+            "position": "TE",
+            "projection": 10.2
+          },
+          {
+            "above_replacement": -0.5,
+            "lineup_cost": 0.5,
+            "name": "Team2 RB3",
+            "player_id": "t2_rb3",
+            "position": "RB",
+            "projection": 8.5
+          },
+          {
+            "above_replacement": -1,
+            "lineup_cost": 0,
+            "name": "Team2 RB2",
+            "player_id": "t2_rb2",
+            "position": "RB",
+            "projection": 8
+          }
+        ],
+        "team": "Team 2"
+      }
+    ]
+  },
+  "waivers": {
+    "candidates_considered": 11,
+    "groups": {
+      "avoid": [
+        {
+          "available": false,
+          "bid_basis": null,
+          "depth_chart_order": 1,
+          "depth_chart_position": "WR",
+          "drop_candidate": null,
+          "lineup_gain": 0,
+          "name": "Free Hurt One",
+          "net_gain": 0,
+          "notes": [
+            "injury Out"
+          ],
+          "player_id": "fa_out1",
+          "position": "WR",
+          "projection": 15,
+          "replacement_advantage": 4,
+          "replacement_level": 11,
+          "rest_of_season_value": null,
+          "score": 0.2308,
+          "suggested_bid": null,
+          "suggested_bid_pct": null,
+          "team": "EEE",
+          "trending_adds_24h": null,
+          "use_priority": null,
+          "would_start_this_week": false
+        },
+        {
+          "available": false,
+          "bid_basis": null,
+          "depth_chart_order": 1,
+          "depth_chart_position": "RB",
+          "drop_candidate": null,
+          "lineup_gain": 0,
+          "name": "Free Retired One",
+          "net_gain": 0,
+          "notes": [
+            "marked inactive",
+            "status Inactive"
+          ],
+          "player_id": "fa_inactive1",
+          "position": "RB",
+          "projection": 14,
+          "replacement_advantage": 5,
+          "replacement_level": 9,
+          "rest_of_season_value": null,
+          "score": 0.2308,
+          "suggested_bid": null,
+          "suggested_bid_pct": null,
+          "team": "FFF",
+          "trending_adds_24h": null,
+          "use_priority": null,
+          "would_start_this_week": false
+        }
+      ],
+      "bench_upgrades": [],
+      "priority": [
+        {
+          "available": true,
+          "bid_basis": "estimate from net projected gain and remaining budget",
+          "depth_chart_order": 1,
+          "depth_chart_position": "WR",
+          "drop_candidate": {
+            "in_player_database": true,
+            "injury_status": null,
+            "name": "Wes Delta",
+            "player_id": "wr4",
+            "points": 3.5,
+            "position": "WR",
+            "status": "Active",
+            "team": "DDD"
+          },
+          "lineup_gain": 4.5,
+          "name": "Free Wide One",
+          "net_gain": 4.5,
+          "notes": [],
+          "player_id": "fa_wr1",
+          "position": "WR",
+          "projection": 16.5,
+          "replacement_advantage": 5.5,
+          "replacement_level": 11,
+          "rest_of_season_value": null,
+          "score": 1,
+          "suggested_bid": 18,
+          "suggested_bid_pct": 22,
+          "team": "EEE",
+          "trending_adds_24h": 4200,
+          "use_priority": null,
+          "would_start_this_week": true
+        },
+        {
+          "available": true,
+          "bid_basis": "estimate from net projected gain and remaining budget",
+          "depth_chart_order": 1,
+          "depth_chart_position": "K",
+          "drop_candidate": {
+            "in_player_database": true,
+            "injury_status": null,
+            "name": "Wes Delta",
+            "player_id": "wr4",
+            "points": 3.5,
+            "position": "WR",
+            "status": "Active",
+            "team": "DDD"
+          },
+          "lineup_gain": 1.5,
+          "name": "Free Kick One",
+          "net_gain": 1.5,
+          "notes": [],
+          "player_id": "fa_k1",
+          "position": "K",
+          "projection": 8.5,
+          "replacement_advantage": 1.5,
+          "replacement_level": 7,
+          "rest_of_season_value": null,
+          "score": 0.4359,
+          "suggested_bid": 6,
+          "suggested_bid_pct": 8,
+          "team": "HHH",
+          "trending_adds_24h": null,
+          "use_priority": null,
+          "would_start_this_week": true
+        },
+        {
+          "available": true,
+          "bid_basis": "estimate from net projected gain and remaining budget",
+          "depth_chart_order": 1,
+          "depth_chart_position": "DEF",
+          "drop_candidate": {
+            "in_player_database": true,
+            "injury_status": null,
+            "name": "Wes Delta",
+            "player_id": "wr4",
+            "points": 3.5,
+            "position": "WR",
+            "status": "Active",
+            "team": "DDD"
+          },
+          "lineup_gain": 1.5,
+          "name": "Hotel Defense",
+          "net_gain": 1.5,
+          "notes": [],
+          "player_id": "fa_def1",
+          "position": "DEF",
+          "projection": 7.5,
+          "replacement_advantage": 1.5,
+          "replacement_level": 6,
+          "rest_of_season_value": null,
+          "score": 0.4359,
+          "suggested_bid": 6,
+          "suggested_bid_pct": 8,
+          "team": "HHH",
+          "trending_adds_24h": null,
+          "use_priority": null,
+          "would_start_this_week": true
+        },
+        {
+          "available": true,
+          "bid_basis": "estimate from net projected gain and remaining budget",
+          "depth_chart_order": 1,
+          "depth_chart_position": "TE",
+          "drop_candidate": {
+            "in_player_database": true,
+            "injury_status": null,
+            "name": "Wes Delta",
+            "player_id": "wr4",
+            "points": 3.5,
+            "position": "WR",
+            "status": "Active",
+            "team": "DDD"
+          },
+          "lineup_gain": 1,
+          "name": "Free Tight One",
+          "net_gain": 1,
+          "notes": [],
+          "player_id": "fa_te1",
+          "position": "TE",
+          "projection": 9,
+          "replacement_advantage": 3,
+          "replacement_level": 6,
+          "rest_of_season_value": null,
+          "score": 0.3785,
+          "suggested_bid": 4,
+          "suggested_bid_pct": 5,
+          "team": "GGG",
+          "trending_adds_24h": 300,
+          "use_priority": null,
+          "would_start_this_week": true
+        }
+      ],
+      "streamers": []
+    },
+    "omitted_components": [
+      "rest_of_season_value",
+      "schedule_fit"
+    ],
+    "waiver": {
+      "budget": 100,
+      "note": "Bid suggestions are estimates, not market data.",
+      "remaining": 80,
+      "type": "FAAB"
+    },
+    "weights_used": {
+      "add_trend": 0.1538,
+      "opportunity": 0.2308,
+      "roster_improvement": 0.6154
+    }
+  },
+  "warnings": [
+    "2 league scoring categories have no matching projection stat and are excluded: fum_lost, rec_td",
+    "Waiver score components omitted (no reliable data): rest_of_season_value, schedule_fit. Remaining weights renormalised."
+  ]
+}

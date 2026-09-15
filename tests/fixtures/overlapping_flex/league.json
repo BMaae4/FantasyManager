@@ -1,0 +1,45 @@
+{
+ "league_id": "1400680781302525952",
+ "name": "Test League",
+ "roster_positions": [
+  "QB",
+  "RB",
+  "WR",
+  "TE",
+  "FLEX",
+  "WRRB_FLEX",
+  "REC_FLEX",
+  "SUPER_FLEX",
+  "BN",
+  "BN",
+  "BN",
+  "BN",
+  "BN",
+  "BN"
+ ],
+ "scoring_settings": {
+  "def_td": 6,
+  "fgm": 3,
+  "fum_lost": -2,
+  "pass_int": -2,
+  "pass_td": 4,
+  "pass_yd": 0.04,
+  "rec": 1,
+  "rec_td": 6,
+  "rec_yd": 0.1,
+  "rush_td": 6,
+  "rush_yd": 0.1,
+  "sack": 1,
+  "xpm": 1
+ },
+ "season": "2025",
+ "season_type": "regular",
+ "settings": {
+  "num_teams": 4,
+  "playoff_week_start": 15,
+  "waiver_budget": 100,
+  "waiver_type": 2
+ },
+ "status": "in_season",
+ "total_rosters": 4
+}

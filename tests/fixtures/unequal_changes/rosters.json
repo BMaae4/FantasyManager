@@ -1,0 +1,157 @@
+[
+ {
+  "league_id": "1400680781302525952",
+  "owner_id": "u1",
+  "players": [
+   "qb1",
+   "qb2",
+   "rb1",
+   "rb2",
+   "rb3",
+   "wr1",
+   "wr2",
+   "wr3",
+   "te1",
+   "te2",
+   "k1",
+   "def1",
+   "rb4",
+   "wr4",
+   "rb5"
+  ],
+  "reserve": null,
+  "roster_id": 1,
+  "settings": {
+   "losses": 1,
+   "waiver_budget_used": 20,
+   "waiver_position": 4,
+   "wins": 3
+  },
+  "starters": [
+   "qb1",
+   "0",
+   "0",
+   "wr1",
+   "wr2",
+   "te1",
+   "te2",
+   "k1",
+   "def1"
+  ],
+  "taxi": null
+ },
+ {
+  "league_id": "1400680781302525952",
+  "owner_id": "u2",
+  "players": [
+   "t2_qb1",
+   "t2_qb2",
+   "t2_rb1",
+   "t2_rb2",
+   "t2_rb3",
+   "t2_wr1",
+   "t2_wr2",
+   "t2_wr3",
+   "t2_te1",
+   "t2_te2",
+   "t2_k1",
+   "t2_def1"
+  ],
+  "reserve": null,
+  "roster_id": 2,
+  "settings": {
+   "losses": 2,
+   "waiver_budget_used": 10,
+   "waiver_position": 2,
+   "wins": 2
+  },
+  "starters": [
+   "t2_qb1",
+   "t2_rb1",
+   "t2_rb2",
+   "t2_wr1",
+   "t2_wr2",
+   "t2_te1",
+   "t2_rb3",
+   "t2_k1",
+   "t2_def1"
+  ],
+  "taxi": null
+ },
+ {
+  "league_id": "1400680781302525952",
+  "owner_id": "u3",
+  "players": [
+   "t3_qb1",
+   "t3_qb2",
+   "t3_rb1",
+   "t3_rb2",
+   "t3_rb3",
+   "t3_wr1",
+   "t3_wr2",
+   "t3_wr3",
+   "t3_te1",
+   "t3_te2",
+   "t3_k1",
+   "t3_def1"
+  ],
+  "reserve": null,
+  "roster_id": 3,
+  "settings": {
+   "losses": 2,
+   "waiver_budget_used": 10,
+   "waiver_position": 3,
+   "wins": 2
+  },
+  "starters": [
+   "t3_qb1",
+   "t3_rb1",
+   "t3_rb2",
+   "t3_wr1",
+   "t3_wr2",
+   "t3_te1",
+   "t3_rb3",
+   "t3_k1",
+   "t3_def1"
+  ],
+  "taxi": null
+ },
+ {
+  "league_id": "1400680781302525952",
+  "owner_id": "u4",
+  "players": [
+   "t4_qb1",
+   "t4_qb2",
+   "t4_rb1",
+   "t4_rb2",
+   "t4_rb3",
+   "t4_wr1",
+   "t4_wr2",
+   "t4_wr3",
+   "t4_te1",
+   "t4_te2",
+   "t4_k1",
+   "t4_def1"
+  ],
+  "reserve": null,
+  "roster_id": 4,
+  "settings": {
+   "losses": 2,
+   "waiver_budget_used": 10,
+   "waiver_position": 4,
+   "wins": 2
+  },
+  "starters": [
+   "t4_qb1",
+   "t4_rb1",
+   "t4_rb2",
+   "t4_wr1",
+   "t4_wr2",
+   "t4_te1",
+   "t4_rb3",
+   "t4_k1",
+   "t4_def1"
+  ],
+  "taxi": null
+ }
+]

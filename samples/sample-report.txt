@@ -1,0 +1,86 @@
+========================================================================
+FANTASY MANAGER - Test League - Week 5 (2025 regular)
+Manager: MaTrasaMaae   Team: Trasa Titans
+Generated: 2026-09-14T22:05:02Z   Tool: fantasy_manager 2.0.0
+========================================================================
+
+SCORING: league scoring_settings (source: league.scoring_settings x projected stats)
+PROJECTIONS: cache | https://api.sleeper.app/projections/nfl/2025/5?season_type=regular&order_by=pts_ppr
+  fetched 2026-09-14T22:05:02Z | cache age 0m | records 62
+
+WARNINGS
+------------------------------------------------------------------------
+  ! 2 league scoring categories have no matching projection stat and are excluded: fum_lost, rec_td
+  ! Waiver score components omitted (no reliable data): rest_of_season_value, schedule_fit. Remaining weights renormalised.
+
+LINEUP - week 5
+------------------------------------------------------------------------
+  Current projected:   96
+  Optimal projected:   109
+  Potential gain:      13
+
+  SLOT        CURRENT                   RECOMMENDED               ACTION      GAIN
+  QB          Quinn Alpha (QB/AAA)      Quinn Alpha (QB/AAA)      KEEP        0
+  RB          Ryan Alpha (RB/AAA)       Ryan Alpha (RB/AAA)       KEEP        0
+  RB          Ryan Bravo (RB/BBB)       Ryan Charlie (RB/CCC)     START       2
+  WR          Wes Alpha (WR/AAA)        Wes Alpha (WR/AAA)        KEEP        0
+  WR          Wes Bravo (WR/BBB)        Wes Charlie (WR/CCC)      START       5
+  TE          Tom Alpha (TE/AAA)        Tom Alpha (TE/AAA)        KEEP        0
+  FLEX        Tom Bravo (TE/BBB)        Ryan Echo (RB/EEE)        START       6
+  K           Kai Alpha (K/AAA)         Kai Alpha (K/AAA)         KEEP        0
+  DEF         Alpha Defense (DEF/AAA)   Alpha Defense (DEF/AAA)   KEEP        0
+
+MATCHUP
+------------------------------------------------------------------------
+  Trasa Titans  vs  Team 2
+  Projected (current lineups): 96  vs  100.7
+  Differential: -4.7
+  Live/final points: 0  vs  0
+  Note: Projection-only optimisation: correlation, game script and opponent defensive matchups are not modelled.
+
+WAIVERS
+------------------------------------------------------------------------
+  Waiver type: FAAB  budget 100, remaining 80
+  Weights: add_trend 15%, opportunity 23%, roster_improvement 62%
+  Omitted components: rest_of_season_value, schedule_fit
+
+  PRIORITY CLAIMS
+    Free Wide One (WR/EEE)        proj 16.5   net 4.5    score 1      bid $18 (22% est) drop Wes Delta
+    Free Kick One (K/HHH)         proj 8.5    net 1.5    score 0.4    bid $6 (8% est) drop Wes Delta
+    Hotel Defense (DEF/HHH)       proj 7.5    net 1.5    score 0.4    bid $6 (8% est) drop Wes Delta
+    Free Tight One (TE/GGG)       proj 9      net 1      score 0.4    bid $4 (5% est) drop Wes Delta
+
+  BENCH UPGRADES / STASHES
+    (none)
+
+  STREAMERS
+    (none)
+
+  AVOID
+    Free Hurt One (WR/EEE)        proj 15     net 0      score 0.2     [injury Out]
+    Free Retired One (RB/FFF)     proj 14     net 0      score 0.2     [marked inactive; status Inactive]
+
+TRADES
+------------------------------------------------------------------------
+  My needs:   TE (8 vs league 10.2)
+  My surplus: Quinn Bravo (QB, cost 0), Ryan Bravo (RB, cost 0), Wes Bravo (WR, cost 0), Tom Bravo (TE, cost 0), Ryan Delta (RB, cost 0)
+
+  Team 2  needs: RB
+    depth before: DEF 6, K 7, QB 17.5, RB 24.5, TE 12, WR 39.9
+    GIVE Ryan Bravo (RB)  GET Team2 TE1 (TE)  | my gain 2.2, their gain 2.5, fairness gap 0.8
+
+DIAGNOSTICS
+------------------------------------------------------------------------
+  state           fixture       age 0m  4 records  ok
+  league          fixture       age 0m  9 records  ok
+  rosters         fixture       age 0m  4 records  ok
+  users           fixture       age 0m  4 records  ok
+  matchups        fixture       age 0m  4 records  ok
+  user            fixture       age 0m  3 records  ok
+  players         cache         age 0m  62 records  fresh cache
+  projections     cache         age 0m  62 records  fresh cache
+  trending_add    cache         age 0m  3 records  fresh cache
+  transactions    fixture       age 0m  1 records  ok
+
+This tool is read-only: it cannot submit lineups, waiver claims or trades.
+Projections are advisory; no correlation or game-script modelling is performed.

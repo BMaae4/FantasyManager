@@ -1,0 +1,28 @@
+[
+ {
+  "display_name": "MaTrasaMaae",
+  "metadata": {
+   "team_name": "Trasa Titans"
+  },
+  "user_id": "u1"
+ },
+ {
+  "display_name": "manager2",
+  "metadata": {
+   "team_name": "Team 2"
+  },
+  "user_id": "u2"
+ },
+ {
+  "display_name": "manager3",
+  "metadata": {
+   "team_name": "Team 3"
+  },
+  "user_id": "u3"
+ },
+ {
+  "display_name": "manager4",
+  "metadata": {},
+  "user_id": "u4"
+ }
+]
