@@ -84,7 +84,15 @@ POSITION_SCORING_FAMILIES = {
 def in_family(key: str, family: Tuple[str, ...]) -> bool:
     return any(key.startswith(entry) if entry.endswith("_") else key == entry for entry in family)
 
-# Minimum projected gain, for each side, before a trade framework is shown.
+# Statuses that keep a player out beyond this week (used for future weeks).
+LONG_TERM_UNAVAILABLE = {
+    "inactive", "retired", "suspended", "exempt", "non football injury",
+    "non-football injury", "practice squad", "physically unable to perform", "pup",
+    "injured reserve", "ir", "did not report",
+}
+
+# Minimum projected gain per window week, for each side, before a trade
+# framework is shown.
 MIN_TRADE_GAIN = 0.5
 
 # Schedule statuses that mean a game has kicked off.
@@ -228,6 +236,11 @@ class Analyzer:
         self.top_n = int(self.config.get("top_n") or 10)
 
         self.projection_points: Dict[str, float] = {}
+        # week_points[0] is this week; later entries are the future window.
+        self.week_points: List[Dict[str, float]] = [self.projection_points]
+        self.window_weeks: List[int] = []
+        self._use_custom = False
+        self._aggregate_field_used: Optional[str] = None
         self.projection_stats: Dict[str, dict] = {}
         self.scoring_mode = "unknown"
         self.scoring_source = "unknown"
@@ -354,11 +367,35 @@ class Analyzer:
         positions = self.player_positions(pid)
         return positions[0] if positions else None
 
-    def points(self, pid: str) -> float:
-        return float(self.projection_points.get(str(pid), 0.0))
+    def points(self, pid: str, w: int = 0) -> float:
+        """Projected points in window week `w` (0 = this week)."""
+        return float(self.week_points[w].get(str(pid), 0.0))
 
-    def has_projection(self, pid: str) -> bool:
-        return str(pid) in self.projection_points
+    def has_projection(self, pid: str, w: int = 0) -> bool:
+        return str(pid) in self.week_points[w]
+
+    @property
+    def n_weeks(self) -> int:
+        return len(self.week_points)
+
+    @property
+    def has_window(self) -> bool:
+        return len(self.week_points) > 1
+
+    def window_points(self, pid: str) -> float:
+        """Raw projected points summed over every week in the window."""
+        return sum(self.points(pid, w) for w in range(self.n_weeks))
+
+    def startable_in(self, pid: str, w: int) -> bool:
+        """This week: the full availability check. Future weeks: only
+        long-term statuses rule a player out; a one-week injury shows up as a
+        low or missing projection for that week instead."""
+        if w == 0:
+            return self.availability(pid)[0]
+        info = self.player(pid)
+        if not info or info.get("active") is False:
+            return False
+        return lower(info.get("status")) not in LONG_TERM_UNAVAILABLE
 
     def availability(self, pid: str) -> Tuple[bool, List[str]]:
         """(startable, notes).  Missing data is reported, never invented."""
@@ -409,6 +446,7 @@ class Analyzer:
         use_custom = bool(self.scoring_settings) and bool(
             set(self.scoring_settings.keys()) & stats_keys_seen
         )
+        self._use_custom = use_custom
         if use_custom:
             self.scoring_mode = "league scoring_settings"
             self.scoring_source = "league.scoring_settings x projected stats"
@@ -459,6 +497,7 @@ class Analyzer:
                     "projections contain neither league scoring categories nor an "
                     "aggregate points field"
                 )
+            self._aggregate_field_used = field
             self.scoring_mode = "provider aggregate fallback (%s)" % field
             self.scoring_source = "projection field %s (league scoring not applied)" % field
             for pid, stats in self.projection_stats.items():
@@ -469,6 +508,48 @@ class Analyzer:
                 "League scoring settings could not be matched to projection stats; "
                 "using provider aggregate field '%s' as a labelled fallback." % field
             )
+
+    def score_stats(self, pid: str, stats: dict) -> Optional[float]:
+        """Score one projected stat line with the rules chosen for this week
+        (league scoring, per-position fallback, or provider aggregate)."""
+        position = self.primary_position(pid)
+        field = None
+        if not self._use_custom:
+            field = self._aggregate_field_used
+        elif position in self.position_fallback:
+            field = self.position_fallback[position]
+        if field is not None:
+            value = stats.get(field)
+            if isinstance(value, (int, float)):
+                return float(value)
+            if not self._use_custom:
+                return None
+        total = 0.0
+        for key, value in stats.items():
+            weight = self.scoring_settings.get(key)
+            if isinstance(weight, (int, float)) and isinstance(value, (int, float)):
+                total += float(value) * float(weight)
+        return total
+
+    def score_future_weeks(self) -> None:
+        future = self.bundle.get("future_projections") or {}
+        this_week = self.config.get("week")
+        self.window_weeks = [int(this_week)] if this_week is not None else [0]
+        weeks = sorted(int(w) for w in future.keys() if str(w).isdigit())
+        for week in weeks:
+            points: Dict[str, float] = {}
+            for record in future.get(str(week)) or []:
+                if not isinstance(record, dict) or not isinstance(record.get("stats"), dict):
+                    continue
+                pid = record.get("player_id")
+                if pid is None:
+                    continue
+                value = self.score_stats(str(pid), record["stats"])
+                if value is not None:
+                    points[str(pid)] = value
+            if points:
+                self.week_points.append(points)
+                self.window_weeks.append(week)
 
     def _aggregate_field(self, stats_keys_seen: set) -> Optional[str]:
         rec = self.scoring_settings.get("rec")
@@ -510,16 +591,17 @@ class Analyzer:
         slots: Sequence[str],
         candidates: Sequence[str],
         incumbents: Optional[Dict[int, str]] = None,
+        w: int = 0,
     ) -> Dict[Tuple[int, str], int]:
         incumbents = incumbents or {}
-        order = sorted(candidates, key=lambda p: (-self.points(p), str(p)))
+        order = sorted(candidates, key=lambda p: (-self.points(p, w), str(p)))
         tiebreak = {pid: len(order) - idx for idx, pid in enumerate(order)}
         weights: Dict[Tuple[int, str], int] = {}
         for i, slot in enumerate(slots):
             for pid in candidates:
                 if not self.eligible(slot, pid):
                     continue
-                points_milli = int(round(self.points(pid) * 1000))
+                points_milli = int(round(self.points(pid, w) * 1000))
                 incumbent = 1 if incumbents.get(i) == pid else 0
                 floor_milli = 0  # no reliable floor projection source available
                 weights[(i, pid)] = (
@@ -536,18 +618,22 @@ class Analyzer:
         slots: Optional[Sequence[str]] = None,
         incumbents: Optional[Dict[int, str]] = None,
         filter_available: bool = True,
+        w: int = 0,
     ) -> Tuple[float, Dict[int, str]]:
         slots = list(slots if slots is not None else self.starting_slots)
         candidates = sorted({str(p) for p in player_ids})
         if filter_available:
-            candidates = [p for p in candidates if self.availability(p)[0]]
-        cache_key = tuple(["|".join(slots)] + candidates + ["inc:%s" % sorted((incumbents or {}).items())])
+            candidates = [p for p in candidates if self.startable_in(p, w)]
+        cache_key = tuple(
+            ["w%d" % w, "|".join(slots)] + candidates
+            + ["inc:%s" % sorted((incumbents or {}).items())]
+        )
         cached = self._optimize_cache.get(cache_key)
         if cached is not None:
             return cached
-        weights = self.build_weights(slots, candidates, incumbents)
+        weights = self.build_weights(slots, candidates, incumbents, w)
         assignment = assign_slots(slots, candidates, weights)
-        total = sum(self.points(pid) for pid in assignment.values())
+        total = sum(self.points(pid, w) for pid in assignment.values())
         result = (total, assignment)
         self._optimize_cache[cache_key] = result
         return result
@@ -575,6 +661,26 @@ class Analyzer:
         for k, pid in sub.items():
             assignment[free_idx[k]] = pid
         return total + sum(self.points(pid) for pid in fixed.values()), assignment
+
+    def window_value(
+        self,
+        player_ids: Iterable[str],
+        fixed: Optional[Dict[int, str]] = None,
+        use_locks: bool = False,
+    ) -> Tuple[float, List[float]]:
+        """Optimal starting points summed over the window. Week 0 honours
+        locks when `use_locks` (the manager's own roster); later weeks are
+        open. Returns (window total, per-week totals)."""
+        players = list(player_ids)
+        if use_locks:
+            first, _ = self.optimize_with_fixed(players, fixed or {})
+        else:
+            first, _ = self.optimize(players)
+        totals = [first]
+        for w in range(1, self.n_weeks):
+            total, _ = self.optimize(players, w=w)
+            totals.append(total)
+        return sum(totals), totals
 
     def locked_starters(self, roster: dict) -> Dict[int, str]:
         return {i: pid for i, pid in self.current_lineup(roster).items() if self.is_locked(pid)}
@@ -899,37 +1005,58 @@ class Analyzer:
             waiver_type = "unknown"
             self.warn("League waiver type could not be determined from league settings.")
 
+        window = self.has_window
+        n = self.n_weeks
+        baseline_window, _ = self.window_value(usable, fixed, use_locks=True)
+
+        # Candidates: unrostered players projected in any window week, so a
+        # player on bye (or out) this week can still be found as a stash.
+        projected_any = set()
+        for points in self.week_points:
+            projected_any.update(points.keys())
         candidates_all = [
             pid
-            for pid in self.projection_points
+            for pid in projected_any
             if pid not in self.rostered and (set(self.player_positions(pid)) & positions)
         ]
-        candidates_all.sort(key=lambda p: (-self.points(p), str(p)))
+        candidates_all.sort(key=lambda p: (-self.window_points(p), -self.points(p), str(p)))
         shortlist = candidates_all[: max(self.top_n * 6, 40)]
 
-        # Drop candidates are judged on this week's projection only, so a
-        # bench player with no projection (bye week) or who is unavailable
-        # this week (Out, Doubtful, suspended...) would look like the cheapest
-        # cut. Those players are protected: a one-week absence says nothing
-        # about their value. Only healthy, projected bench players qualify.
         starters_now = set(baseline_lineup.values())
-        droppable = [
-            pid
-            for pid in sorted(usable, key=lambda p: (self.points(p), str(p)))
-            if pid not in starters_now
-            and self.has_projection(pid)
-            and self.availability(pid)[0]
-        ][:10]
-        protected = [
-            pid for pid in usable
-            if pid not in starters_now
-            and (not self.has_projection(pid) or not self.availability(pid)[0])
-        ]
-        if protected:
-            self.warn(
-                "Not suggested as drops (no projection or unavailable this week, "
-                "e.g. bye or injury): %s." % ", ".join(sorted(self.player_name(p) for p in protected))
-            )
+        if window:
+            # With future weeks the drop is chosen by what the roster loses
+            # over the whole window, so a bye-week or briefly injured starter
+            # is valued properly and needs no special protection.
+            droppable = [
+                pid
+                for pid in sorted(usable, key=lambda p: (self.window_points(p), str(p)))
+                if pid not in starters_now
+            ][:10]
+        else:
+            # This week only: a bench player with no projection (bye) or who
+            # is unavailable this week would look like the cheapest cut, so
+            # only healthy, projected bench players qualify.
+            droppable = [
+                pid
+                for pid in sorted(usable, key=lambda p: (self.points(p), str(p)))
+                if pid not in starters_now
+                and self.has_projection(pid)
+                and self.availability(pid)[0]
+            ][:10]
+            protected = [
+                pid for pid in usable
+                if pid not in starters_now
+                and (not self.has_projection(pid) or not self.availability(pid)[0])
+            ]
+            if protected:
+                self.warn(
+                    "Not suggested as drops (no projection or unavailable this week, "
+                    "e.g. bye or injury): %s."
+                    % ", ".join(sorted(self.player_name(p) for p in protected))
+                )
+
+        def drop_key(drop: str) -> Tuple[float, str]:
+            return (self.window_points(drop) if window else self.points(drop), str(drop))
 
         rows = []
         for pid in shortlist:
@@ -937,29 +1064,34 @@ class Analyzer:
             info = self.player(pid)
             if self.is_locked(pid):
                 notes = notes + ["game already started this week"]
-            with_candidate, with_lineup = self.optimize_with_fixed(list(usable) + [pid], fixed)
-            lineup_gain = with_candidate - baseline
+            with_window, with_weeks = self.window_value(list(usable) + [pid], fixed, use_locks=True)
+            _, with_lineup = self.optimize_with_fixed(list(usable) + [pid], fixed)
+            lineup_gain = with_weeks[0] - baseline
+            can_help = startable or (window and with_window > baseline_window)
             best_drop = None
-            best_value = None
-            if startable:
+            best_total = None
+            best_weeks: List[float] = []
+            if can_help:
                 for drop in droppable:
                     if drop == pid:
                         continue
-                    value, _ = self.optimize_with_fixed(
-                        [p for p in usable if p != drop] + [pid], fixed
+                    total, weeks = self.window_value(
+                        [p for p in usable if p != drop] + [pid], fixed, use_locks=True
                     )
-                    key = (-value, self.points(drop), str(drop))
-                    best_key = (
-                        None
-                        if best_drop is None
-                        else (-best_value, self.points(best_drop), str(best_drop))
-                    )
-                    if best_key is None or key < best_key:
-                        best_value = value
-                        best_drop = drop
-            if startable and best_drop is None:
+                    if (
+                        best_drop is None
+                        or total > best_total + 1e-9
+                        or (abs(total - best_total) <= 1e-9 and drop_key(drop) < drop_key(best_drop))
+                    ):
+                        best_drop, best_total, best_weeks = drop, total, weeks
+            if can_help and best_drop is None:
                 notes = notes + ["no safe drop candidate on bench; needs an open roster spot"]
-            net_gain = (best_value - baseline) if best_value is not None else lineup_gain
+            if best_drop is not None:
+                net_gain = best_weeks[0] - baseline
+                window_gain = best_total - baseline_window
+            else:
+                net_gain = lineup_gain
+                window_gain = with_window - baseline_window
             position = self.primary_position(pid)
             rows.append(
                 {
@@ -967,13 +1099,15 @@ class Analyzer:
                     "name": self.player_name(pid),
                     "position": position,
                     "team": info.get("team"),
-                    "projection": r2(self.points(pid)),
+                    "projection": r2(self.points(pid)) if self.has_projection(pid) else None,
+                    "window_projection": r2(self.window_points(pid)) if window else None,
                     "replacement_level": r2(replacement.get(position)) if position in replacement else None,
                     "replacement_advantage": r2(self.points(pid) - replacement[position])
                     if position in replacement
                     else None,
                     "lineup_gain": r2(lineup_gain),
                     "net_gain": r2(net_gain),
+                    "window_gain": r2(window_gain) if window else None,
                     "would_start_this_week": pid in set(with_lineup.values()),
                     "drop_candidate": self.player_ref(best_drop) if best_drop else None,
                     "depth_chart_position": info.get("depth_chart_position"),
@@ -981,14 +1115,18 @@ class Analyzer:
                     "trending_adds_24h": trending.get(pid),
                     "available": startable,
                     "notes": notes,
-                    "rest_of_season_value": None,
+                    "rest_of_season_value": r2(window_gain) if window else None,
                 }
             )
+
+        def window_or_net(row: dict) -> float:
+            value = row["window_gain"] if window else row["net_gain"]
+            return value or 0.0
 
         components = {"roster_improvement": True}
         components["opportunity"] = any(r["depth_chart_order"] is not None for r in rows)
         components["add_trend"] = bool(trending) and any(r["trending_adds_24h"] is not None for r in rows)
-        components["rest_of_season_value"] = False
+        components["rest_of_season_value"] = window
         components["schedule_fit"] = False
         omitted = sorted(k for k, v in components.items() if not v)
         active_weights = {k: WAIVER_WEIGHTS[k] for k, v in components.items() if v}
@@ -1001,12 +1139,24 @@ class Analyzer:
             )
 
         max_net = max([r["net_gain"] or 0.0 for r in rows], default=0.0)
+        max_window = max([r["window_gain"] or 0.0 for r in rows], default=0.0)
         max_trend = max([r["trending_adds_24h"] or 0 for r in rows], default=0)
+
+        def avoid_row(row: dict) -> bool:
+            if window:
+                return (row["window_gain"] or 0.0) <= 0 and not (
+                    row["available"] and self.has_projection(row["player_id"])
+                )
+            return not row["available"] or not self.has_projection(row["player_id"])
+
         for row in rows:
             score = 0.0
             if "roster_improvement" in weights_used:
                 value = (row["net_gain"] or 0.0) / max_net if max_net > 0 else 0.0
                 score += weights_used["roster_improvement"] * max(0.0, min(1.0, value))
+            if "rest_of_season_value" in weights_used:
+                value = (row["window_gain"] or 0.0) / max_window if max_window > 0 else 0.0
+                score += weights_used["rest_of_season_value"] * max(0.0, min(1.0, value))
             if "opportunity" in weights_used:
                 order = row["depth_chart_order"]
                 if isinstance(order, (int, float)):
@@ -1018,33 +1168,40 @@ class Analyzer:
                 trend = row["trending_adds_24h"] or 0
                 score += weights_used["add_trend"] * ((trend / max_trend) if max_trend else 0.0)
             row["score"] = round(score, 4)
-            if waiver_type == "FAAB" and remaining is not None and row["available"]:
-                fraction = max(0.0, min(0.35, (row["net_gain"] or 0.0) / 20.0))
+            # Bids and priority use the per-week average gain over the window.
+            per_week_gain = window_or_net(row) / (n if window else 1)
+            claimable = not avoid_row(row)
+            if waiver_type == "FAAB" and remaining is not None and claimable:
+                fraction = max(0.0, min(0.35, per_week_gain / 20.0))
                 bid = int(round(remaining * fraction))
-                if (row["net_gain"] or 0.0) > 0:
+                if per_week_gain > 0:
                     bid = max(1, bid)
                 row["suggested_bid"] = bid
                 row["suggested_bid_pct"] = int(round(100 * bid / remaining)) if remaining > 0 else None
-                row["bid_basis"] = "estimate from net projected gain and remaining budget"
+                row["bid_basis"] = (
+                    "estimate from average projected gain over %d weeks and remaining budget" % n
+                    if window else "estimate from net projected gain and remaining budget"
+                )
             else:
                 row["suggested_bid"] = None
                 row["suggested_bid_pct"] = None
                 row["bid_basis"] = None
             if waiver_type == "waiver priority":
-                row["use_priority"] = bool(row["available"] and (row["net_gain"] or 0) >= 1.0)
+                row["use_priority"] = bool(claimable and per_week_gain >= 1.0)
             else:
                 row["use_priority"] = None
 
         def sort_key(row: dict):
-            return (-(row.get("score") or 0.0), -(row.get("net_gain") or 0.0), row["name"])
+            return (-(row.get("score") or 0.0), -window_or_net(row), row["name"])
 
-        avoid = sorted(
-            [r for r in rows if not r["available"] or not self.has_projection(r["player_id"])],
-            key=sort_key,
-        )[: self.top_n]
-        available_rows = [r for r in rows if r["available"] and self.has_projection(r["player_id"])]
+        avoid = sorted([r for r in rows if avoid_row(r)], key=sort_key)[: self.top_n]
+        available_rows = [r for r in rows if not avoid_row(r)]
         priority = sorted(
-            [r for r in available_rows if r["would_start_this_week"] and (r["net_gain"] or 0) >= 1.0],
+            [
+                r for r in available_rows
+                if r["would_start_this_week"] and (r["net_gain"] or 0) >= 1.0
+                and (not window or (r["window_gain"] or 0) > 0)
+            ],
             key=sort_key,
         )[: self.top_n]
         priority_ids = {r["player_id"] for r in priority}
@@ -1066,7 +1223,7 @@ class Analyzer:
                 for r in available_rows
                 if r["player_id"] not in priority_ids
                 and r["player_id"] not in streamer_ids
-                and (r["net_gain"] or 0) > 0
+                and ((r["window_gain"] or 0) >= 1.0 if window else (r["net_gain"] or 0) > 0)
             ],
             key=sort_key,
         )[: self.top_n]
@@ -1078,6 +1235,7 @@ class Analyzer:
                 "remaining": remaining if waiver_type == "FAAB" else None,
                 "note": "Bid suggestions are estimates, not market data.",
             },
+            "window_weeks": self.window_weeks,
             "weights_used": weights_used,
             "omitted_components": omitted,
             "candidates_considered": len(rows),
@@ -1111,10 +1269,23 @@ class Analyzer:
             result[position] = round(result.get(position, 0.0) + self.points(pid), 2)
         return result
 
+    def average_depth(self, players: Sequence[str]) -> Dict[str, float]:
+        """Optimal starting points by position, averaged over the window so a
+        one-week bye doesn't show up as a positional need."""
+        totals: Dict[str, float] = {}
+        for w in range(self.n_weeks):
+            _, assignment = self.optimize(players, w=w)
+            for index, pid in assignment.items():
+                position = self.slot_position(self.starting_slots[index], pid)
+                totals[position] = totals.get(position, 0.0) + self.points(pid, w)
+        return {k: round(v / self.n_weeks, 2) for k, v in totals.items()}
+
     def roster_profile(self, roster: dict) -> dict:
         usable = self.roster_active_players(roster)
-        total, assignment = self.optimize(usable)
-        starters = set(assignment.values())
+        total, weeks = self.window_value(usable)
+        starters = set()
+        for w in range(self.n_weeks):
+            starters.update(self.optimize(usable, w=w)[1].values())
         replacement = self.replacement_levels()
         bench_above_replacement = 0.0
         entries = []
@@ -1124,9 +1295,9 @@ class Analyzer:
             above = self.points(pid) - level if level is not None else None
             if pid not in starters and above is not None and above > 0:
                 bench_above_replacement += above
-            if not self.availability(pid)[0]:
+            if not any(self.startable_in(pid, w) for w in range(self.n_weeks)):
                 continue
-            without, _ = self.optimize([p for p in usable if p != pid])
+            without, _ = self.window_value([p for p in usable if p != pid])
             cost = total - without
             entries.append(
                 {
@@ -1134,21 +1305,23 @@ class Analyzer:
                     "name": self.player_name(pid),
                     "position": position,
                     "projection": r2(self.points(pid)),
+                    "window_projection": r2(self.window_points(pid)),
                     "lineup_cost": r2(cost),
                     "above_replacement": r2(above),
                 }
             )
-        entries.sort(key=lambda s: (-(s["projection"] or 0.0), s["name"]))
+        entries.sort(key=lambda s: (-(s["window_projection"] or 0.0), s["name"]))
         # Surplus: a player the roster can lose without weakening its optimal
-        # lineup by more than half a projected point.
-        surplus = [e for e in entries if (e["lineup_cost"] or 0.0) <= 0.5]
+        # lineups by more than half a projected point per window week.
+        surplus = [e for e in entries if (e["lineup_cost"] or 0.0) <= 0.5 * self.n_weeks]
         return {
             "roster_id": roster.get("roster_id"),
             "team": self.team_name(roster.get("roster_id")),
-            "optimal_points": r2(total),
+            "optimal_points": total,
+            "weeks": weeks,
             "starters": starters,
             "usable": usable,
-            "depth": self.positional_starter_points(assignment),
+            "depth": self.average_depth(usable),
             "bench_above_replacement": r2(bench_above_replacement),
             "surplus": surplus,
             "entries": entries,
@@ -1185,6 +1358,8 @@ class Analyzer:
 
         my_needs = needs_of(mine)
         my_base = mine["optimal_points"] or 0.0
+        my_base_weeks = mine["weeks"]
+        n = self.n_weeks
         partners = []
         for roster in self.rosters:
             rid = roster.get("roster_id")
@@ -1210,22 +1385,20 @@ class Analyzer:
             their_options = pool(theirs, 5, 3)
 
             def exchange_value(side: List[dict]) -> float:
-                return sum(self.points(entry["player_id"]) for entry in side)
+                return sum(self.window_points(entry["player_id"]) for entry in side)
 
             def evaluate(give: List[dict], get: List[dict]) -> Optional[dict]:
                 give_ids = {g["player_id"] for g in give}
                 get_ids = {g["player_id"] for g in get}
-                my_after, _ = self.optimize(
-                    [p for p in mine["usable"] if p not in give_ids] + sorted(get_ids)
-                )
-                their_after, _ = self.optimize(
-                    [p for p in theirs["usable"] if p not in get_ids] + sorted(give_ids)
-                )
+                my_players = [p for p in mine["usable"] if p not in give_ids] + sorted(get_ids)
+                their_players = [p for p in theirs["usable"] if p not in get_ids] + sorted(give_ids)
+                my_after, my_weeks = self.window_value(my_players)
+                their_after, their_weeks = self.window_value(their_players)
                 my_gain = my_after - my_base
                 their_gain = their_after - their_base
                 # Both sides must gain something real; a 0.01-point "gain"
                 # rounds to 0 in the report and is no reason to trade.
-                if my_gain < MIN_TRADE_GAIN or their_gain < MIN_TRADE_GAIN:
+                if my_gain < MIN_TRADE_GAIN * n or their_gain < MIN_TRADE_GAIN * n:
                     return None
                 value_out = exchange_value(give)
                 value_in = exchange_value(get)
@@ -1233,30 +1406,30 @@ class Analyzer:
                 largest = max(value_out, value_in)
                 # Fair when the exchanged weekly projection is within the
                 # tolerance of the larger side, or within one projected point.
-                if gap > max(1.0, self.fairness * largest):
+                if gap > max(1.0 * n, self.fairness * largest):
                     return None
-                if (give_ids & mine["starters"]) and my_gain < 1.0:
+                if (give_ids & mine["starters"]) and my_gain < 1.0 * n:
                     return None  # protect core starters unless the return is material
                 return {
                     "give": [
                         {"player_id": g["player_id"], "name": g["name"], "position": g["position"],
-                         "projection": g["projection"]}
+                         "projection": g["projection"], "window_projection": g["window_projection"]}
                         for g in give
                     ],
                     "get": [
                         {"player_id": g["player_id"], "name": g["name"], "position": g["position"],
-                         "projection": g["projection"]}
+                         "projection": g["projection"], "window_projection": g["window_projection"]}
                         for g in get
                     ],
+                    "window_weeks": n,
                     "my_gain": r2(my_gain),
                     "their_gain": r2(their_gain),
+                    "my_gain_this_week": r2(my_weeks[0] - my_base_weeks[0]),
+                    "their_gain_this_week": r2(their_weeks[0] - theirs["weeks"][0]),
                     "value_given": r2(value_out),
                     "value_received": r2(value_in),
                     "fairness_gap": r2(gap),
-                    "my_depth_after": {k: r2(v) for k, v in
-                                       self.positional_starter_points(
-                                           self.optimize([p for p in mine["usable"] if p not in give_ids]
-                                                         + sorted(get_ids))[1]).items()},
+                    "my_depth_after": self.average_depth(my_players),
                 }
 
             for give in my_options:
@@ -1292,6 +1465,7 @@ class Analyzer:
             "my_surplus": mine["surplus"][:5],
             "my_bench_above_replacement": mine["bench_above_replacement"],
             "fairness_tolerance": self.fairness,
+            "window_weeks": self.window_weeks,
             "partners": [p for p in partners if p["packages"]],
         }
 
@@ -1300,6 +1474,10 @@ class Analyzer:
         if not self.starting_slots:
             raise SystemExit("league has no starting slots in roster_positions")
         self.calculate_league_scoring()
+        if int(self.config.get("horizon") or 0) > 0:
+            self.score_future_weeks()
+        else:
+            self.window_weeks = [int(self.config.get("week") or 0)]
         my_roster = self.roster_by_id(self.my_roster_id)
         if my_roster is None:
             raise SystemExit("roster %s not found in league rosters" % self.my_roster_id)
@@ -1325,6 +1503,7 @@ class Analyzer:
                 "season_type": self.config.get("season_type"),
                 "week": self.config.get("week"),
                 "week_rolled_from": self.config.get("week_rolled_from"),
+                "window_weeks": self.window_weeks,
                 "offline": bool(self.config.get("offline")),
                 "top_n": self.config.get("top_n"),
                 "churn_threshold": self.config.get("churn_threshold"),

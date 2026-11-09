@@ -308,7 +308,7 @@ assert_json "trades produce a balanced package" \
 assert_json "trade packages help both teams" \
     '[.trades.partners[].packages[] | select(.my_gain <= 0 or .their_gain <= 0)] | length == 0'
 assert_json "trade fairness within tolerance" \
-    '[.trades.partners[].packages[] | select(.fairness_gap > 2)] | length == 0'
+    '[.trades.partners[].packages[] | select(.fairness_gap > ([1.0 * .window_weeks, 0.10 * ([.value_given, .value_received] | max)] | max) + 0.01)] | length == 0'
 assert_json "trade shows depth context" \
     '[.trades.partners[] | select(.depth_before == null)] | length == 0'
 assert_json "my needs identified" '.trades.my_needs != null'
@@ -459,7 +459,8 @@ run_case bye_week_bench --format json
 assert_status "bye week case exits 0" 0
 assert_json "bye-week bench player never suggested as drop" \
     '[.waivers.groups[][] | .drop_candidate.player_id] | index("rb2") == null'
-assert_json "protected bye-week player is disclosed" \
+run_case bye_week_bench --format json --horizon 0
+assert_json "protected bye-week player is disclosed (this week only)" \
     '[.warnings[] | select(test("Not suggested as drops"))] | length == 1'
 
 # Rolling waivers with a populated waiver_budget are not FAAB.
@@ -558,6 +559,38 @@ assert_json "two-way player not counted as a DB need" \
 run_case ppr_basic --format json
 assert_json "trade frameworks need a real gain for both sides" \
     '[.trades.partners[].packages[] | select(.my_gain < 0.5 or .their_gain < 0.5)] | length == 0'
+
+# --------------------------------------------------------------------------
+section "multi-week window"
+# --------------------------------------------------------------------------
+run_case ppr_basic --format json
+assert_json "window covers this week and the next three" '.metadata.window_weeks == [5,6,7,8]'
+assert_json "rest-of-season value is scored" '.waivers.weights_used | has("rest_of_season_value")'
+assert_json "waiver rows carry a window gain" '[.waivers.groups.priority[] | select(.window_gain == null)] | length == 0'
+assert_json "trade packages report this-week gains too" \
+    '[.trades.partners[].packages[] | select(.my_gain_this_week == null or .window_weeks != 4)] | length == 0'
+run_case ppr_basic --format json --horizon 0
+assert_json "--horizon 0 values this week only" '.metadata.window_weeks == [5]'
+assert_json "--horizon 0 omits rest-of-season value" '.waivers.omitted_components | index("rest_of_season_value") != null'
+run_case ppr_basic --horizon 7
+assert_status "--horizon above 6 rejected" 2
+
+run_case stash_candidate --format json
+assert_json "player on bye this week appears as a stash" \
+    '[.waivers.groups.bench_upgrades[] | select(.player_id == "fa_stash" and .window_gain > 0 and .projection == null)] | length == 1'
+run_case stash_candidate --format json --horizon 0
+assert_json "stash invisible when only this week counts" '[.waivers.groups[][] | select(.player_id == "fa_stash")] | length == 0'
+
+run_case bye_qb_partner --format json --horizon 0
+assert_json "this-week-only logic sells a QB to a team on bye" \
+    '[.trades.partners[] | select(.roster_id == 3) | .packages[] | select([.give[].position] | index("QB"))] | length > 0'
+run_case bye_qb_partner --format json
+assert_json "window logic does not exploit a one-week bye" \
+    '[.trades.partners[] | select(.roster_id == 3) | .packages[] | select([.give[].position] | index("QB"))] | length == 0'
+
+run_case week_complete --format json
+assert_json "window follows the rolled-over week" '.metadata.window_weeks == [6,7,8]'
+assert_json "missing future week is disclosed" '[.warnings[] | select(test("week\\(s\\) 9 unavailable"))] | length == 1'
 
 # --------------------------------------------------------------------------
 printf '\n%s\n' "------------------------------------------------------------"

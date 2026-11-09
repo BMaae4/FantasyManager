@@ -38,7 +38,7 @@ Run `./fantasy_manager.sh --help` for the full list. Frequently used:
 -l, --league-id ID     -u, --username NAME    -w, --week N       -s, --season YYYY
 -n, --top N            -f, --format text|json|markdown           -o, --output PATH
     --threshold X          --fairness X       --skip-waivers         --skip-trades
-    --locked LIST
+    --locked LIST          --horizon N
     --cache-dir DIR        --cache-ttl SEC    --no-cache             --refresh
     --offline              --fixtures DIR     --config PATH
 -q, --quiet            -v, --verbose          --debug                --log-file PATH
@@ -87,17 +87,29 @@ and a projected final (actual points for players who have played plus
 projections for the rest). Correlation and game script are *not* modelled and
 the report says so.
 
+**Multi-week window.** Besides this week, projections for the next `--horizon`
+weeks (default 3, `0` = this week only) are fetched and scored the same way.
+Waivers, drop choices and trades are judged on optimal lineups across the whole
+window, so a player on bye or briefly out keeps his value, stashes can surface,
+and a partner's one-week bye no longer looks like a positional need. Lineup
+advice is always for this week only.
+
 **Waivers.** Free agents are ranked by incremental roster value — what they add
 to the optimal lineup and above positional replacement — not by raw projection.
+With a window, each row also shows `window_gain` (gain summed over the window)
+and the rest-of-season component of the score uses it; players on bye this week
+can appear as stashes.
 Each row carries the drop candidate, net gain, starter probability and risk
 notes, grouped into priority claims, bench upgrades/stashes, streamers and
-avoid. Score components without reliable data (rest-of-season value, schedule
-fit) are omitted, the remaining weights are renormalised, and the omissions are
+avoid. Score components without reliable data (schedule fit, and rest-of-season
+value when `--horizon 0`) are omitted, the remaining weights are renormalised, and the omissions are
 listed. With FAAB leagues a suggested bid in dollars and percent of remaining
 budget is shown; otherwise waiver-priority advice.
 
-**Trades.** Partner rosters are profiled by optimal starting points, bench value
-above replacement, positional scarcity, needs and surplus. 1-for-1 and 2-for-1
+**Trades.** Partner rosters are profiled by optimal starting points (averaged
+over the window), bench value above replacement, positional scarcity, needs and
+surplus. Gains and fairness use the whole window; each package also shows this
+week's gain. 1-for-1 and 2-for-1
 frameworks are evaluated by re-optimising *both* lineups; a package is only
 shown if both teams gain and the exchanged value is within the fairness
 tolerance (`--fairness`, default 10%). Core starters are not offered unless the
@@ -137,7 +149,7 @@ Diagnostics (`ERROR`/`WARN`/`INFO`/`DEBUG`) go to stderr and the optional
 Fully offline — the suite never touches the network:
 
 ```bash
-bash tests/run.sh                 # 176 assertions
+bash tests/run.sh                 # 189 assertions
 python3 tests/make_fixtures.py    # regenerate fixtures
 ```
 
@@ -151,13 +163,14 @@ output formats, logging and encoding checks, plus regressions for bye-week
 drop advice, rolling-waiver detection, `Sus` suspensions, `--quiet` errors,
 offline cache isolation and non-retried 404s, locked starters and bench
 players, week rollover, missing schedule, `--locked`, DEF/K scoring fallback
-and two-way player attribution. The same suite and shellcheck
+two-way player attribution, multi-week stashes, bye-week trade
+exploitation and `--horizon`. The same suite and shellcheck
 run in GitHub Actions on every push.
 
 ## Limitations
 
-- Weekly projections only: no rest-of-season value, strength of schedule,
-  correlation or game-script modelling. Omitted components are disclosed in the
-  report rather than approximated.
-- Trade evaluation is single-week and does not price draft picks.
+- Value beyond the `--horizon` window (default this week + 3) is not modelled,
+  nor are strength of schedule, correlation or game script. Omitted components
+  are disclosed in the report rather than approximated.
+- Trade evaluation covers the window only and does not price draft picks.
 - The projection feed is unofficial and may change or disappear without notice.
