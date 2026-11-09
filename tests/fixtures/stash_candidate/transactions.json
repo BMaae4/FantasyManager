@@ -1,0 +1,10 @@
+[
+ {
+  "roster_ids": [
+   2
+  ],
+  "status": "complete",
+  "transaction_id": "tx1",
+  "type": "waiver"
+ }
+]

@@ -2,6 +2,24 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.2.0
+
+### Added
+
+- Multi-week window: projections for the next `--horizon` weeks (default 3,
+  0-6, `FM_HORIZON`) are fetched, cached and scored like this week's. A missing
+  week shortens the window with a warning.
+- Waivers fill the previously omitted rest-of-season component from the window,
+  show each player's `window_gain`, and can surface stashes (players on bye or
+  out this week who project well afterwards). FAAB bids and waiver-priority
+  advice use the average gain per window week.
+- Drop candidates are chosen by what the roster loses over the window, so
+  bye-week starters keep their value without a special rule (`--horizon 0`
+  keeps the 2.0.1 protection).
+- Trades are judged on optimal lineups across the window; positional needs use
+  window-average depth, so a partner's one-week bye is no longer exploited (the
+  week 9 "give Josh Allen" suggestion). Packages also report this week's gain.
+
 ## 2.1.0
 
 ### Added

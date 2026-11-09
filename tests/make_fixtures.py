@@ -313,9 +313,43 @@ def schedule_for(status_by_week_team: dict) -> list:
     return games
 
 
+FUTURE_WEEKS = (6, 7, 8)
+
+
+def with_future(data: dict, overrides: dict | None = None) -> dict:
+    """Add projections_w6..w8 (copies of week 5 unless already present).
+    `overrides` maps week -> {player_id: points or None (no projection)}."""
+    overrides = overrides or {}
+    base = data.get("projections")
+    if not isinstance(base, list):
+        return data
+    for week in FUTURE_WEEKS:
+        key = "projections_w%d" % week
+        if key in data:
+            continue
+        records = []
+        for record in base:
+            if not isinstance(record, dict) or "player_id" not in record:
+                continue
+            record = copy.deepcopy(record)
+            record["week"] = week
+            records.append(record)
+        for pid, points in (overrides.get(week) or {}).items():
+            records = [r for r in records if r["player_id"] != pid]
+            if points is not None:
+                position = data["players"][pid]["position"]
+                stats = stat_line(position, points)
+                stats["pts_ppr"] = points
+                records.append({"player_id": pid, "week": week, "season": "2025",
+                                "season_type": "regular", "company": "synthetic", "stats": stats})
+        data[key] = records
+    return data
+
+
 def write_case(out_dir: str, name: str, data: dict, raw: dict | None = None) -> None:
     case_dir = os.path.join(out_dir, name)
     os.makedirs(case_dir, exist_ok=True)
+    data = with_future(dict(data))  # shallow copy: never mutate the caller's data
     for key, value in data.items():
         with open(os.path.join(case_dir, "%s.json" % key), "w", encoding="utf-8", newline="\n") as fh:
             json.dump(value, fh, indent=1, sort_keys=True)
@@ -476,6 +510,8 @@ def main() -> int:
     #     suggested as a waiver drop
     bye = copy.deepcopy(base)
     bye["projections"] = [p for p in bye["projections"] if p["player_id"] != "rb2"]
+    # ...but he is back after the bye (week 6 onwards)
+    with_future(bye, {week: {"rb2": 11.0} for week in FUTURE_WEEKS})
     write_case(out_dir, "bye_week_bench", bye)
 
     # 20. rolling waivers: Sleeper still fills in waiver_budget
@@ -531,6 +567,26 @@ def main() -> int:
     )
     two_way["rosters"][2]["players"].append("t3_two")
     write_case(out_dir, "two_way_player", two_way)
+
+    # 27. free agent on bye this week who projects well afterwards: a stash
+    stash = copy.deepcopy(base)
+    stash["players"]["fa_stash"] = dict(stash["players"]["fa_wr2"])
+    stash["players"]["fa_stash"].update(
+        {"player_id": "fa_stash", "full_name": "Free Stash One", "first_name": "Free",
+         "last_name": "Stash", "team": "III", "depth_chart_order": 1}
+    )
+    with_future(stash, {week: {"fa_stash": 17.0} for week in FUTURE_WEEKS})
+    write_case(out_dir, "stash_candidate", stash)
+
+    # 28. a partner's quarterbacks are on bye this week only. Judged on this
+    #     week alone, trading my QB1 to them looks good for both sides; over
+    #     the window it is a bad deal for them, so it must not be proposed.
+    bye_qb = copy.deepcopy(base)
+    for pid in ("t3_qb1", "t3_qb2"):
+        bye_qb["players"][pid]["team"] = "III"
+    bye_qb["projections"] = [p for p in bye_qb["projections"] if p["player_id"] not in ("t3_qb1", "t3_qb2")]
+    with_future(bye_qb, {week: {"t3_qb1": 17.75, "t3_qb2": 10.75} for week in FUTURE_WEEKS})
+    write_case(out_dir, "bye_qb_partner", bye_qb)
 
     print("fixtures written to %s" % out_dir)
     return 0

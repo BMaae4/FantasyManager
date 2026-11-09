@@ -8,7 +8,7 @@
 set -euo pipefail
 
 TOOL_NAME="fantasy_manager"
-TOOL_VERSION="2.1.0"
+TOOL_VERSION="2.2.0"
 
 # --------------------------------------------------------------------------
 # Hardcoded defaults (run with no parameters)
@@ -21,6 +21,7 @@ DEFAULT_PROJECTIONS_BASE="https://api.sleeper.app/projections/nfl"
 DEFAULT_SCHEDULE_BASE="https://api.sleeper.com/schedule/nfl"
 DEFAULT_SEASON_TYPE="regular"
 DEFAULT_TOP_N="10"
+DEFAULT_HORIZON="3"             # future weeks valued alongside this one
 DEFAULT_FORMAT="text"
 DEFAULT_OUTPUT="-"
 DEFAULT_CHURN_THRESHOLD="0.5"
@@ -121,6 +122,8 @@ Data options:
 Analysis options:
       --threshold X        Suppress lineup churn below X projected points (default: 0.5)
       --fairness X         Trade fairness tolerance as a fraction (default: 0.10)
+      --horizon N          Future weeks valued for waivers, drops and trades, 0-6
+                           (default: 3; 0 = this week only)
       --locked LIST        Comma-separated player names or ids whose games have
                            started; they are never moved (added to auto-detection)
       --skip-waivers       Skip waiver analysis
@@ -186,6 +189,7 @@ parse_args() {
             --threshold)     need_value "$1" $#; set_cli threshold "$2"; shift 2 ;;
             --fairness)      need_value "$1" $#; set_cli fairness "$2"; shift 2 ;;
             --locked)        need_value "$1" $#; set_cli locked "$2"; shift 2 ;;
+            --horizon)       need_value "$1" $#; set_cli horizon "$2"; shift 2 ;;
             --skip-waivers)  set_cli skip_waivers 1; shift ;;
             --skip-trades)   set_cli skip_trades 1; shift ;;
             -f|--format)     need_value "$1" $#; set_cli format "$2"; shift 2 ;;
@@ -291,6 +295,9 @@ validate_config() {
     if ! is_uint "$TOP_N" || [ "$TOP_N" -lt 1 ] || [ "$TOP_N" -gt 50 ]; then
         die "$EX_USAGE" "Top N must be an integer between 1 and 50 (got '$TOP_N')."
     fi
+    if ! is_uint "$HORIZON" || [ "$HORIZON" -gt 6 ]; then
+        die "$EX_USAGE" "Horizon must be an integer between 0 and 6 (got '$HORIZON')."
+    fi
     is_number "$CHURN_THRESHOLD" \
         || die "$EX_USAGE" "Threshold must be numeric (got '$CHURN_THRESHOLD')."
     is_number "$FAIRNESS" \
@@ -324,6 +331,7 @@ load_configuration() {
     SCHEDULE_BASE="$(resolve schedule_base FM_SCHEDULE_BASE "$DEFAULT_SCHEDULE_BASE")"
     SCHEDULE_TTL="$(resolve schedule_ttl FM_SCHEDULE_TTL "$DEFAULT_SCHEDULE_TTL")"
     LOCKED="$(resolve locked FM_LOCKED "")"
+    HORIZON="$(resolve horizon FM_HORIZON "$DEFAULT_HORIZON")"
     WEEK="$(resolve week FM_WEEK "")"
     SEASON="$(resolve season FM_SEASON "")"
     SEASON_TYPE="$(resolve season_type FM_SEASON_TYPE "$DEFAULT_SEASON_TYPE")"
@@ -358,7 +366,7 @@ load_configuration() {
     log_debug "Effective configuration:"
     log_debug "  league_id=$LEAGUE_ID username=$USERNAME api=$API"
     log_debug "  projections_base=$PROJECTIONS_BASE season=${SEASON:-auto} week=${WEEK:-auto} season_type=$SEASON_TYPE"
-    log_debug "  top_n=$TOP_N threshold=$CHURN_THRESHOLD fairness=$FAIRNESS"
+    log_debug "  top_n=$TOP_N threshold=$CHURN_THRESHOLD fairness=$FAIRNESS horizon=$HORIZON"
     log_debug "  format=$FORMAT output=$OUTPUT log_level=$LOG_LEVEL log_file=${LOG_FILE:-none}"
     log_debug "  cache_dir=$CACHE_DIR projections_ttl=$PROJECTIONS_TTL no_cache=$NO_CACHE refresh=$REFRESH"
     log_debug "  offline=$OFFLINE fixtures=${FIXTURE_DIR:-none} config_file=$CONFIG_FILE"
@@ -785,6 +793,32 @@ load_projections() {
     log_info "Projections: $count records (source $PROJECTIONS_SOURCE)"
 }
 
+load_future_projections() {
+    # Projections for the next HORIZON weeks, scored like this week's. Each
+    # week is optional: a missing week shortens the window with a warning.
+    printf '{}\n' > "$TMP_DIR/future.json"
+    FUTURE_WEEKS=""
+    local i w url tmp="$TMP_DIR/future.tmp.json" missing=""
+    for (( i = 1; i <= HORIZON; i++ )); do
+        w=$(( WEEK + i ))
+        [ "$w" -le 18 ] || break
+        url="$PROJECTIONS_BASE/$SEASON/$w?season_type=$SEASON_TYPE&order_by=pts_ppr"
+        if fetch_json "projections_w$w" "$url" array "projections_${SEASON}_${SEASON_TYPE}_${w}" "$PROJECTIONS_TTL" 1 \
+            && jq -e '[.[] | select(has("player_id") and (.stats | type == "object"))] | length > 0' \
+                "$TMP_DIR/projections_w$w.json" >/dev/null 2>&1; then
+            jq --arg w "$w" --slurpfile p "$TMP_DIR/projections_w$w.json" '. + {($w): $p[0]}' \
+                "$TMP_DIR/future.json" > "$tmp" && mv -- "$tmp" "$TMP_DIR/future.json"
+            FUTURE_WEEKS="${FUTURE_WEEKS:+$FUTURE_WEEKS,}$w"
+        else
+            missing="${missing:+$missing, }$w"
+        fi
+    done
+    if [ -n "$missing" ]; then
+        add_warning "Projections for week(s) $missing unavailable; multi-week values use the remaining weeks."
+    fi
+    log_info "Future projection weeks: ${FUTURE_WEEKS:-none}"
+}
+
 load_activity() {
     TRENDING_AVAILABLE=false
     TRANSACTIONS_AVAILABLE=false
@@ -850,6 +884,8 @@ build_bundle() {
         --argjson schedule_available "$SCHEDULE_AVAILABLE" \
         --arg locked "$LOCKED" \
         --arg week_rolled_from "$WEEK_ROLLED_FROM" \
+        --slurpfile future "$TMP_DIR/future.json" \
+        --argjson horizon "$HORIZON" \
         '{
            config: {
              tool_version: $tool_version, generated_at: $generated_at,
@@ -859,7 +895,8 @@ build_bundle() {
              churn_threshold: $threshold, fairness: $fairness,
              skip_waivers: $skip_waivers, skip_trades: $skip_trades, offline: $offline,
              locked: ($locked | split(",") | map(gsub("^ +| +$"; "")) | map(select(length > 0))),
-             week_rolled_from: (if $week_rolled_from == "" then null else ($week_rolled_from | tonumber) end)
+             week_rolled_from: (if $week_rolled_from == "" then null else ($week_rolled_from | tonumber) end),
+             horizon: $horizon
            },
            provenance: {
              projections: {url: $projections_url, source: $projections_source,
@@ -874,6 +911,7 @@ build_bundle() {
            matchups: $matchups[0], players: $players[0], projections: $projections[0],
            trending_add: $trending[0], transactions: $transactions[0],
            schedule: $schedule[0],
+           future_projections: $future[0],
            diagnostics: $diagnostics[0]
          }' > "$TMP_DIR/bundle.json"
     log_debug "Analysis bundle: $(wc -c < "$TMP_DIR/bundle.json" | tr -d ' ') bytes"
@@ -965,6 +1003,9 @@ render_text() {
                  + (if .waivers.waiver.budget == null then ""
                     else "  budget " + (.waivers.waiver.budget|tostring) + ", remaining " + (.waivers.waiver.remaining|tostring) end),
                "  Weights: " + (.waivers.weights_used | to_entries | map(.key + " " + ((.value*100)|round|tostring) + "%") | join(", ")),
+               "  Window: " + (if ((.waivers.window_weeks // []) | length) > 1
+                               then "weeks " + (.waivers.window_weeks | map(tostring) | join(", ")) + " (\"win\" = gain over all of them)"
+                               else "this week only" end),
                "  Omitted components: " + (if (.waivers.omitted_components|length) == 0 then "none" else (.waivers.omitted_components | join(", ")) end),
                ""]
               + ( [ {t:"PRIORITY CLAIMS", g:.waivers.groups.priority},
@@ -976,6 +1017,7 @@ render_text() {
                             else (.g | map("    " + pad(.name + " (" + (.position // "?") + "/" + (.team // "FA") + ")"; 30)
                                    + "proj " + pad(n(.projection); 7)
                                    + "net " + pad(n(.net_gain); 7)
+                                   + (if .window_gain == null then "" else "win " + pad(n(.window_gain); 7) end)
                                    + "score " + pad(n(.score); 7)
                                    + (if .suggested_bid == null then "" else "bid $" + (.suggested_bid|tostring) + " (" + (.suggested_bid_pct|tostring) + "% est) " end)
                                    + (if .drop_candidate == null then "" else "drop " + .drop_candidate.name end)
@@ -999,6 +1041,7 @@ render_text() {
                               "    GIVE " + (.give | map(.name + " (" + (.position // "?") + ")") | join(" + "))
                               + "  GET " + (.get | map(.name + " (" + (.position // "?") + ")") | join(" + "))
                               + "  | my gain " + n(.my_gain) + ", their gain " + n(.their_gain)
+                              + (if (.window_weeks // 1) > 1 then " over " + (.window_weeks|tostring) + " wks (this wk " + n(.my_gain_this_week) + ")" else "" end)
                               + ", fairness gap " + n(.fairness_gap)))
                            end)
                         + [""]) | add)
@@ -1075,6 +1118,9 @@ render_markdown() {
                "- Waiver type: " + .waivers.waiver.type
                  + (if .waivers.waiver.budget == null then "" else " (budget " + (.waivers.waiver.budget|tostring) + ", remaining " + (.waivers.waiver.remaining|tostring) + ")" end),
                "- Weights: " + (.waivers.weights_used | to_entries | map(.key + " " + ((.value*100)|round|tostring) + "%") | join(", ")),
+               "- Window: " + (if ((.waivers.window_weeks // []) | length) > 1
+                               then "weeks " + (.waivers.window_weeks | map(tostring) | join(", "))
+                               else "this week only" end),
                "- Omitted components: " + (if (.waivers.omitted_components|length) == 0 then "none" else (.waivers.omitted_components|join(", ")) end),
                ""]
               + ( [ {t:"Priority claims", g:.waivers.groups.priority},
@@ -1082,11 +1128,11 @@ render_markdown() {
                     {t:"Streamers", g:.waivers.groups.streamers},
                     {t:"Avoid", g:.waivers.groups.avoid} ]
                   | map(["### " + .t, "",
-                         "| Player | Pos | Team | Proj | Net gain | Score | Bid (est) | Drop |",
-                         "| --- | --- | --- | ---: | ---: | ---: | --- | --- |"]
-                        + (if (.g|length) == 0 then ["| _(none)_ | | | | | | | |"]
+                         "| Player | Pos | Team | Proj | Net gain | Window gain | Score | Bid (est) | Drop |",
+                         "| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- |"]
+                        + (if (.g|length) == 0 then ["| _(none)_ | | | | | | | | |"]
                            else (.g | map("| " + .name + " | " + (.position // "?") + " | " + (.team // "FA")
-                                 + " | " + n(.projection) + " | " + n(.net_gain) + " | " + n(.score)
+                                 + " | " + n(.projection) + " | " + n(.net_gain) + " | " + n(.window_gain) + " | " + n(.score)
                                  + " | " + (if .suggested_bid == null then "n/a" else "$" + (.suggested_bid|tostring) + " (" + (.suggested_bid_pct|tostring) + "%)" end)
                                  + " | " + (if .drop_candidate == null then "n/a" else .drop_candidate.name end) + " |"))
                            end)
@@ -1103,9 +1149,9 @@ render_markdown() {
                      ["### " + (.team // ("roster " + (.roster_id|tostring))), "",
                       "- Needs: " + (if (.needs|length)==0 then "none" else (.needs|map(.position)|join(", ")) end), ""]
                      + (if (.packages|length)==0 then ["_No balanced package._", ""]
-                        else ["| Give | Get | My gain | Their gain | Fairness gap |", "| --- | --- | ---: | ---: | ---: |"]
+                        else ["| Give | Get | My gain (window) | Their gain (window) | My gain this week | Fairness gap |", "| --- | --- | ---: | ---: | ---: | ---: |"]
                              + (.packages | map("| " + (.give|map(.name)|join(" + ")) + " | " + (.get|map(.name)|join(" + "))
-                                 + " | " + n(.my_gain) + " | " + n(.their_gain) + " | " + n(.fairness_gap) + " |"))
+                                 + " | " + n(.my_gain) + " | " + n(.their_gain) + " | " + n(.my_gain_this_week) + " | " + n(.fairness_gap) + " |"))
                              + [""]
                         end)) | add)
                  end)
@@ -1148,6 +1194,7 @@ main() {
     resolve_user_and_roster
     load_players
     load_projections
+    load_future_projections
     load_activity
     build_bundle
     run_analysis
