@@ -2,6 +2,38 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.0.1
+
+### Fixed
+
+- `fantasy_manager.sh` and `tests/run.sh` are committed as executable, so
+  `./fantasy_manager.sh` works on a fresh clone (118 of 135 tests failed before).
+- The test suite used `--no-waivers`/`--no-trades`; the options are
+  `--skip-waivers`/`--skip-trades`.
+- `--offline` runs no longer read or write the default cache. Previously a
+  fixture run cached the synthetic player database for 24h and the next live
+  run used it.
+- Waiver drop suggestions no longer target bench players who have no
+  projection or are unavailable this week (bye week, Out, suspended). They are
+  listed in a warning instead.
+- Leagues are treated as FAAB only when `waiver_type` is 2. Sleeper also fills
+  in `waiver_budget` on rolling and reverse-standings leagues, which produced
+  FAAB bids there. Budget fields are omitted for non-FAAB leagues.
+- `--quiet` prints errors again (it suppressed everything, including fatal
+  errors).
+- Suspensions reported as injury_status `Sus` are blocked from lineups.
+- Only 408/429/5xx/connection errors are retried (with backoff); 404s fail
+  immediately. Removed `--retry-all-errors`, which needed curl 7.71+.
+- Ctrl-C/SIGTERM now stop the run instead of continuing after cleanup.
+- Replacement levels share FLEX-type slots between their eligible positions
+  instead of counting each as a full extra starter for every position.
+
+### Added
+
+- Regression fixtures (`bye_week_bench`, `rolling_waivers`,
+  `suspended_player`) and 16 regression assertions (151 total).
+- GitHub Actions workflow running shellcheck and the offline suite.
+
 ## 2.0.0
 
 Rewrite against the implementation brief. The hardcoded defaults

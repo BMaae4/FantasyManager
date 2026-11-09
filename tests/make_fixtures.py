@@ -450,6 +450,23 @@ def main() -> int:
     dynasty["rosters"][0]["reserve"] = ["rb3"]
     write_case(out_dir, "dynasty_taxi", dynasty)
 
+    # 19. strong bench player on bye (no projection this week): must not be
+    #     suggested as a waiver drop
+    bye = copy.deepcopy(base)
+    bye["projections"] = [p for p in bye["projections"] if p["player_id"] != "rb2"]
+    write_case(out_dir, "bye_week_bench", bye)
+
+    # 20. rolling waivers: Sleeper still fills in waiver_budget
+    rolling = copy.deepcopy(base)
+    rolling["league"]["settings"]["waiver_type"] = 0
+    rolling["league"]["settings"]["waiver_budget"] = 100
+    write_case(out_dir, "rolling_waivers", rolling)
+
+    # 21. suspended player, reported by Sleeper as injury_status "Sus"
+    suspended = copy.deepcopy(base)
+    suspended["players"]["rb3"]["injury_status"] = "Sus"
+    write_case(out_dir, "suspended_player", suspended)
+
     print("fixtures written to %s" % out_dir)
     return 0
 

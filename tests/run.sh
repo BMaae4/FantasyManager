@@ -313,7 +313,7 @@ assert_json "trade shows depth context" \
     '[.trades.partners[] | select(.depth_before == null)] | length == 0'
 assert_json "my needs identified" '.trades.my_needs != null'
 
-run_case ppr_basic --format json --no-waivers --no-trades
+run_case ppr_basic --format json --skip-waivers --skip-trades
 assert_json "waivers skippable" '.waivers == null'
 assert_json "trades skippable" '.trades == null'
 
@@ -422,6 +422,82 @@ if grep -q '\[INFO\]' "$LOGFILE" 2>/dev/null; then
 else
     fail "--log-file captures structured logs"
 fi
+
+# --------------------------------------------------------------------------
+section "regressions"
+# --------------------------------------------------------------------------
+# The script must be runnable as ./fantasy_manager.sh from a fresh clone.
+if [ -x "$SCRIPT" ]; then pass "script is executable"; else fail "script is executable"; fi
+if git -C "$ROOT" rev-parse >/dev/null 2>&1; then
+    if git -C "$ROOT" ls-files -s fantasy_manager.sh | grep -q '^100755'; then
+        pass "git records the executable bit"
+    else
+        fail "git records the executable bit" "run: git update-index --chmod=+x fantasy_manager.sh"
+    fi
+fi
+
+# --quiet must still print errors.
+run_case ppr_basic --league-id abc --quiet
+assert_status "--quiet bad league id exits 2" 2
+assert_match "--quiet still shows errors" "$STDERR" '\[ERROR\].*League id'
+
+# Offline fixture runs must not touch the default (real) cache directory.
+FAKE_XDG="$WORK/xdg_cache"
+mkdir -p "$FAKE_XDG"
+STDOUT="$(XDG_CACHE_HOME="$FAKE_XDG" FM_OFFLINE=1 FM_FIXTURES="$FIXTURES/ppr_basic" \
+    "$SCRIPT" --format json 2>"$WORK/stderr")"
+STATUS=$?
+assert_status "offline run without --cache-dir exits 0" 0
+if [ -z "$(find "$FAKE_XDG" -type f 2>/dev/null)" ]; then
+    pass "offline run leaves the default cache untouched"
+else
+    fail "offline run leaves the default cache untouched" "$(find "$FAKE_XDG" -type f)"
+fi
+
+# A bench player on bye (no projection) must not be suggested as a drop.
+run_case bye_week_bench --format json
+assert_status "bye week case exits 0" 0
+assert_json "bye-week bench player never suggested as drop" \
+    '[.waivers.groups[][] | .drop_candidate.player_id] | index("rb2") == null'
+assert_json "protected bye-week player is disclosed" \
+    '[.warnings[] | select(test("Not suggested as drops"))] | length == 1'
+
+# Rolling waivers with a populated waiver_budget are not FAAB.
+run_case rolling_waivers --format json
+assert_json "rolling waivers detected as waiver priority" '.waivers.waiver.type == "waiver priority"'
+assert_json "no FAAB bids for rolling waivers" \
+    '[.waivers.groups[][] | .suggested_bid | select(. != null)] | length == 0'
+assert_json "no budget shown for rolling waivers" '.waivers.waiver.budget == null'
+
+# Sleeper reports suspensions as injury_status "Sus".
+run_case suspended_player --format json
+assert_json "suspended (Sus) player not recommended" \
+    '[.lineup.slots[].recommended.player_id] | index("rb3") == null'
+assert_json "suspended player listed as excluded risk" \
+    '[.lineup.risk[] | select(.player_id == "rb3" and .excluded_from_recommendations)] | length == 1'
+
+# HTTP 404 is not retried (only 408/429/5xx/connection errors are).
+FAKE_BIN="$WORK/fakebin"
+mkdir -p "$FAKE_BIN"
+cat > "$FAKE_BIN/curl" <<'FAKE'
+#!/usr/bin/env bash
+echo call >> "$FAKE_CURL_LOG"
+out=""
+while [ $# -gt 0 ]; do
+    case "$1" in --output) out="$2"; shift 2 ;; *) shift ;; esac
+done
+[ -n "$out" ] && printf 'not found' > "$out"
+printf '%s' "${FAKE_CURL_STATUS:-404}"
+FAKE
+chmod +x "$FAKE_BIN/curl"
+FAKE_CURL_LOG="$WORK/curl_calls"
+: > "$FAKE_CURL_LOG"
+STDOUT="$(PATH="$FAKE_BIN:$PATH" FAKE_CURL_LOG="$FAKE_CURL_LOG" FAKE_CURL_STATUS=404 \
+    "$SCRIPT" --no-cache --format json 2>"$WORK/stderr")"
+STATUS=$?
+assert_status "404 on /state/nfl fails with data error" 4
+CALLS="$(wc -l < "$FAKE_CURL_LOG" | tr -d ' ')"
+if [ "$CALLS" = "1" ]; then pass "404 is not retried"; else fail "404 is not retried" "curl called $CALLS times"; fi
 
 # --------------------------------------------------------------------------
 printf '\n%s\n' "------------------------------------------------------------"
