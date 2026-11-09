@@ -98,7 +98,8 @@ advice is always for this week only.
 to the optimal lineup and above positional replacement — not by raw projection.
 With a window, each row also shows `window_gain` (gain summed over the window)
 and the rest-of-season component of the score uses it; players on bye this week
-can appear as stashes.
+can appear as stashes. A free agent whose game this week has already kicked
+off is judged on the next window week, since that is when a claim pays off.
 Each row carries the drop candidate, net gain, starter probability and risk
 notes, grouped into priority claims, bench upgrades/stashes, streamers and
 avoid. Score components without reliable data (schedule fit, and rest-of-season
@@ -149,7 +150,7 @@ Diagnostics (`ERROR`/`WARN`/`INFO`/`DEBUG`) go to stderr and the optional
 Fully offline — the suite never touches the network:
 
 ```bash
-bash tests/run.sh                 # 189 assertions
+bash tests/run.sh                 # 193 assertions
 python3 tests/make_fixtures.py    # regenerate fixtures
 ```
 

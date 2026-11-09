@@ -8,7 +8,7 @@
 set -euo pipefail
 
 TOOL_NAME="fantasy_manager"
-TOOL_VERSION="2.2.0"
+TOOL_VERSION="2.2.1"
 
 # --------------------------------------------------------------------------
 # Hardcoded defaults (run with no parameters)

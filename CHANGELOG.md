@@ -2,6 +2,18 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.2.1
+
+### Fixed
+
+- Once this week's games have kicked off, free agents whose game has started
+  scored "net 0" and priority claims came back empty, even though a claim made
+  now pays off next week. Such players are now judged on the next window week
+  (`evaluated_week`, noted in the row).
+- The risk list no longer shows injury tags for players who have already
+  played this week, and the locked list leaves out players who were
+  unavailable anyway.
+
 ## 2.2.0
 
 ### Added

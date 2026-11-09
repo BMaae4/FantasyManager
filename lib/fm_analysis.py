@@ -790,6 +790,8 @@ class Analyzer:
 
         risk = []
         for pid in sorted(set(usable) | current_ids, key=lambda p: (-self.points(p), str(p))):
+            if self.is_locked(pid):
+                continue  # already played this week: availability is moot
             info = self.player(pid)
             startable, notes = self.availability(pid)
             injury = lower(info.get("injury_status"))
@@ -818,7 +820,8 @@ class Analyzer:
 
         actions = [s for s in slots_out if s["action"] not in ("KEEP", "LOCKED")]
         locked_bench = [
-            pid for pid in usable if pid not in fixed.values() and self.is_locked(pid)
+            pid for pid in usable
+            if pid not in fixed.values() and self.is_locked(pid) and self.availability(pid)[0]
         ]
         return {
             "locks": {
@@ -1007,7 +1010,7 @@ class Analyzer:
 
         window = self.has_window
         n = self.n_weeks
-        baseline_window, _ = self.window_value(usable, fixed, use_locks=True)
+        baseline_window, baseline_weeks = self.window_value(usable, fixed, use_locks=True)
 
         # Candidates: unrostered players projected in any window week, so a
         # player on bye (or out) this week can still be found as a stash.
@@ -1065,8 +1068,17 @@ class Analyzer:
             if self.is_locked(pid):
                 notes = notes + ["game already started this week"]
             with_window, with_weeks = self.window_value(list(usable) + [pid], fixed, use_locks=True)
-            _, with_lineup = self.optimize_with_fixed(list(usable) + [pid], fixed)
-            lineup_gain = with_weeks[0] - baseline
+            # A player whose game this week has already kicked off cannot help
+            # until next week, which is also the week a waiver claim made now
+            # pays off. Judge him on the next window week instead of a
+            # guaranteed zero for this one.
+            eval_w = 1 if (window and self.is_locked(pid)) else 0
+            if eval_w == 0:
+                _, with_lineup = self.optimize_with_fixed(list(usable) + [pid], fixed)
+            else:
+                _, with_lineup = self.optimize(list(usable) + [pid], w=eval_w)
+                notes = notes + ["judged on week %d" % self.window_weeks[eval_w]]
+            lineup_gain = with_weeks[eval_w] - baseline_weeks[eval_w]
             can_help = startable or (window and with_window > baseline_window)
             best_drop = None
             best_total = None
@@ -1087,7 +1099,7 @@ class Analyzer:
             if can_help and best_drop is None:
                 notes = notes + ["no safe drop candidate on bench; needs an open roster spot"]
             if best_drop is not None:
-                net_gain = best_weeks[0] - baseline
+                net_gain = best_weeks[eval_w] - baseline_weeks[eval_w]
                 window_gain = best_total - baseline_window
             else:
                 net_gain = lineup_gain
@@ -1109,6 +1121,7 @@ class Analyzer:
                     "net_gain": r2(net_gain),
                     "window_gain": r2(window_gain) if window else None,
                     "would_start_this_week": pid in set(with_lineup.values()),
+                    "evaluated_week": self.window_weeks[eval_w] if self.window_weeks else None,
                     "drop_candidate": self.player_ref(best_drop) if best_drop else None,
                     "depth_chart_position": info.get("depth_chart_position"),
                     "depth_chart_order": info.get("depth_chart_order"),

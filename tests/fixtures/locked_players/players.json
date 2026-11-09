@@ -216,7 +216,7 @@
   "position": "WR",
   "practice_participation": null,
   "status": "Active",
-  "team": "EEE",
+  "team": "CCC",
   "years_exp": 3
  },
  "fa_wr2": {
@@ -349,7 +349,7 @@
   "first_name": "Ryan",
   "full_name": "Ryan Charlie",
   "injury_notes": null,
-  "injury_status": null,
+  "injury_status": "Questionable",
   "last_name": "Charlie",
   "news_updated": 1700000000000,
   "player_id": "rb3",

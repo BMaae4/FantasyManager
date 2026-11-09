@@ -517,6 +517,15 @@ assert_json "locked slots are not listed as actions" \
     '[.lineup.actions[] | select(.action == "LOCKED")] | length == 0'
 assert_json "projected final mixes live and projected points" '.matchup.my_projected_final == 99.4'
 assert_json "lock source uses the schedule" '.lineup.locks.source == "game schedule + live points"'
+assert_json "free agent whose game is over is judged on next week" \
+    '[.waivers.groups.priority[] | select(.player_id == "fa_wr1" and .evaluated_week == 6 and .net_gain > 0)] | length == 1'
+assert_json "next-week judgement is disclosed" \
+    '[.waivers.groups[][] | select(.player_id == "fa_wr1") | .notes[] | select(test("judged on week 6"))] | length == 1'
+assert_json "players who already played are left out of the risk list" \
+    '[.lineup.risk[] | select(.player_id == "rb3")] | length == 0'
+run_case locked_players --format json --horizon 0
+assert_json "without a window, a kicked-off free agent stays this-week" \
+    '[.waivers.groups[][] | select(.player_id == "fa_wr1") | .evaluated_week] | all(. == 5)'
 run_case locked_players --format text
 assert_match "text report lists locked players" "$STDOUT" 'Locked \(game started, cannot move\): Quinn Alpha'
 run_case locked_players --format markdown
