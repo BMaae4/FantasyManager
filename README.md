@@ -12,15 +12,52 @@ defaults (`1400680781302525952` / `MaTrasaMaae`).
 ./fantasy_manager.sh --format json  # machine readable
 ```
 
+## Windows
+
+Double-click **`FantasyManager.cmd`** (or run `.\FantasyManager.ps1`). A window
+opens and loads the current week:
+
+- **Toolbar:** league, user, week (blank = automatic), horizon, "Bypass cache",
+  Refresh, and open/save of report files.
+- **Header:** live score and projected final for your matchup, plus any
+  warnings.
+- **Tabs:** Lineup (colour-coded actions and risk list), Waivers, Trades,
+  Matchup and Diagnostics.
+
+Refresh runs in the background, so the window stays responsive.
+
+Needs only Windows PowerShell 5.1 (built in) or PowerShell 7, and Python 3.8+
+from python.org; no bash, jq or curl. Data, caching and analysis are the same
+as the bash script, and CI checks that both produce identical reports.
+
+```powershell
+.\FantasyManager.ps1                          # window
+.\FantasyManager.ps1 -NoGui -OutFile r.json   # JSON report, no window
+.\FantasyManager.ps1 -ReportFile r.json       # open a saved report
+Get-Help .\FantasyManager.ps1 -Detailed       # all parameters
+```
+
+Parameters mirror the bash options (`-LeagueId`, `-Username`, `-Week`,
+`-Horizon`, `-Locked`, `-Offline -Fixtures DIR`, ...). The same `FM_*`
+environment variables and a `config.env` file work. On Windows the config
+file lives in `%APPDATA%\fantasy_manager\config.env` and the cache in
+`%LOCALAPPDATA%\fantasy_manager`.
+
+If Python isn't on PATH, pass `-Python C:\path\to\python.exe` or set
+`FM_PYTHON`.
+
 ## Layout
 
 | Path | Purpose |
 | --- | --- |
 | `fantasy_manager.sh` | CLI, configuration, fetching, caching, validation, rendering |
+| `FantasyManager.ps1` / `.cmd` | Windows front end: same data layer in PowerShell, WPF window |
+| `lib/fm_io.py` | JSON validation and bundle assembly for the PowerShell front end |
 | `lib/fm_analysis.py` | Pure analysis: scoring, exact lineup assignment, waivers, trades (stdlib only) |
 | `tests/run.sh` | Offline test suite (no network) |
 | `tests/make_fixtures.py` | Regenerates the sanitized synthetic fixtures |
 | `tests/fixtures/` | Fixture cases, incl. failure modes |
+| `tests/parity.sh`, `tests/windows.ps1` | PowerShell vs bash report parity; Windows checks incl. GUI smoke test |
 | `samples/` | Example text, Markdown and JSON reports |
 
 ## Requirements
@@ -152,6 +189,7 @@ Fully offline — the suite never touches the network:
 ```bash
 bash tests/run.sh                 # 193 assertions
 python3 tests/make_fixtures.py    # regenerate fixtures
+bash tests/parity.sh              # PowerShell front end vs bash, every fixture (needs pwsh)
 ```
 
 Covered: PPR and custom scoring, superflex, overlapping flex slots, empty
@@ -165,8 +203,10 @@ drop advice, rolling-waiver detection, `Sus` suspensions, `--quiet` errors,
 offline cache isolation and non-retried 404s, locked starters and bench
 players, week rollover, missing schedule, `--locked`, DEF/K scoring fallback
 two-way player attribution, multi-week stashes, bye-week trade
-exploitation and `--horizon`. The same suite and shellcheck
-run in GitHub Actions on every push.
+exploitation and `--horizon`. The same suite, shellcheck
+and the parity check run in GitHub Actions on every push. A Windows job then runs
+`FantasyManager.ps1` under both Windows PowerShell 5.1 and PowerShell 7 against
+the bash reports for every fixture, and builds the window from a report.
 
 ## Limitations
 

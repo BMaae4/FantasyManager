@@ -15,6 +15,33 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y jq shellcheck
       - name: Shellcheck
-        run: shellcheck -S warning fantasy_manager.sh tests/run.sh
+        run: shellcheck -S warning fantasy_manager.sh tests/run.sh tests/parity.sh tests/make_expected.sh
       - name: Offline test suite
         run: bash tests/run.sh
+      - name: PowerShell parity (pwsh on Linux vs bash, every fixture)
+        run: bash tests/parity.sh
+      - name: Expected reports for the Windows job
+        run: bash tests/make_expected.sh expected
+      - uses: actions/upload-artifact@v4
+        with:
+          name: expected-reports
+          path: expected/
+
+  windows:
+    needs: offline-suite
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - uses: actions/download-artifact@v4
+        with:
+          name: expected-reports
+          path: expected
+      - name: Windows PowerShell 5.1
+        shell: cmd
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests\windows.ps1 -Expected expected
+      - name: PowerShell 7
+        shell: cmd
+        run: pwsh -NoProfile -File tests\windows.ps1 -Expected expected
