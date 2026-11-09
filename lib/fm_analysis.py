@@ -62,7 +62,8 @@ UNAVAILABLE_STATUSES = {
 }
 
 # Injury statuses that block a start outright versus ones that only add risk.
-BLOCKING_INJURY = {"out", "ir", "pup", "suspended", "doubtful", "na"}
+# Sleeper reports suspensions as injury_status "Sus".
+BLOCKING_INJURY = {"out", "ir", "pup", "sus", "suspended", "doubtful", "na"}
 RISK_INJURY = {"questionable", "doubtful", "limited participation", "did not participate"}
 
 AGGREGATE_FALLBACK_FIELDS = ("pts_ppr", "pts_half_ppr", "pts_std")
@@ -637,10 +638,17 @@ class Analyzer:
 
     def replacement_levels(self) -> Dict[str, float]:
         num_teams = len(self.rosters) or int(self.league.get("total_rosters") or 0) or 1
-        slot_counts: Dict[str, int] = {}
+        # A dedicated slot counts fully for its position; a multi-position
+        # slot (FLEX, SUPER_FLEX, IDP_FLEX...) is shared between the positions
+        # it accepts instead of counting as a whole extra starter for each.
+        slot_counts: Dict[str, float] = {}
         for slot in self.starting_slots:
-            for position in SLOT_ELIGIBILITY.get(slot.upper(), ()):
-                slot_counts[position] = slot_counts.get(position, 0) + 1
+            eligible = SLOT_ELIGIBILITY.get(slot.upper(), ())
+            if not eligible:
+                continue
+            share = 1.0 / len(eligible)
+            for position in eligible:
+                slot_counts[position] = slot_counts.get(position, 0.0) + share
         levels: Dict[str, float] = {}
         for position in self.league_positions():
             pool = sorted(
@@ -653,7 +661,8 @@ class Analyzer:
             )
             if not pool:
                 continue
-            index = min(len(pool) - 1, max(0, num_teams * slot_counts.get(position, 1) - 1))
+            starters = int(round(num_teams * slot_counts.get(position, 1.0)))
+            index = min(len(pool) - 1, max(0, starters - 1))
             levels[position] = pool[index]
         return levels
 
@@ -681,7 +690,9 @@ class Analyzer:
         remaining = None
         if isinstance(budget, (int, float)):
             remaining = float(budget) - float(used or 0)
-        if waiver_type_raw == 2 or (isinstance(budget, (int, float)) and budget > 0):
+        # Only waiver_type decides FAAB: Sleeper fills in waiver_budget
+        # (usually 100) on rolling and reverse-standings leagues too.
+        if waiver_type_raw == 2:
             waiver_type = "FAAB"
         elif waiver_type_raw in (0, 1):
             waiver_type = "waiver priority"
@@ -697,13 +708,29 @@ class Analyzer:
         candidates_all.sort(key=lambda p: (-self.points(p), str(p)))
         shortlist = candidates_all[: max(self.top_n * 6, 40)]
 
+        # Drop candidates are judged on this week's projection only, so a
+        # bench player with no projection (bye week) or who is unavailable
+        # this week (Out, Doubtful, suspended...) would look like the cheapest
+        # cut. Those players are protected: a one-week absence says nothing
+        # about their value. Only healthy, projected bench players qualify.
+        starters_now = set(baseline_lineup.values())
         droppable = [
             pid
             for pid in sorted(usable, key=lambda p: (self.points(p), str(p)))
-            if pid not in set(baseline_lineup.values())
+            if pid not in starters_now
+            and self.has_projection(pid)
+            and self.availability(pid)[0]
         ][:10]
-        if not droppable:
-            droppable = sorted(usable, key=lambda p: (self.points(p), str(p)))[:5]
+        protected = [
+            pid for pid in usable
+            if pid not in starters_now
+            and (not self.has_projection(pid) or not self.availability(pid)[0])
+        ]
+        if protected:
+            self.warn(
+                "Not suggested as drops (no projection or unavailable this week, "
+                "e.g. bye or injury): %s." % ", ".join(sorted(self.player_name(p) for p in protected))
+            )
 
         rows = []
         for pid in shortlist:
@@ -727,6 +754,8 @@ class Analyzer:
                     if best_key is None or key < best_key:
                         best_value = value
                         best_drop = drop
+            if startable and best_drop is None:
+                notes = notes + ["no safe drop candidate on bench; needs an open roster spot"]
             net_gain = (best_value - baseline) if best_value is not None else lineup_gain
             position = self.primary_position(pid)
             rows.append(
@@ -842,8 +871,8 @@ class Analyzer:
         return {
             "waiver": {
                 "type": waiver_type,
-                "budget": budget if isinstance(budget, (int, float)) else None,
-                "remaining": remaining,
+                "budget": budget if waiver_type == "FAAB" and isinstance(budget, (int, float)) else None,
+                "remaining": remaining if waiver_type == "FAAB" else None,
                 "note": "Bid suggestions are estimates, not market data.",
             },
             "weights_used": weights_used,

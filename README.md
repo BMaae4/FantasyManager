@@ -99,25 +99,28 @@ move materially improves the lineup.
 
 Every response is validated for JSON syntax *and* expected shape before use.
 HTML error pages, truncated JSON, empty arrays and schema changes are rejected.
-Transient HTTP failures (408, 429, 5xx, connection errors) are retried with
-connect/total timeouts. If projections cannot be retrieved, a non-expired cached
+Transient HTTP failures (408, 429, 5xx, connection errors) are retried up to
+four times with exponential backoff and connect/total timeouts; other 4xx
+responses (e.g. a mistyped username) fail immediately. If projections cannot be retrieved, a non-expired cached
 copy is used and prominently marked `STALE DATA` in every format; if no usable
 copy exists the run fails with exit 4 rather than scoring everyone at zero.
 
 Caches live in `~/.cache/fantasy_manager` (override with `--cache-dir`), are
 written atomically under an advisory lock, and use portable mtime handling on
 Linux and macOS. Temporary files are created with `mktemp -d` under `umask 077`
-and removed by an exit trap.
+and removed by an exit trap. `--offline` runs never read or write the default
+cache (so fixture data cannot leak into a live run); pass `--cache-dir`
+explicitly to cache fixture runs.
 
 Diagnostics (`ERROR`/`WARN`/`INFO`/`DEBUG`) go to stderr and the optional
-`--log-file`; only the report goes to stdout.
+`--log-file`; only the report goes to stdout. `--quiet` still prints errors.
 
 ## Tests
 
 Fully offline — the suite never touches the network:
 
 ```bash
-bash tests/run.sh                 # 135 assertions
+bash tests/run.sh                 # 151 assertions
 python3 tests/make_fixtures.py    # regenerate fixtures
 ```
 
@@ -127,7 +130,10 @@ malformed / empty / schema-changed projection responses, simulated HTTP 429 and
 500, stale-cache fallback and expiry, no eligible player for a required slot,
 missing projections, an already optimal lineup, unequal start/bench counts,
 dynasty taxi/reserve rosters, configuration precedence, caching, all three
-output formats, logging and encoding checks.
+output formats, logging and encoding checks, plus regressions for bye-week
+drop advice, rolling-waiver detection, `Sus` suspensions, `--quiet` errors,
+offline cache isolation and non-retried 404s. The same suite and shellcheck
+run in GitHub Actions on every push.
 
 ## Limitations
 

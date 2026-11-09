@@ -8,7 +8,7 @@
 set -euo pipefail
 
 TOOL_NAME="fantasy_manager"
-TOOL_VERSION="2.0.0"
+TOOL_VERSION="2.0.1"
 
 # --------------------------------------------------------------------------
 # Hardcoded defaults (run with no parameters)
@@ -40,7 +40,6 @@ WARNINGS=()
 DIAGNOSTICS_FILE=""
 FETCH_SOURCE=""
 FETCH_AGE="null"
-CURL_FAIL_FLAG="--fail"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 ANALYSIS_PY="$SCRIPT_DIR/lib/fm_analysis.py"
 
@@ -59,7 +58,7 @@ log_level_value() {
         WARN)  echo 1 ;;
         INFO)  echo 2 ;;
         DEBUG) echo 3 ;;
-        QUIET) echo -1 ;;
+        QUIET) echo 0 ;;   # errors only
         *)     echo 2 ;;
     esac
 }
@@ -337,6 +336,13 @@ load_configuration() {
     OFFLINE="$(resolve offline FM_OFFLINE "0")"
     FIXTURE_DIR="$(resolve fixtures FM_FIXTURES "")"
 
+    # Offline fixture data must never land in (or be read from) the real
+    # cache, or the next live run would serve synthetic players/projections.
+    # An explicitly chosen cache directory is still honoured for testing.
+    if [ "$OFFLINE" = "1" ] && [ "$CACHE_DIR" = "$DEFAULT_CACHE_DIR" ]; then
+        NO_CACHE=1
+    fi
+
     validate_config
 
     log_debug "Effective configuration:"
@@ -387,16 +393,16 @@ check_dependencies() {
     [ "$missing" -eq 0 ] || exit "$EX_DEPENDENCY"
     [ -f "$ANALYSIS_PY" ] \
         || die "$EX_DEPENDENCY" "Analysis helper not found at $ANALYSIS_PY"
-    if [ "$OFFLINE" != "1" ] && curl --help all 2>/dev/null | grep -q -- '--fail-with-body'; then
-        CURL_FAIL_FLAG="--fail-with-body"
-    fi
-    log_debug "jq $(jq --version 2>/dev/null), python3 $(python3 --version 2>&1), curl flag $CURL_FAIL_FLAG"
+    log_debug "jq $(jq --version 2>/dev/null), python3 $(python3 --version 2>&1)"
 }
 
 init_runtime() {
     umask 077
     TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/fantasy_manager.XXXXXX")"
-    trap 'rm -rf "$TMP_DIR"' EXIT INT TERM
+    trap 'rm -rf "$TMP_DIR"' EXIT
+    # Exit on signals (the EXIT trap then cleans up) instead of carrying on.
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
     DIAGNOSTICS_FILE="$TMP_DIR/diagnostics.json"
     printf '[]\n' > "$DIAGNOSTICS_FILE"
     if [ "$NO_CACHE" != "1" ]; then
@@ -510,21 +516,33 @@ fetch_offline() {
 
 fetch_url() {
     # fetch_url <url> <dest>; returns non-zero on transport/HTTP failure
-    local url="$1" dest="$2" status
-    status="$(curl --silent --show-error --location "$CURL_FAIL_FLAG" \
-        --connect-timeout 10 --max-time 45 \
-        --retry 3 --retry-delay 1 --retry-max-time 90 --retry-all-errors \
-        --write-out '%{http_code}' --output "$dest" \
-        --header 'Accept: application/json' \
-        --user-agent "$TOOL_NAME/$TOOL_VERSION" \
-        -- "$url" 2>"$TMP_DIR/curl.err")" || {
-            local err
-            err="$(head -c 300 -- "$TMP_DIR/curl.err" | tr -d '\n' | redact)"
-            log_debug "HTTP failure for $url (status ${status:-none}): ${err:-no message}; body: $(head -c 200 -- "$dest" 2>/dev/null | tr -d '\n' | redact)"
-            return 1
-        }
-    log_debug "HTTP $status $url ($(wc -c < "$dest" | tr -d ' ') bytes)"
-    return 0
+    # Retries only transient failures (connection errors, 408, 429, 5xx);
+    # a 404 or other 4xx fails immediately. Works on any curl version.
+    local url="$1" dest="$2" status attempt max_attempts=4 delay=1 err
+    for (( attempt = 1; attempt <= max_attempts; attempt++ )); do
+        status="$(curl --silent --show-error --location \
+            --connect-timeout 10 --max-time 45 \
+            --write-out '%{http_code}' --output "$dest" \
+            --header 'Accept: application/json' \
+            --user-agent "$TOOL_NAME/$TOOL_VERSION" \
+            -- "$url" 2>"$TMP_DIR/curl.err")" || status="${status:-000}"
+        case "$status" in
+            2??)
+                log_debug "HTTP $status $url ($(wc -c < "$dest" | tr -d ' ') bytes)"
+                return 0 ;;
+            000|408|429|5??)
+                err="$(head -c 300 -- "$TMP_DIR/curl.err" 2>/dev/null | tr -d '\n' | redact)"
+                log_debug "Transient failure for $url (status $status, attempt $attempt/$max_attempts): ${err:-no message}"
+                if [ "$attempt" -lt "$max_attempts" ]; then
+                    sleep "$delay"
+                    delay=$(( delay * 2 ))
+                fi ;;
+            *)
+                log_debug "HTTP $status for $url (not retried); body: $(head -c 200 -- "$dest" 2>/dev/null | tr -d '\n' | redact)"
+                return 1 ;;
+        esac
+    done
+    return 1
 }
 
 fetch_json() {
