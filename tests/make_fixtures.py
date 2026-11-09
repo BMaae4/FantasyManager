@@ -534,6 +534,10 @@ def main() -> int:
         if entry["roster_id"] == 1:
             entry["players_points"] = {"qb1": 21.4, "rb3": 19.0, "wr3": 2.0}
             entry["points"] = 21.4
+    # the best free agent's game is also final, and a locked bench player
+    # carries a (now moot) Questionable tag
+    locked["players"]["fa_wr1"]["team"] = "CCC"
+    locked["players"]["rb3"]["injury_status"] = "Questionable"
     write_case(out_dir, "locked_players", locked)
 
     # 23. every week 5 game is final: the week rolls over to 6
