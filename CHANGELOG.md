@@ -2,6 +2,34 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.1.0
+
+### Added
+
+- Locked players: starters whose game has kicked off are kept in place
+  (`LOCKED`) and bench players whose game has started are never moved in, so
+  Thursday-Sunday runs only suggest moves that can still be made. Sources: the
+  game schedule, live matchup points, and a new `--locked` option.
+- Week rollover: without `--week`, the report moves to the next week once every
+  game of the current week is final (Sleeper's state keeps the old week until
+  midweek). The report says when this happened.
+- Matchup "projected final": actual points for players who have played plus
+  projections for the rest.
+- Optional schedule provider (`FM_SCHEDULE_BASE`, `FM_SCHEDULE_TTL`), validated
+  and cached; the run continues with a warning when it is unavailable.
+
+### Fixed
+
+- Team-defense and kicker scores were partial sums when the league scored
+  categories the projection feed lacks (points-allowed tiers, 50+ yard field
+  goals, misses). Those positions now use Sleeper's projected total.
+- Two-way players starting in an offensive slot were counted at their listed
+  defensive position, producing needs like "DB" in leagues with no DB slot.
+- Trade frameworks now need at least 0.5 projected points for both teams (they
+  could show "their gain 0").
+- Text columns always keep at least one space (long names ran into the next
+  column).
+
 ## 2.0.1
 
 ### Fixed

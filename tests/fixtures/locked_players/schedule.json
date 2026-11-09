@@ -1,0 +1,66 @@
+[
+ {
+  "away": "BBB",
+  "date": "2025-10-02",
+  "game_id": "g5_AAA",
+  "home": "AAA",
+  "status": "pre_game",
+  "week": 5
+ },
+ {
+  "away": "DDD",
+  "date": "2025-10-02",
+  "game_id": "g5_CCC",
+  "home": "CCC",
+  "status": "complete",
+  "week": 5
+ },
+ {
+  "away": "FFF",
+  "date": "2025-10-02",
+  "game_id": "g5_EEE",
+  "home": "EEE",
+  "status": "pre_game",
+  "week": 5
+ },
+ {
+  "away": "HHH",
+  "date": "2025-10-02",
+  "game_id": "g5_GGG",
+  "home": "GGG",
+  "status": "pre_game",
+  "week": 5
+ },
+ {
+  "away": "BBB",
+  "date": "2025-10-03",
+  "game_id": "g6_AAA",
+  "home": "AAA",
+  "status": "pre_game",
+  "week": 6
+ },
+ {
+  "away": "DDD",
+  "date": "2025-10-03",
+  "game_id": "g6_CCC",
+  "home": "CCC",
+  "status": "pre_game",
+  "week": 6
+ },
+ {
+  "away": "FFF",
+  "date": "2025-10-03",
+  "game_id": "g6_EEE",
+  "home": "EEE",
+  "status": "pre_game",
+  "week": 6
+ },
+ {
+  "away": "HHH",
+  "date": "2025-10-03",
+  "game_id": "g6_GGG",
+  "home": "GGG",
+  "status": "pre_game",
+  "week": 6
+ }
+]

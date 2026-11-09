@@ -8,7 +8,7 @@
 set -euo pipefail
 
 TOOL_NAME="fantasy_manager"
-TOOL_VERSION="2.0.1"
+TOOL_VERSION="2.1.0"
 
 # --------------------------------------------------------------------------
 # Hardcoded defaults (run with no parameters)
@@ -17,6 +17,8 @@ DEFAULT_LEAGUE_ID="1400680781302525952"
 DEFAULT_USERNAME="MaTrasaMaae"
 DEFAULT_API="https://api.sleeper.app/v1"
 DEFAULT_PROJECTIONS_BASE="https://api.sleeper.app/projections/nfl"
+# Unofficial game schedule (status per game); optional, used for locks and week rollover.
+DEFAULT_SCHEDULE_BASE="https://api.sleeper.com/schedule/nfl"
 DEFAULT_SEASON_TYPE="regular"
 DEFAULT_TOP_N="10"
 DEFAULT_FORMAT="text"
@@ -28,6 +30,7 @@ DEFAULT_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/fantasy_manager"
 DEFAULT_PLAYERS_TTL="86400"     # 24h
 DEFAULT_PROJECTIONS_TTL="21600" # 6h
 DEFAULT_TRENDING_TTL="21600"    # 6h
+DEFAULT_SCHEDULE_TTL="300"      # 5m: game status changes on game days
 DEFAULT_STALE_MAX_AGE="604800"  # 7 days: oldest cache still usable as a fallback
 DEFAULT_CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/fantasy_manager/config.env"
 
@@ -109,7 +112,8 @@ Usage: fantasy_manager.sh [options]
 Data options:
   -l, --league-id ID       Sleeper league id (default: 1400680781302525952)
   -u, --username NAME      Sleeper username (default: MaTrasaMaae)
-  -w, --week N             NFL week, 1-18 (default: current week from /state/nfl)
+  -w, --week N             NFL week, 1-18 (default: current week from /state/nfl,
+                           or the next week once every game of it is complete)
   -s, --season YYYY        Season (default: current season from /state/nfl)
       --season-type TYPE   regular|pre|post (default: regular)
   -n, --top N              Number of ranked rows per section, 1-50 (default: 10)
@@ -117,6 +121,8 @@ Data options:
 Analysis options:
       --threshold X        Suppress lineup churn below X projected points (default: 0.5)
       --fairness X         Trade fairness tolerance as a fraction (default: 0.10)
+      --locked LIST        Comma-separated player names or ids whose games have
+                           started; they are never moved (added to auto-detection)
       --skip-waivers       Skip waiver analysis
       --skip-trades        Skip trade analysis
 
@@ -179,6 +185,7 @@ parse_args() {
             -n|--top)        need_value "$1" $#; set_cli top_n "$2"; shift 2 ;;
             --threshold)     need_value "$1" $#; set_cli threshold "$2"; shift 2 ;;
             --fairness)      need_value "$1" $#; set_cli fairness "$2"; shift 2 ;;
+            --locked)        need_value "$1" $#; set_cli locked "$2"; shift 2 ;;
             --skip-waivers)  set_cli skip_waivers 1; shift ;;
             --skip-trades)   set_cli skip_trades 1; shift ;;
             -f|--format)     need_value "$1" $#; set_cli format "$2"; shift 2 ;;
@@ -314,6 +321,9 @@ load_configuration() {
     USERNAME="$(resolve username FM_USERNAME "$DEFAULT_USERNAME")"
     API="$(resolve api FM_API "$DEFAULT_API")"
     PROJECTIONS_BASE="$(resolve projections_base FM_PROJECTIONS_BASE "$DEFAULT_PROJECTIONS_BASE")"
+    SCHEDULE_BASE="$(resolve schedule_base FM_SCHEDULE_BASE "$DEFAULT_SCHEDULE_BASE")"
+    SCHEDULE_TTL="$(resolve schedule_ttl FM_SCHEDULE_TTL "$DEFAULT_SCHEDULE_TTL")"
+    LOCKED="$(resolve locked FM_LOCKED "")"
     WEEK="$(resolve week FM_WEEK "")"
     SEASON="$(resolve season FM_SEASON "")"
     SEASON_TYPE="$(resolve season_type FM_SEASON_TYPE "$DEFAULT_SEASON_TYPE")"
@@ -352,7 +362,8 @@ load_configuration() {
     log_debug "  format=$FORMAT output=$OUTPUT log_level=$LOG_LEVEL log_file=${LOG_FILE:-none}"
     log_debug "  cache_dir=$CACHE_DIR projections_ttl=$PROJECTIONS_TTL no_cache=$NO_CACHE refresh=$REFRESH"
     log_debug "  offline=$OFFLINE fixtures=${FIXTURE_DIR:-none} config_file=$CONFIG_FILE"
-    log_debug "  skip_waivers=$SKIP_WAIVERS skip_trades=$SKIP_TRADES"
+    log_debug "  skip_waivers=$SKIP_WAIVERS skip_trades=$SKIP_TRADES locked=${LOCKED:-none}"
+    log_debug "  schedule_base=$SCHEDULE_BASE schedule_ttl=$SCHEDULE_TTL"
 }
 
 # --------------------------------------------------------------------------
@@ -632,13 +643,53 @@ load_state() {
         add_warning "Could not load NFL state; using supplied season/week."
     fi
     [ -n "$SEASON" ] || SEASON="$STATE_SEASON"
-    [ -n "$WEEK" ] || WEEK="$STATE_WEEK"
+    WEEK_AUTO=0
+    WEEK_ROLLED_FROM=""
+    if [ -z "$WEEK" ]; then
+        WEEK="$STATE_WEEK"
+        WEEK_AUTO=1
+    fi
     [ -n "$SEASON" ] || die "$EX_DATA" "Season unavailable from /state/nfl; pass --season YYYY."
     [ -n "$WEEK" ] || die "$EX_DATA" "Week unavailable from /state/nfl; pass --week N."
     if ! is_uint "$WEEK" || [ "$WEEK" -lt 1 ] || [ "$WEEK" -gt 18 ]; then
         die "$EX_DATA" "Resolved week '$WEEK' is out of range 1-18; pass --week N."
     fi
+    load_schedule
+    # /state/nfl keeps reporting a week until midweek. Once every game of that
+    # week is final, lineup and waiver advice is only useful for the next one.
+    if [ "$WEEK_AUTO" = "1" ] && [ "$SCHEDULE_AVAILABLE" = "true" ] && [ "$WEEK" -lt 18 ] \
+        && [ "$(schedule_week_state "$WEEK")" = "complete" ]; then
+        WEEK_ROLLED_FROM="$WEEK"
+        WEEK=$(( WEEK + 1 ))
+        log_info "Every week $WEEK_ROLLED_FROM game is final; analysing week $WEEK instead (pass --week to override)."
+    fi
     log_info "Season $SEASON, week $WEEK, season type $SEASON_TYPE"
+}
+
+schedule_week_state() {
+    # schedule_week_state <week> -> complete | started | upcoming | unknown
+    jq -r --arg w "$1" '
+        [ .[] | select(type == "object" and ((.week // "") | tostring) == $w) | (.status // "" | ascii_downcase) ] as $s
+        | if ($s | length) == 0 then "unknown"
+          elif all($s[]; . == "complete") then "complete"
+          elif any($s[]; . == "complete" or . == "in_game") then "started"
+          else "upcoming" end' "$TMP_DIR/schedule.json"
+}
+
+load_schedule() {
+    # Optional, unofficial dependency. Without it, locks fall back to live
+    # points and the week is never advanced automatically.
+    SCHEDULE_AVAILABLE=false
+    local url="$SCHEDULE_BASE/$SEASON_TYPE/$SEASON"
+    if fetch_json schedule "$url" array "schedule_${SEASON}_${SEASON_TYPE}" "$SCHEDULE_TTL" 0 \
+        && jq -e '[ .[] | select(type == "object" and has("week") and has("home") and has("away") and has("status")) ] | length > 0' \
+            "$TMP_DIR/schedule.json" >/dev/null 2>&1; then
+        SCHEDULE_AVAILABLE=true
+        log_info "Schedule: $(jq -r 'length' "$TMP_DIR/schedule.json") games"
+    else
+        printf '[]\n' > "$TMP_DIR/schedule.json"
+        add_warning "Game schedule unavailable; locked players are detected from live points only (use --locked to add more). If this week's games are over, pass --week to analyse the next week."
+    fi
 }
 
 load_league() {
@@ -795,6 +846,10 @@ build_bundle() {
         --argjson players_age "$PLAYERS_AGE" \
         --argjson trending_available "$TRENDING_AVAILABLE" \
         --argjson transactions_available "$TRANSACTIONS_AVAILABLE" \
+        --slurpfile schedule "$TMP_DIR/schedule.json" \
+        --argjson schedule_available "$SCHEDULE_AVAILABLE" \
+        --arg locked "$LOCKED" \
+        --arg week_rolled_from "$WEEK_ROLLED_FROM" \
         '{
            config: {
              tool_version: $tool_version, generated_at: $generated_at,
@@ -802,19 +857,23 @@ build_bundle() {
              season: $season, season_type: $season_type, week: $week,
              my_roster_id: $my_roster_id, top_n: $top_n,
              churn_threshold: $threshold, fairness: $fairness,
-             skip_waivers: $skip_waivers, skip_trades: $skip_trades, offline: $offline
+             skip_waivers: $skip_waivers, skip_trades: $skip_trades, offline: $offline,
+             locked: ($locked | split(",") | map(gsub("^ +| +$"; "")) | map(select(length > 0))),
+             week_rolled_from: (if $week_rolled_from == "" then null else ($week_rolled_from | tonumber) end)
            },
            provenance: {
              projections: {url: $projections_url, source: $projections_source,
                            cache_age_seconds: $projections_age, fetched_at: $projections_fetched_at},
              players: {source: $players_source, cache_age_seconds: $players_age},
              trending_available: $trending_available,
-             transactions_available: $transactions_available
+             transactions_available: $transactions_available,
+             schedule_available: $schedule_available
            },
            warnings: $warnings,
            league: $league[0], rosters: $rosters[0], users: $users[0],
            matchups: $matchups[0], players: $players[0], projections: $projections[0],
            trending_add: $trending[0], transactions: $transactions[0],
+           schedule: $schedule[0],
            diagnostics: $diagnostics[0]
          }' > "$TMP_DIR/bundle.json"
     log_debug "Analysis bundle: $(wc -c < "$TMP_DIR/bundle.json" | tr -d ' ') bytes"
@@ -840,7 +899,7 @@ run_analysis() {
 render_text() {
     jq -r '
       def n(x): if x == null then "n/a" else (x * 10 | round / 10 | tostring) end;
-      def pad(s; w): (s | tostring) as $s | $s + (" " * (if w > ($s|length) then w - ($s|length) else 0 end));
+      def pad(s; w): (s | tostring) as $s | $s + (" " * (if w > ($s|length) then w - ($s|length) else 1 end));
       def line: "-" * 72;
       def player(p): if p == null then "(empty)"
                      else (p.name // "unknown") + " " + "(" + (p.position // "?") + "/" + (p.team // "FA") + ")"
@@ -851,7 +910,12 @@ render_text() {
         "Manager: " + .metadata.username + "   Team: " + (.metadata.team_name // "n/a"),
         "Generated: " + .metadata.generated_at + "   Tool: fantasy_manager " + .metadata.tool_version,
         "=" * 72,
-        "",
+        ""
+      ]
+      + (if .metadata.week_rolled_from == null then []
+         else ["NOTE: every week " + (.metadata.week_rolled_from|tostring) + " game is final, so this report is for week "
+               + (.metadata.week|tostring) + " (pass --week to override).", ""] end)
+      + [
         "SCORING: " + .metadata.scoring.mode + " (source: " + .metadata.scoring.source + ")",
         "PROJECTIONS: " + .metadata.projections.source + " | " + .metadata.projections.url,
         "  fetched " + (.metadata.projections.fetched_at // "n/a")
@@ -866,8 +930,13 @@ render_text() {
       + ["LINEUP - week " + (.metadata.week|tostring), line,
          "  Current projected:   " + n(.lineup.current_points),
          "  Optimal projected:   " + n(.lineup.optimal_points),
-         "  Potential gain:      " + n(.lineup.gain),
-         ""]
+         "  Potential gain:      " + n(.lineup.gain)]
+      + (if ((.lineup.locks.locked_starters // []) | length) + ((.lineup.locks.locked_bench // []) | length) > 0
+         then ["  Locked (game started, cannot move): "
+               + (((.lineup.locks.locked_starters // []) + (.lineup.locks.locked_bench // [])) | map(.name) | join(", ")),
+               "  Lock source: " + .lineup.locks.source]
+         else [] end)
+      + [""]
       + ["  " + pad("SLOT"; 12) + pad("CURRENT"; 26) + pad("RECOMMENDED"; 26) + pad("ACTION"; 12) + "GAIN"]
       + (.lineup.slots | map(
             "  " + pad(.slot; 12) + pad(player(.current); 26) + pad(player(.recommended); 26)
@@ -887,6 +956,8 @@ render_text() {
                "  Projected (current lineups): " + n(.matchup.my_projected) + "  vs  " + n(.matchup.opponent_projected),
                "  Differential: " + n(.matchup.differential),
                "  Live/final points: " + n(.matchup.my_points) + "  vs  " + n(.matchup.opponent_points),
+               "  Projected final (live + remaining): " + n(.matchup.my_projected_final) + "  vs  " + n(.matchup.opponent_projected_final)
+                 + "  (" + n(.matchup.final_differential) + ")",
                "  Note: " + .matchup.note, ""] end)
       + (if .waivers == null then ["WAIVERS: skipped", ""]
          else ["WAIVERS", line,
@@ -952,7 +1023,9 @@ render_markdown() {
       [
         "# Fantasy Manager - " + (.metadata.league_name // "league") + " - Week " + (.metadata.week|tostring),
         "",
-        "- Season: " + .metadata.season + " (" + .metadata.season_type + ")",
+        "- Season: " + .metadata.season + " (" + .metadata.season_type + ")"
+          + (if .metadata.week_rolled_from == null then ""
+             else " - week " + (.metadata.week_rolled_from|tostring) + " is final, showing week " + (.metadata.week|tostring) end),
         "- Manager: " + .metadata.username + " - Team: " + (.metadata.team_name // "n/a"),
         "- Generated: " + .metadata.generated_at + " by fantasy_manager " + .metadata.tool_version,
         "- Scoring: " + .metadata.scoring.mode + " (source: " + .metadata.scoring.source + ")",
@@ -970,7 +1043,13 @@ render_markdown() {
          "| Current | " + n(.lineup.current_points) + " |",
          "| Optimal | " + n(.lineup.optimal_points) + " |",
          "| Gain | " + n(.lineup.gain) + " |",
-         "",
+         ""]
+      + (if ((.lineup.locks.locked_starters // []) | length) + ((.lineup.locks.locked_bench // []) | length) > 0
+         then ["Locked (game started): "
+               + (((.lineup.locks.locked_starters // []) + (.lineup.locks.locked_bench // [])) | map(.name) | join(", "))
+               + " _(" + .lineup.locks.source + ")_", ""]
+         else [] end)
+      + [
          "| Slot | Current | Recommended | Action | Gain |",
          "| --- | --- | --- | --- | ---: |"]
       + (.lineup.slots | map("| " + .slot + " | " + player(.current) + " | " + player(.recommended)
@@ -988,7 +1067,9 @@ render_markdown() {
                "| --- | ---: | ---: |",
                "| " + (.matchup.my_team // "me") + " | " + n(.matchup.my_projected) + " | " + n(.matchup.my_points) + " |",
                "| " + (.matchup.opponent_team // "unknown") + " | " + n(.matchup.opponent_projected) + " | " + n(.matchup.opponent_points) + " |",
-               "", "Differential: " + n(.matchup.differential), "", "> " + .matchup.note, ""] end)
+               "", "Differential: " + n(.matchup.differential),
+               "", "Projected final (live + remaining): " + n(.matchup.my_projected_final) + " vs " + n(.matchup.opponent_projected_final),
+               "", "> " + .matchup.note, ""] end)
       + (if .waivers == null then []
          else ["## Waivers", "",
                "- Waiver type: " + .waivers.waiver.type
