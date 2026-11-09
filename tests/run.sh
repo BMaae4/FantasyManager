@@ -500,6 +500,66 @@ CALLS="$(wc -l < "$FAKE_CURL_LOG" | tr -d ' ')"
 if [ "$CALLS" = "1" ]; then pass "404 is not retried"; else fail "404 is not retried" "curl called $CALLS times"; fi
 
 # --------------------------------------------------------------------------
+section "locks, week rollover and live matchup"
+# --------------------------------------------------------------------------
+run_case locked_players --format json
+assert_status "locked case exits 0" 0
+assert_json "starter with live points is LOCKED in place" \
+    '.lineup.slots[0] | .action == "LOCKED" and .recommended.player_id == "qb1"'
+assert_json "bench players whose game is final are never started" \
+    '[.lineup.slots[].recommended.player_id] | (index("rb3") == null and index("wr3") == null)'
+assert_json "open slot still optimised around locks" \
+    '[.lineup.slots[] | select(.slot == "FLEX")][0].recommended.player_id == "rb5"'
+assert_json "locked bench players reported" \
+    '[.lineup.locks.locked_bench[].player_id] == ["rb3","rb4","wr3","wr4"]'
+assert_json "locked slots are not listed as actions" \
+    '[.lineup.actions[] | select(.action == "LOCKED")] | length == 0'
+assert_json "projected final mixes live and projected points" '.matchup.my_projected_final == 99.4'
+assert_json "lock source uses the schedule" '.lineup.locks.source == "game schedule + live points"'
+run_case locked_players --format text
+assert_match "text report lists locked players" "$STDOUT" 'Locked \(game started, cannot move\): Quinn Alpha'
+run_case locked_players --format markdown
+assert_match "markdown lists locked players" "$STDOUT" 'Locked \(game started\)'
+
+run_case ppr_basic --format json
+assert_json "pre-game week has no locks" \
+    '(.lineup.locks.locked_starters | length) == 0 and (.lineup.locks.locked_bench | length) == 0'
+
+run_case week_complete --format json
+assert_json "finished week rolls over to the next" '.metadata.week == 6 and .metadata.week_rolled_from == 5'
+run_case week_complete --format json --week 5
+assert_json "explicit --week is never rolled over" '.metadata.week == 5 and .metadata.week_rolled_from == null'
+run_case week_complete --format text
+assert_match "rollover explained in text report" "$STDOUT" 'every week 5 game is final'
+
+run_case no_schedule --format json
+assert_status "missing schedule is not fatal" 0
+assert_json "missing schedule warns" '[.warnings[] | select(test("schedule unavailable"))] | length == 1'
+assert_json "live points still lock players without a schedule" \
+    '[.lineup.slots[] | select(.action == "LOCKED") | .current.player_id] == ["rb2"]'
+assert_json "zero live points do not lock" '.lineup.slots[0].action != "LOCKED"'
+
+run_case ppr_basic --format json --locked "Wes Charlie, nobody here"
+assert_json "--locked by name keeps a player out" '[.lineup.slots[].recommended.player_id] | index("wr3") == null'
+assert_json "unmatched --locked entries are reported" '[.warnings[] | select(test("nobody here"))] | length == 1'
+
+# --------------------------------------------------------------------------
+section "position scoring fallback and trade attribution"
+# --------------------------------------------------------------------------
+run_case kdef_fallback --format json
+assert_json "DEF and K switch to the provider total" '.metadata.scoring.position_fallback == {"DEF":"pts_ppr","K":"pts_ppr"}'
+assert_json "fallback explained in the warning" '[.warnings[] | select(test("DEF and K use"))] | length == 1'
+run_case ppr_basic --format json
+assert_json "no fallback when DEF/K categories are covered" '.metadata.scoring.position_fallback == {}'
+
+run_case two_way_player --format json
+assert_json "two-way player not counted as a DB need" \
+    '(.trades.league_average_depth | has("DB") | not) and ([.trades.my_needs[].position] | index("DB") == null)'
+run_case ppr_basic --format json
+assert_json "trade frameworks need a real gain for both sides" \
+    '[.trades.partners[].packages[] | select(.my_gain < 0.5 or .their_gain < 0.5)] | length == 0'
+
+# --------------------------------------------------------------------------
 printf '\n%s\n' "------------------------------------------------------------"
 printf 'passed: %d   failed: %d\n' "$PASS" "$FAIL"
 if [ "$FAIL" -gt 0 ]; then

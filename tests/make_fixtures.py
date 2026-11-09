@@ -288,7 +288,29 @@ def build_base() -> dict:
         "transactions": [
             {"transaction_id": "tx1", "type": "waiver", "status": "complete", "roster_ids": [2]}
         ],
+        "schedule": schedule_for({}),
     }
+
+
+def schedule_for(status_by_week_team: dict) -> list:
+    """Weeks 5 and 6, four games each; every game pre_game unless overridden
+    as {(week, team): status}."""
+    games = []
+    for week in (5, 6):
+        for i in range(0, len(TEAMS), 2):
+            home, away = TEAMS[i], TEAMS[i + 1]
+            status = status_by_week_team.get((week, home)) or status_by_week_team.get((week, away)) or "pre_game"
+            games.append(
+                {
+                    "week": week,
+                    "game_id": "g%d_%s" % (week, home),
+                    "date": "2025-10-0%d" % (week - 3),
+                    "home": home,
+                    "away": away,
+                    "status": status,
+                }
+            )
+    return games
 
 
 def write_case(out_dir: str, name: str, data: dict, raw: dict | None = None) -> None:
@@ -466,6 +488,49 @@ def main() -> int:
     suspended = copy.deepcopy(base)
     suspended["players"]["rb3"]["injury_status"] = "Sus"
     write_case(out_dir, "suspended_player", suspended)
+
+    # 22. mixed locks: the CCC-DDD game is final (my bench rb3/wr3/rb4/wr4
+    #     cannot be moved in) and live points lock my starting QB; everything
+    #     else is still open.
+    locked = copy.deepcopy(base)
+    locked["schedule"] = schedule_for({(5, "CCC"): "complete"})
+    for entry in locked["matchups"]:
+        if entry["roster_id"] == 1:
+            entry["players_points"] = {"qb1": 21.4, "rb3": 19.0, "wr3": 2.0}
+            entry["points"] = 21.4
+    write_case(out_dir, "locked_players", locked)
+
+    # 23. every week 5 game is final: the week rolls over to 6
+    final = copy.deepcopy(base)
+    final["schedule"] = schedule_for({(5, team): "complete" for team in TEAMS})
+    write_case(out_dir, "week_complete", final)
+
+    # 24. no schedule: locks come from live points only
+    no_sched = copy.deepcopy(base)
+    del no_sched["schedule"]
+    for entry in no_sched["matchups"]:
+        if entry["roster_id"] == 1:
+            entry["players_points"] = {"rb2": 5.0, "wr3": 4.0, "qb1": 0}
+    write_case(out_dir, "no_schedule", no_sched)
+
+    # 25. league scores DEF/K categories the projection feed lacks
+    kdef = copy.deepcopy(base)
+    kdef["league"]["scoring_settings"].update({"pts_allow_0": 10, "fgm_50_59": 5})
+    write_case(out_dir, "kdef_fallback", kdef)
+
+    # 26. two-way player (listed DB, also WR-eligible) starting for roster 3
+    two_way = copy.deepcopy(base)
+    two_way["players"]["t3_two"] = dict(two_way["players"]["t3_wr1"])
+    two_way["players"]["t3_two"].update(
+        {"player_id": "t3_two", "full_name": "Team3 TwoWay", "first_name": "Team3",
+         "last_name": "TwoWay", "position": "DB", "fantasy_positions": ["WR", "DB"]}
+    )
+    two_way["projections"].append(
+        {"player_id": "t3_two", "week": 5, "season": "2025", "season_type": "regular",
+         "company": "synthetic", "stats": {"rec": 6, "rec_yd": 90, "pts_ppr": 15.0}}
+    )
+    two_way["rosters"][2]["players"].append("t3_two")
+    write_case(out_dir, "two_way_player", two_way)
 
     print("fixtures written to %s" % out_dir)
     return 0

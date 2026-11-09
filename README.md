@@ -38,6 +38,7 @@ Run `./fantasy_manager.sh --help` for the full list. Frequently used:
 -l, --league-id ID     -u, --username NAME    -w, --week N       -s, --season YYYY
 -n, --top N            -f, --format text|json|markdown           -o, --output PATH
     --threshold X          --fairness X       --skip-waivers         --skip-trades
+    --locked LIST
     --cache-dir DIR        --cache-ttl SEC    --no-cache             --refresh
     --offline              --fixtures DIR     --config PATH
 -q, --quiet            -v, --verbose          --debug                --log-file PATH
@@ -58,7 +59,11 @@ error (including "projections unavailable").
 matching stat in the projection feed are excluded and listed explicitly
 (`metadata.scoring.unsupported_keys` and a warning). If the league has no usable
 scoring settings, the provider's aggregate (`pts_ppr`) is used and the report
-says so.
+says so. When a league scores team-defense or kicker categories the feed has no
+stat for (points-allowed tiers, 50+ yard field goals, misses...), adding up the
+remaining categories would undercount those positions unevenly, so DEF and/or K
+switch to Sleeper's projected total (default scoring) and the report lists this
+under `metadata.scoring.position_fallback`.
 
 **Lineup.** Slots are filled by exact maximum-weight assignment (min-cost
 max-flow), not greedy allocation, so overlapping FLEX/SUPER_FLEX/IDP slots are
@@ -70,8 +75,16 @@ Changes below `--threshold` are marked `below_threshold` and repeated under
 Unavailable players (inactive, retired, suspended, exempt, out, IR, PUP,
 doubtful) are never recommended and appear in a separate risk section.
 
-**Matchup.** Opponent, both projected totals, the differential and live points
-where the week has started. Correlation and game script are *not* modelled and
+**Locks and week selection.** Players whose game has kicked off are locked:
+a locked starter stays in his slot (`LOCKED`) and a locked bench player is never
+moved in, so mid-week runs only suggest moves you can still make. Locks come
+from Sleeper's game schedule (status per team), live points in the week's
+matchups, and `--locked "Name, Name"` for anything else. Without `--week`, once
+every game of the current week is final the report moves to the next week.
+
+**Matchup.** Opponent, both projected totals, the differential, live points
+and a projected final (actual points for players who have played plus
+projections for the rest). Correlation and game script are *not* modelled and
 the report says so.
 
 **Waivers.** Free agents are ranked by incremental roster value — what they add
@@ -96,6 +109,10 @@ move materially improves the lineup.
 - Projections: `https://api.sleeper.app/projections/nfl/<season>/<week>` — this
   endpoint is **not** part of Sleeper's documented API and is treated as an
   unstable dependency behind a single cached provider function.
+- Schedule: `https://api.sleeper.com/schedule/nfl/<season_type>/<season>` — also
+  undocumented and optional (cached 5 minutes, override with `FM_SCHEDULE_BASE`).
+  If it is unavailable or its shape changes, locks fall back to live points, the
+  week is not advanced automatically, and the report says so.
 
 Every response is validated for JSON syntax *and* expected shape before use.
 HTML error pages, truncated JSON, empty arrays and schema changes are rejected.
@@ -120,7 +137,7 @@ Diagnostics (`ERROR`/`WARN`/`INFO`/`DEBUG`) go to stderr and the optional
 Fully offline — the suite never touches the network:
 
 ```bash
-bash tests/run.sh                 # 151 assertions
+bash tests/run.sh                 # 176 assertions
 python3 tests/make_fixtures.py    # regenerate fixtures
 ```
 
@@ -132,7 +149,9 @@ missing projections, an already optimal lineup, unequal start/bench counts,
 dynasty taxi/reserve rosters, configuration precedence, caching, all three
 output formats, logging and encoding checks, plus regressions for bye-week
 drop advice, rolling-waiver detection, `Sus` suspensions, `--quiet` errors,
-offline cache isolation and non-retried 404s. The same suite and shellcheck
+offline cache isolation and non-retried 404s, locked starters and bench
+players, week rollover, missing schedule, `--locked`, DEF/K scoring fallback
+and two-way player attribution. The same suite and shellcheck
 run in GitHub Actions on every push.
 
 ## Limitations

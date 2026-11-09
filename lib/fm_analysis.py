@@ -68,6 +68,28 @@ RISK_INJURY = {"questionable", "doubtful", "limited participation", "did not par
 
 AGGREGATE_FALLBACK_FIELDS = ("pts_ppr", "pts_half_ppr", "pts_std")
 
+# Scoring categories that belong to team defenses and kickers. When a league
+# scores one of these and the projection feed has no matching stat, adding up
+# the categories that *are* present undercounts that position by a varying
+# amount (e.g. points-allowed tiers), so the whole position switches to the
+# provider's projected total instead.
+# Entries ending in "_" are prefixes; the rest are exact keys.
+POSITION_SCORING_FAMILIES = {
+    "DEF": ("pts_allow", "pts_allow_", "yds_allow", "yds_allow_", "def_", "sack", "int",
+            "fum_rec", "safe", "blk_kick", "ff"),
+    "K": ("fgm", "fgm_", "fga", "fga_", "fgmiss", "fgmiss_", "xpm", "xpmiss"),
+}
+
+
+def in_family(key: str, family: Tuple[str, ...]) -> bool:
+    return any(key.startswith(entry) if entry.endswith("_") else key == entry for entry in family)
+
+# Minimum projected gain, for each side, before a trade framework is shown.
+MIN_TRADE_GAIN = 0.5
+
+# Schedule statuses that mean a game has kicked off.
+STARTED_GAME_STATUSES = {"in_game", "complete"}
+
 WAIVER_WEIGHTS = {
     "roster_improvement": 0.40,
     "rest_of_season_value": 0.25,
@@ -217,6 +239,74 @@ class Analyzer:
             for pid in self._roster_all_players(roster):
                 self.rostered[pid] = roster.get("roster_id")
 
+        self.position_fallback: Dict[str, str] = {}
+        self._init_locks()
+
+    # -- locks (games already started) -----------------------------------
+    def _init_locks(self) -> None:
+        """Work out which players' games have kicked off this week.
+
+        Sources, in order: the game schedule (status per team), live points
+        from the week's matchups, and players named with --locked.
+        """
+        week = str(self.config.get("week"))
+        provenance = self.provenance or {}
+        self.schedule_available = bool(provenance.get("schedule_available"))
+        self.team_game_status: Dict[str, str] = {}
+        for game in self.bundle.get("schedule") or []:
+            if not isinstance(game, dict) or str(game.get("week")) != week:
+                continue
+            status = lower(game.get("status"))
+            for side in ("home", "away"):
+                team = game.get(side)
+                if team:
+                    self.team_game_status[str(team).upper()] = status
+
+        self.live_points: Dict[str, float] = {}
+        for entry in self.matchups:
+            for pid, value in (entry.get("players_points") or {}).items():
+                if isinstance(value, (int, float)):
+                    self.live_points[str(pid)] = float(value)
+
+        self.manual_locks: set = set()
+        wanted = [lower(item) for item in (self.config.get("locked") or []) if item]
+        unmatched = []
+        if wanted:
+            by_name: Dict[str, List[str]] = {}
+            for pid, info in self.players.items():
+                if isinstance(info, dict) and info.get("full_name"):
+                    by_name.setdefault(lower(info["full_name"]), []).append(str(pid))
+            for item in wanted:
+                if item in by_name:
+                    self.manual_locks.update(by_name[item])
+                elif item.upper() in self.players or item in self.players:
+                    self.manual_locks.add(item.upper() if item.upper() in self.players else item)
+                else:
+                    unmatched.append(item)
+        if unmatched:
+            self.warn("--locked entries not matched to any player: %s." % ", ".join(unmatched))
+
+        if self.schedule_available:
+            self.lock_source = "game schedule + live points"
+        else:
+            self.lock_source = "live points only (schedule unavailable)"
+        if self.manual_locks:
+            self.lock_source += " + --locked"
+
+    def is_locked(self, pid: Optional[str]) -> bool:
+        if pid is None:
+            return False
+        pid = str(pid)
+        if pid in self.manual_locks:
+            return True
+        if self.live_points.get(pid, 0.0) != 0.0:
+            return True
+        if self.schedule_available:
+            team = self.player(pid).get("team")
+            if team and self.team_game_status.get(str(team).upper()) in STARTED_GAME_STATUSES:
+                return True
+        return False
+
     # -- helpers ----------------------------------------------------------
     def warn(self, message: str) -> None:
         if message not in self.warnings:
@@ -340,12 +430,24 @@ class Analyzer:
                 and key not in stats_keys_seen
             )
             self.unsupported_scoring_keys = unsupported
+            self._apply_position_fallback(unsupported, stats_keys_seen)
             if unsupported:
-                self.warn(
-                    "%d league scoring categories have no matching projection stat "
-                    "and are excluded: %s"
+                message = (
+                    "%d league scoring categories have no matching projection stat: %s."
                     % (len(unsupported), ", ".join(unsupported[:25]))
                 )
+                if self.position_fallback:
+                    message += (
+                        " %s use Sleeper's projected total (%s, Sleeper default scoring) "
+                        "instead of a partial league score; the rest are excluded."
+                        % (
+                            " and ".join(sorted(self.position_fallback)),
+                            ", ".join(sorted(set(self.position_fallback.values()))),
+                        )
+                    )
+                else:
+                    message += " They are excluded."
+                self.warn(message)
         else:
             field = None
             for candidate in AGGREGATE_FALLBACK_FIELDS:
@@ -367,6 +469,34 @@ class Analyzer:
                 "League scoring settings could not be matched to projection stats; "
                 "using provider aggregate field '%s' as a labelled fallback." % field
             )
+
+    def _aggregate_field(self, stats_keys_seen: set) -> Optional[str]:
+        rec = self.scoring_settings.get("rec")
+        preferred = {1: "pts_ppr", 0.5: "pts_half_ppr", 0: "pts_std"}.get(
+            float(rec) if isinstance(rec, (int, float)) else 1.0, "pts_ppr"
+        )
+        for field in (preferred,) + AGGREGATE_FALLBACK_FIELDS:
+            if field in stats_keys_seen:
+                return field
+        return None
+
+    def _apply_position_fallback(self, unsupported: List[str], stats_keys_seen: set) -> None:
+        field = self._aggregate_field(stats_keys_seen)
+        if field is None:
+            return
+        for position, prefixes in POSITION_SCORING_FAMILIES.items():
+            if not any(in_family(key, prefixes) for key in unsupported):
+                continue
+            switched = 0
+            for pid, stats in self.projection_stats.items():
+                if self.primary_position(pid) != position:
+                    continue
+                value = stats.get(field)
+                if isinstance(value, (int, float)):
+                    self.projection_points[pid] = float(value)
+                    switched += 1
+            if switched:
+                self.position_fallback[position] = field
 
     # -- lineup optimisation ---------------------------------------------
     def eligible(self, slot: str, pid: str) -> bool:
@@ -422,6 +552,33 @@ class Analyzer:
         self._optimize_cache[cache_key] = result
         return result
 
+    def optimize_with_fixed(
+        self,
+        player_ids: Iterable[str],
+        fixed: Dict[int, str],
+        incumbents: Optional[Dict[int, str]] = None,
+    ) -> Tuple[float, Dict[int, str]]:
+        """Optimise only the open slots: `fixed` (slot index -> player) stays
+        as is, and players whose games have started cannot be moved in."""
+        free_idx = [i for i in range(len(self.starting_slots)) if i not in fixed]
+        fixed_ids = set(fixed.values())
+        candidates = [p for p in player_ids if p not in fixed_ids and not self.is_locked(p)]
+        sub_incumbents = {
+            k: incumbents[i] for k, i in enumerate(free_idx) if incumbents and i in incumbents
+        }
+        total, sub = self.optimize(
+            candidates,
+            slots=[self.starting_slots[i] for i in free_idx],
+            incumbents=sub_incumbents,
+        )
+        assignment = dict(fixed)
+        for k, pid in sub.items():
+            assignment[free_idx[k]] = pid
+        return total + sum(self.points(pid) for pid in fixed.values()), assignment
+
+    def locked_starters(self, roster: dict) -> Dict[int, str]:
+        return {i: pid for i, pid in self.current_lineup(roster).items() if self.is_locked(pid)}
+
     def current_lineup(self, roster: dict) -> Dict[int, str]:
         starters = roster.get("starters") or []
         lineup: Dict[int, str] = {}
@@ -471,7 +628,10 @@ class Analyzer:
             and self.eligible(self.starting_slots[index], pid)
             and self.availability(pid)[0]
         }
-        optimal_points, optimal = self.optimize(usable, incumbents=valid_incumbents)
+        fixed = self.locked_starters(roster)
+        optimal_points, optimal = self.optimize_with_fixed(
+            usable, fixed, incumbents=valid_incumbents
+        )
 
         recommended_ids = set(optimal.values())
         current_ids = set(current.values())
@@ -482,7 +642,9 @@ class Analyzer:
             cur_points = self.points(cur) if cur else 0.0
             rec_points = self.points(rec) if rec else 0.0
             gain = rec_points - cur_points
-            if cur == rec and rec is not None:
+            if index in fixed:
+                action = "LOCKED"
+            elif cur == rec and rec is not None:
                 action = "KEEP"
             elif rec is None and cur is None:
                 action = "EMPTY SLOT"
@@ -502,7 +664,9 @@ class Analyzer:
                     "recommended": self.player_ref(rec),
                     "action": action,
                     "gain": r2(gain),
-                    "below_threshold": bool(action != "KEEP" and abs(gain) < self.threshold),
+                    "below_threshold": bool(
+                        action not in ("KEEP", "LOCKED") and abs(gain) < self.threshold
+                    ),
                 }
             )
 
@@ -546,8 +710,16 @@ class Analyzer:
                 }
             )
 
-        actions = [s for s in slots_out if s["action"] != "KEEP"]
+        actions = [s for s in slots_out if s["action"] not in ("KEEP", "LOCKED")]
+        locked_bench = [
+            pid for pid in usable if pid not in fixed.values() and self.is_locked(pid)
+        ]
         return {
+            "locks": {
+                "source": self.lock_source,
+                "locked_starters": [self.player_ref(pid) for _, pid in sorted(fixed.items())],
+                "locked_bench": [self.player_ref(pid) for pid in sorted(locked_bench)],
+            },
             "current_points": r2(current_points),
             "optimal_points": r2(optimal_points),
             "gain": r2(optimal_points - current_points),
@@ -608,11 +780,34 @@ class Analyzer:
                 return None
             return sum(self.points(pid) for pid in starters)
 
+        def projected_final(entry: Optional[dict]) -> Optional[float]:
+            # Actual points for starters whose games have started, projection
+            # for the rest: the live picture of where the week will end up.
+            if entry is None:
+                return None
+            starters = [str(p) for p in (entry.get("starters") or []) if p not in (None, "", "0", 0)]
+            if not starters:
+                return None
+            live = entry.get("players_points") or {}
+            total = 0.0
+            for pid in starters:
+                if self.is_locked(pid):
+                    value = live.get(pid, self.live_points.get(pid, 0.0))
+                    total += float(value) if isinstance(value, (int, float)) else 0.0
+                else:
+                    total += self.points(pid)
+            return total
+
         my_projected = projected(mine)
         opp_projected = projected(opponent)
         differential = None
         if my_projected is not None and opp_projected is not None:
             differential = my_projected - opp_projected
+        my_final = projected_final(mine)
+        opp_final = projected_final(opponent)
+        final_differential = None
+        if my_final is not None and opp_final is not None:
+            final_differential = my_final - opp_final
         return {
             "matchup_id": matchup_id,
             "my_team": self.team_name(self.my_roster_id),
@@ -621,6 +816,9 @@ class Analyzer:
             "my_projected": r2(my_projected),
             "opponent_projected": r2(opp_projected),
             "differential": r2(differential),
+            "my_projected_final": r2(my_final),
+            "opponent_projected_final": r2(opp_final),
+            "final_differential": r2(final_differential),
             "my_points": r2(mine.get("points")) if isinstance(mine.get("points"), (int, float)) else None,
             "opponent_points": r2(opponent.get("points")) if opponent and isinstance(opponent.get("points"), (int, float)) else None,
             "note": (
@@ -680,7 +878,8 @@ class Analyzer:
         replacement = self.replacement_levels()
         trending = self.trending_counts()
         usable = self.roster_active_players(roster)
-        baseline, baseline_lineup = self.optimize(usable)
+        fixed = self.locked_starters(roster)
+        baseline, baseline_lineup = self.optimize_with_fixed(usable, fixed)
 
         settings = self.league.get("settings") or {}
         waiver_type_raw = settings.get("waiver_type")
@@ -736,7 +935,9 @@ class Analyzer:
         for pid in shortlist:
             startable, notes = self.availability(pid)
             info = self.player(pid)
-            with_candidate, with_lineup = self.optimize(list(usable) + [pid])
+            if self.is_locked(pid):
+                notes = notes + ["game already started this week"]
+            with_candidate, with_lineup = self.optimize_with_fixed(list(usable) + [pid], fixed)
             lineup_gain = with_candidate - baseline
             best_drop = None
             best_value = None
@@ -744,7 +945,9 @@ class Analyzer:
                 for drop in droppable:
                     if drop == pid:
                         continue
-                    value, _ = self.optimize([p for p in usable if p != drop] + [pid])
+                    value, _ = self.optimize_with_fixed(
+                        [p for p in usable if p != drop] + [pid], fixed
+                    )
                     key = (-value, self.points(drop), str(drop))
                     best_key = (
                         None
@@ -887,11 +1090,24 @@ class Analyzer:
         }
 
     # -- trades -----------------------------------------------------------
+    def slot_position(self, slot: str, pid: str) -> str:
+        """The position a player fills in a slot. Two-way players (e.g. a
+        WR/DB in a FLEX) count at the position that made them eligible, not
+        their listed primary position."""
+        allowed = SLOT_ELIGIBILITY.get(slot.upper(), ())
+        primary = self.primary_position(pid)
+        if primary and primary in allowed:
+            return primary
+        for position in self.player_positions(pid):
+            if position in allowed:
+                return position
+        return primary or slot.upper()
+
     def positional_starter_points(self, assignment: Dict[int, str]) -> Dict[str, float]:
         result: Dict[str, float] = {}
         for index, pid in assignment.items():
             slot = self.starting_slots[index]
-            position = self.primary_position(pid) or slot
+            position = self.slot_position(slot, pid)
             result[position] = round(result.get(position, 0.0) + self.points(pid), 2)
         return result
 
@@ -1007,7 +1223,9 @@ class Analyzer:
                 )
                 my_gain = my_after - my_base
                 their_gain = their_after - their_base
-                if my_gain <= 0 or their_gain <= 0:
+                # Both sides must gain something real; a 0.01-point "gain"
+                # rounds to 0 in the report and is no reason to trade.
+                if my_gain < MIN_TRADE_GAIN or their_gain < MIN_TRADE_GAIN:
                     return None
                 value_out = exchange_value(give)
                 value_in = exchange_value(get)
@@ -1106,6 +1324,7 @@ class Analyzer:
                 "season": self.config.get("season"),
                 "season_type": self.config.get("season_type"),
                 "week": self.config.get("week"),
+                "week_rolled_from": self.config.get("week_rolled_from"),
                 "offline": bool(self.config.get("offline")),
                 "top_n": self.config.get("top_n"),
                 "churn_threshold": self.config.get("churn_threshold"),
@@ -1117,6 +1336,7 @@ class Analyzer:
                     "mode": self.scoring_mode,
                     "source": self.scoring_source,
                     "unsupported_keys": self.unsupported_scoring_keys,
+                    "position_fallback": self.position_fallback,
                 },
                 "projections": {
                     "url": projections_provenance.get("url"),
@@ -1141,6 +1361,8 @@ class Analyzer:
                 "fetches": self.bundle.get("diagnostics") or [],
                 "trending_available": self.provenance.get("trending_available"),
                 "transactions_available": self.provenance.get("transactions_available"),
+                "schedule_available": self.schedule_available,
+                "lock_source": self.lock_source,
                 "players_cache_age_seconds": (self.provenance.get("players") or {}).get(
                     "cache_age_seconds"
                 ),

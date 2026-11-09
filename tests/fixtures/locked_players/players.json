@@ -1,0 +1,1242 @@
+{
+ "def1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "DEF",
+  "fantasy_positions": [
+   "DEF"
+  ],
+  "first_name": "Alpha",
+  "full_name": "Alpha Defense",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Defense",
+  "news_updated": 1700000000000,
+  "player_id": "def1",
+  "position": "DEF",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "AAA",
+  "years_exp": 3
+ },
+ "fa_def1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "DEF",
+  "fantasy_positions": [
+   "DEF"
+  ],
+  "first_name": "Hotel",
+  "full_name": "Hotel Defense",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Defense",
+  "news_updated": 1700000000000,
+  "player_id": "fa_def1",
+  "position": "DEF",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "HHH",
+  "years_exp": 3
+ },
+ "fa_inactive1": {
+  "active": false,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Free",
+  "full_name": "Free Retired One",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "One",
+  "news_updated": 1700000000000,
+  "player_id": "fa_inactive1",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Inactive",
+  "team": "FFF",
+  "years_exp": 3
+ },
+ "fa_k1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "K",
+  "fantasy_positions": [
+   "K"
+  ],
+  "first_name": "Free",
+  "full_name": "Free Kick One",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "One",
+  "news_updated": 1700000000000,
+  "player_id": "fa_k1",
+  "position": "K",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "HHH",
+  "years_exp": 3
+ },
+ "fa_out1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Free",
+  "full_name": "Free Hurt One",
+  "injury_notes": null,
+  "injury_status": "Out",
+  "last_name": "One",
+  "news_updated": 1700000000000,
+  "player_id": "fa_out1",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "fa_qb1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "QB",
+  "fantasy_positions": [
+   "QB"
+  ],
+  "first_name": "Free",
+  "full_name": "Free Quarter One",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "One",
+  "news_updated": 1700000000000,
+  "player_id": "fa_qb1",
+  "position": "QB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "GGG",
+  "years_exp": 3
+ },
+ "fa_quest1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Free",
+  "full_name": "Free Doubt One",
+  "injury_notes": null,
+  "injury_status": "Questionable",
+  "last_name": "One",
+  "news_updated": 1700000000000,
+  "player_id": "fa_quest1",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "GGG",
+  "years_exp": 3
+ },
+ "fa_rb1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Free",
+  "full_name": "Free Run One",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "One",
+  "news_updated": 1700000000000,
+  "player_id": "fa_rb1",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "fa_rb2": {
+  "active": true,
+  "depth_chart_order": 3,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Free",
+  "full_name": "Free Run Two",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Two",
+  "news_updated": 1700000000000,
+  "player_id": "fa_rb2",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "FFF",
+  "years_exp": 3
+ },
+ "fa_te1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "TE",
+  "fantasy_positions": [
+   "TE"
+  ],
+  "first_name": "Free",
+  "full_name": "Free Tight One",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "One",
+  "news_updated": 1700000000000,
+  "player_id": "fa_te1",
+  "position": "TE",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "GGG",
+  "years_exp": 3
+ },
+ "fa_wr1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Free",
+  "full_name": "Free Wide One",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "One",
+  "news_updated": 1700000000000,
+  "player_id": "fa_wr1",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "fa_wr2": {
+  "active": true,
+  "depth_chart_order": 2,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Free",
+  "full_name": "Free Wide Two",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Two",
+  "news_updated": 1700000000000,
+  "player_id": "fa_wr2",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "FFF",
+  "years_exp": 3
+ },
+ "k1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "K",
+  "fantasy_positions": [
+   "K"
+  ],
+  "first_name": "Kai",
+  "full_name": "Kai Alpha",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Alpha",
+  "news_updated": 1700000000000,
+  "player_id": "k1",
+  "position": "K",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "AAA",
+  "years_exp": 3
+ },
+ "qb1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "QB",
+  "fantasy_positions": [
+   "QB"
+  ],
+  "first_name": "Quinn",
+  "full_name": "Quinn Alpha",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Alpha",
+  "news_updated": 1700000000000,
+  "player_id": "qb1",
+  "position": "QB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "AAA",
+  "years_exp": 3
+ },
+ "qb2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "QB",
+  "fantasy_positions": [
+   "QB"
+  ],
+  "first_name": "Quinn",
+  "full_name": "Quinn Bravo",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Bravo",
+  "news_updated": 1700000000000,
+  "player_id": "qb2",
+  "position": "QB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "BBB",
+  "years_exp": 3
+ },
+ "rb1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Ryan",
+  "full_name": "Ryan Alpha",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Alpha",
+  "news_updated": 1700000000000,
+  "player_id": "rb1",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "AAA",
+  "years_exp": 3
+ },
+ "rb2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Ryan",
+  "full_name": "Ryan Bravo",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Bravo",
+  "news_updated": 1700000000000,
+  "player_id": "rb2",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "BBB",
+  "years_exp": 3
+ },
+ "rb3": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Ryan",
+  "full_name": "Ryan Charlie",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Charlie",
+  "news_updated": 1700000000000,
+  "player_id": "rb3",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "CCC",
+  "years_exp": 3
+ },
+ "rb4": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Ryan",
+  "full_name": "Ryan Delta",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Delta",
+  "news_updated": 1700000000000,
+  "player_id": "rb4",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "DDD",
+  "years_exp": 3
+ },
+ "rb5": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Ryan",
+  "full_name": "Ryan Echo",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Echo",
+  "news_updated": 1700000000000,
+  "player_id": "rb5",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "t2_def1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "DEF",
+  "fantasy_positions": [
+   "DEF"
+  ],
+  "first_name": "Team2",
+  "full_name": "Team2 DEF1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "DEF1",
+  "news_updated": 1700000000000,
+  "player_id": "t2_def1",
+  "position": "DEF",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "CCC",
+  "years_exp": 3
+ },
+ "t2_k1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "K",
+  "fantasy_positions": [
+   "K"
+  ],
+  "first_name": "Team2",
+  "full_name": "Team2 K1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "K1",
+  "news_updated": 1700000000000,
+  "player_id": "t2_k1",
+  "position": "K",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "CCC",
+  "years_exp": 3
+ },
+ "t2_qb1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "QB",
+  "fantasy_positions": [
+   "QB"
+  ],
+  "first_name": "Team2",
+  "full_name": "Team2 QB1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "QB1",
+  "news_updated": 1700000000000,
+  "player_id": "t2_qb1",
+  "position": "QB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "CCC",
+  "years_exp": 3
+ },
+ "t2_qb2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "QB",
+  "fantasy_positions": [
+   "QB"
+  ],
+  "first_name": "Team2",
+  "full_name": "Team2 QB2",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "QB2",
+  "news_updated": 1700000000000,
+  "player_id": "t2_qb2",
+  "position": "QB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "CCC",
+  "years_exp": 3
+ },
+ "t2_rb1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Team2",
+  "full_name": "Team2 RB1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "RB1",
+  "news_updated": 1700000000000,
+  "player_id": "t2_rb1",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "CCC",
+  "years_exp": 3
+ },
+ "t2_rb2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Team2",
+  "full_name": "Team2 RB2",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "RB2",
+  "news_updated": 1700000000000,
+  "player_id": "t2_rb2",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "CCC",
+  "years_exp": 3
+ },
+ "t2_rb3": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Team2",
+  "full_name": "Team2 RB3",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "RB3",
+  "news_updated": 1700000000000,
+  "player_id": "t2_rb3",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "CCC",
+  "years_exp": 3
+ },
+ "t2_te1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "TE",
+  "fantasy_positions": [
+   "TE"
+  ],
+  "first_name": "Team2",
+  "full_name": "Team2 TE1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "TE1",
+  "news_updated": 1700000000000,
+  "player_id": "t2_te1",
+  "position": "TE",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "CCC",
+  "years_exp": 3
+ },
+ "t2_te2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "TE",
+  "fantasy_positions": [
+   "TE"
+  ],
+  "first_name": "Team2",
+  "full_name": "Team2 TE2",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "TE2",
+  "news_updated": 1700000000000,
+  "player_id": "t2_te2",
+  "position": "TE",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "CCC",
+  "years_exp": 3
+ },
+ "t2_wr1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Team2",
+  "full_name": "Team2 WR1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "WR1",
+  "news_updated": 1700000000000,
+  "player_id": "t2_wr1",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "CCC",
+  "years_exp": 3
+ },
+ "t2_wr2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Team2",
+  "full_name": "Team2 WR2",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "WR2",
+  "news_updated": 1700000000000,
+  "player_id": "t2_wr2",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "CCC",
+  "years_exp": 3
+ },
+ "t2_wr3": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Team2",
+  "full_name": "Team2 WR3",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "WR3",
+  "news_updated": 1700000000000,
+  "player_id": "t2_wr3",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "CCC",
+  "years_exp": 3
+ },
+ "t3_def1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "DEF",
+  "fantasy_positions": [
+   "DEF"
+  ],
+  "first_name": "Team3",
+  "full_name": "Team3 DEF1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "DEF1",
+  "news_updated": 1700000000000,
+  "player_id": "t3_def1",
+  "position": "DEF",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "DDD",
+  "years_exp": 3
+ },
+ "t3_k1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "K",
+  "fantasy_positions": [
+   "K"
+  ],
+  "first_name": "Team3",
+  "full_name": "Team3 K1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "K1",
+  "news_updated": 1700000000000,
+  "player_id": "t3_k1",
+  "position": "K",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "DDD",
+  "years_exp": 3
+ },
+ "t3_qb1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "QB",
+  "fantasy_positions": [
+   "QB"
+  ],
+  "first_name": "Team3",
+  "full_name": "Team3 QB1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "QB1",
+  "news_updated": 1700000000000,
+  "player_id": "t3_qb1",
+  "position": "QB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "DDD",
+  "years_exp": 3
+ },
+ "t3_qb2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "QB",
+  "fantasy_positions": [
+   "QB"
+  ],
+  "first_name": "Team3",
+  "full_name": "Team3 QB2",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "QB2",
+  "news_updated": 1700000000000,
+  "player_id": "t3_qb2",
+  "position": "QB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "DDD",
+  "years_exp": 3
+ },
+ "t3_rb1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Team3",
+  "full_name": "Team3 RB1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "RB1",
+  "news_updated": 1700000000000,
+  "player_id": "t3_rb1",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "DDD",
+  "years_exp": 3
+ },
+ "t3_rb2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Team3",
+  "full_name": "Team3 RB2",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "RB2",
+  "news_updated": 1700000000000,
+  "player_id": "t3_rb2",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "DDD",
+  "years_exp": 3
+ },
+ "t3_rb3": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Team3",
+  "full_name": "Team3 RB3",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "RB3",
+  "news_updated": 1700000000000,
+  "player_id": "t3_rb3",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "DDD",
+  "years_exp": 3
+ },
+ "t3_te1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "TE",
+  "fantasy_positions": [
+   "TE"
+  ],
+  "first_name": "Team3",
+  "full_name": "Team3 TE1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "TE1",
+  "news_updated": 1700000000000,
+  "player_id": "t3_te1",
+  "position": "TE",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "DDD",
+  "years_exp": 3
+ },
+ "t3_te2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "TE",
+  "fantasy_positions": [
+   "TE"
+  ],
+  "first_name": "Team3",
+  "full_name": "Team3 TE2",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "TE2",
+  "news_updated": 1700000000000,
+  "player_id": "t3_te2",
+  "position": "TE",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "DDD",
+  "years_exp": 3
+ },
+ "t3_wr1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Team3",
+  "full_name": "Team3 WR1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "WR1",
+  "news_updated": 1700000000000,
+  "player_id": "t3_wr1",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "DDD",
+  "years_exp": 3
+ },
+ "t3_wr2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Team3",
+  "full_name": "Team3 WR2",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "WR2",
+  "news_updated": 1700000000000,
+  "player_id": "t3_wr2",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "DDD",
+  "years_exp": 3
+ },
+ "t3_wr3": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Team3",
+  "full_name": "Team3 WR3",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "WR3",
+  "news_updated": 1700000000000,
+  "player_id": "t3_wr3",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "DDD",
+  "years_exp": 3
+ },
+ "t4_def1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "DEF",
+  "fantasy_positions": [
+   "DEF"
+  ],
+  "first_name": "Team4",
+  "full_name": "Team4 DEF1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "DEF1",
+  "news_updated": 1700000000000,
+  "player_id": "t4_def1",
+  "position": "DEF",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "t4_k1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "K",
+  "fantasy_positions": [
+   "K"
+  ],
+  "first_name": "Team4",
+  "full_name": "Team4 K1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "K1",
+  "news_updated": 1700000000000,
+  "player_id": "t4_k1",
+  "position": "K",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "t4_qb1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "QB",
+  "fantasy_positions": [
+   "QB"
+  ],
+  "first_name": "Team4",
+  "full_name": "Team4 QB1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "QB1",
+  "news_updated": 1700000000000,
+  "player_id": "t4_qb1",
+  "position": "QB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "t4_qb2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "QB",
+  "fantasy_positions": [
+   "QB"
+  ],
+  "first_name": "Team4",
+  "full_name": "Team4 QB2",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "QB2",
+  "news_updated": 1700000000000,
+  "player_id": "t4_qb2",
+  "position": "QB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "t4_rb1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Team4",
+  "full_name": "Team4 RB1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "RB1",
+  "news_updated": 1700000000000,
+  "player_id": "t4_rb1",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "t4_rb2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Team4",
+  "full_name": "Team4 RB2",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "RB2",
+  "news_updated": 1700000000000,
+  "player_id": "t4_rb2",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "t4_rb3": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "RB",
+  "fantasy_positions": [
+   "RB"
+  ],
+  "first_name": "Team4",
+  "full_name": "Team4 RB3",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "RB3",
+  "news_updated": 1700000000000,
+  "player_id": "t4_rb3",
+  "position": "RB",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "t4_te1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "TE",
+  "fantasy_positions": [
+   "TE"
+  ],
+  "first_name": "Team4",
+  "full_name": "Team4 TE1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "TE1",
+  "news_updated": 1700000000000,
+  "player_id": "t4_te1",
+  "position": "TE",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "t4_te2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "TE",
+  "fantasy_positions": [
+   "TE"
+  ],
+  "first_name": "Team4",
+  "full_name": "Team4 TE2",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "TE2",
+  "news_updated": 1700000000000,
+  "player_id": "t4_te2",
+  "position": "TE",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "t4_wr1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Team4",
+  "full_name": "Team4 WR1",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "WR1",
+  "news_updated": 1700000000000,
+  "player_id": "t4_wr1",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "t4_wr2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Team4",
+  "full_name": "Team4 WR2",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "WR2",
+  "news_updated": 1700000000000,
+  "player_id": "t4_wr2",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "t4_wr3": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Team4",
+  "full_name": "Team4 WR3",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "WR3",
+  "news_updated": 1700000000000,
+  "player_id": "t4_wr3",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "EEE",
+  "years_exp": 3
+ },
+ "te1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "TE",
+  "fantasy_positions": [
+   "TE"
+  ],
+  "first_name": "Tom",
+  "full_name": "Tom Alpha",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Alpha",
+  "news_updated": 1700000000000,
+  "player_id": "te1",
+  "position": "TE",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "AAA",
+  "years_exp": 3
+ },
+ "te2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "TE",
+  "fantasy_positions": [
+   "TE"
+  ],
+  "first_name": "Tom",
+  "full_name": "Tom Bravo",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Bravo",
+  "news_updated": 1700000000000,
+  "player_id": "te2",
+  "position": "TE",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "BBB",
+  "years_exp": 3
+ },
+ "wr1": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Wes",
+  "full_name": "Wes Alpha",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Alpha",
+  "news_updated": 1700000000000,
+  "player_id": "wr1",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "AAA",
+  "years_exp": 3
+ },
+ "wr2": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Wes",
+  "full_name": "Wes Bravo",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Bravo",
+  "news_updated": 1700000000000,
+  "player_id": "wr2",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "BBB",
+  "years_exp": 3
+ },
+ "wr3": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Wes",
+  "full_name": "Wes Charlie",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Charlie",
+  "news_updated": 1700000000000,
+  "player_id": "wr3",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "CCC",
+  "years_exp": 3
+ },
+ "wr4": {
+  "active": true,
+  "depth_chart_order": 1,
+  "depth_chart_position": "WR",
+  "fantasy_positions": [
+   "WR"
+  ],
+  "first_name": "Wes",
+  "full_name": "Wes Delta",
+  "injury_notes": null,
+  "injury_status": null,
+  "last_name": "Delta",
+  "news_updated": 1700000000000,
+  "player_id": "wr4",
+  "position": "WR",
+  "practice_participation": null,
+  "status": "Active",
+  "team": "DDD",
+  "years_exp": 3
+ }
+}
