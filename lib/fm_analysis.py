@@ -1564,16 +1564,41 @@ class Analyzer:
         return report
 
 
-def main() -> int:
+def main(argv: Optional[List[str]] = None) -> int:
+    """Usage: fm_analysis.py [--in BUNDLE] [--out REPORT]  (default stdin/stdout).
+
+    File paths avoid shell pipes, which re-encode text on Windows PowerShell.
+    Output is ASCII-only JSON (non-ASCII characters are escaped)."""
+    argv = list(sys.argv[1:] if argv is None else argv)
+    in_path = out_path = None
+    while argv:
+        flag = argv.pop(0)
+        if flag in ("--in", "--out") and argv:
+            if flag == "--in":
+                in_path = argv.pop(0)
+            else:
+                out_path = argv.pop(0)
+        else:
+            print("usage: fm_analysis.py [--in BUNDLE] [--out REPORT]", file=sys.stderr)
+            return 2
     try:
-        bundle = json.load(sys.stdin)
+        if in_path:
+            with open(in_path, "r", encoding="utf-8-sig") as fh:
+                bundle = json.load(fh)
+        else:
+            bundle = json.load(sys.stdin)
     except json.JSONDecodeError as exc:
         print("invalid analysis bundle: %s" % exc, file=sys.stderr)
         return 1
     analyzer = Analyzer(bundle)
     report = analyzer.run()
-    json.dump(report, sys.stdout, indent=2, sort_keys=True)
-    sys.stdout.write("\n")
+    if out_path:
+        with open(out_path, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(report, fh, indent=2, sort_keys=True)
+            fh.write("\n")
+    else:
+        json.dump(report, sys.stdout, indent=2, sort_keys=True)
+        sys.stdout.write("\n")
     return 0
 
 

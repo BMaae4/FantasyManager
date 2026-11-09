@@ -2,6 +2,35 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.3.0
+
+### Added
+
+- Windows front end: `FantasyManager.ps1` (Windows PowerShell 5.1 or
+  PowerShell 7) with a WPF window.
+  - Toolbar: league, user, week, horizon, cache bypass, refresh, open/save
+    report.
+  - Header: live score and projected final for the matchup.
+  - Warnings panel, and tabs for lineup (colour-coded actions), waivers,
+    trades, matchup and diagnostics.
+  - Refresh runs in a background process so the window stays responsive.
+  - `-NoGui` writes the JSON report; `-ReportFile` opens a saved one.
+  - `FantasyManager.cmd` launches it without a console or execution-policy
+    prompt.
+- The PowerShell data layer mirrors the bash script: same options,
+  precedence, retries, cache, offline fixtures, locks, rollover and future
+  weeks, so both produce identical reports. Only Python is required (no bash,
+  jq or curl).
+- `lib/fm_io.py`: JSON validation and bundle assembly shared with the
+  PowerShell front end. Windows PowerShell 5.1 cannot parse the 5 MB player
+  database, so this work happens in Python.
+- `fm_analysis.py --in/--out`, so Windows doesn't need text pipes.
+- CI: parity of pwsh vs bash on every fixture, plus a Windows job. The
+  Windows job runs under PowerShell 5.1 and 7, compares against the bash
+  reports, checks CLI validation and caching, and smoke-tests the GUI.
+- `.gitattributes` keeps shell and Python files LF and PowerShell files CRLF
+  on Windows checkouts.
+
 ## 2.2.1
 
 ### Fixed
