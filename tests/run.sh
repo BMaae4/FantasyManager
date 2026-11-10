@@ -396,7 +396,7 @@ run_case ppr_basic --format json
 assert_json "json has metadata" '.metadata.league_id == "1400680781302525952"'
 assert_json "json has diagnostics" '(.diagnostics.fetches | length) > 0'
 assert_json "json keys stable" \
-    '[keys[]] == ["diagnostics","lineup","matchup","metadata","schema_version","trades","waivers","warnings"]'
+    '[keys[]] == ["custom_trades","diagnostics","lineup","matchup","metadata","rosters","schema_version","trades","waivers","warnings"]'
 
 run_case ppr_basic --format json --quiet
 assert_status "--quiet exits 0" 0
@@ -600,6 +600,48 @@ assert_json "window logic does not exploit a one-week bye" \
 run_case week_complete --format json
 assert_json "window follows the rolled-over week" '.metadata.window_weeks == [6,7,8]'
 assert_json "missing future week is disclosed" '[.warnings[] | select(test("week\\(s\\) 9 unavailable"))] | length == 1'
+
+# --------------------------------------------------------------------------
+section "trade analyzer"
+# --------------------------------------------------------------------------
+run_case ppr_basic --format json --skip-waivers --skip-trades
+assert_json "no trade analyzer section unless asked" '.custom_trades == null'
+assert_json "report lists every roster for building trades" \
+    '(.rosters | length) == 4 and ([.rosters[] | select(.is_me)] | length) == 1 and ([.rosters[].players[] | select(.window_projection == null)] | length) == 0'
+
+run_case ppr_basic --format json --skip-waivers --skip-trades \
+    --trade "Wes Delta, Ryan Echo for Team2 RB1; Quinn Alpha for Team2 QB1; Wes Delta for Team2 WR2, Team2 WR3"
+assert_status "trade analyzer run exits 0" 0
+assert_json "lopsided win grades A+ for me, F for them" \
+    '.custom_trades[0] | .my_grade == "A+" and .their_grade == "F" and .acceptance == "unlikely" and .partner.roster_id == 2'
+assert_json "small loss grades C- and favours them" \
+    '.custom_trades[1] | .my_grade == "C-" and .their_grade == "B-" and .acceptance == "likely" and (.verdict | test("not recommended"))'
+assert_json "gains cover the whole window" \
+    '.custom_trades[0] | (.my_weekly_gains | length) == 4 and .my_gain == 16 and .my_gain_per_week == 4'
+assert_json "2-for-1 notes the open roster spot" \
+    '[.custom_trades[0].notes[] | select(test("Opens 1 roster spot"))] | length == 1'
+assert_json "receiving more players drops my cheapest player" \
+    '.custom_trades[2] | [.my_drops[].player_id] == ["qb2"] and .get[1].weeks_started_after == 0'
+assert_json "unused incoming player is called out" \
+    '[.custom_trades[2].notes[] | select(test("would not start for you"))] | length == 1'
+
+run_case ppr_basic --format json --skip-waivers --skip-trades \
+    --trade "Bravo for Team2 TE1; nobody for Team2 WR1; Wes Charlie for Team2 WR1, Team3 WR1; Team2 TE1; id:wr3 for id:t2_wr1; quinn alpha for TEAM2 qb1"
+assert_json "ambiguous name explained" '.custom_trades[0].error | test("ambiguous: Quinn Bravo, Ryan Bravo, Tom Bravo, Wes Bravo")'
+assert_json "unknown name explained" '.custom_trades[1].error | test("not found on your roster")'
+assert_json "three-team trade rejected" '.custom_trades[2].error | test("only two-team trades")'
+assert_json "one-sided input explained" '.custom_trades[3].error | test("players you give for players you get")'
+assert_json "Sleeper ids accepted" '.custom_trades[4] | .error == null and .give[0].player_id == "wr3" and .get[0].player_id == "t2_wr1"'
+assert_json "names match case-insensitively" '.custom_trades[5] | .error == null and .give[0].player_id == "qb1"'
+
+run_case ppr_basic --format json --skip-waivers --skip-trades --horizon 0 --trade "Quinn Alpha for Team2 QB1"
+assert_json "--horizon 0 grades this week only" \
+    '.custom_trades[0] | (.window_weeks == [5]) and ([.notes[] | select(test("this week only"))] | length == 1)'
+
+run_case ppr_basic --skip-waivers --skip-trades --trade "Wes Delta, Ryan Echo for Team2 RB1"
+assert_match "text report shows the grades" "$STDOUT" 'GRADE  you A\+  them F'
+run_case ppr_basic --format markdown --skip-waivers --skip-trades --trade "Wes Delta, Ryan Echo for Team2 RB1"
+assert_match "markdown shows the grade" "$STDOUT" '\*\*Your grade: A\+\*\*'
 
 # --------------------------------------------------------------------------
 printf '\n%s\n' "------------------------------------------------------------"

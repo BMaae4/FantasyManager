@@ -8,7 +8,7 @@
 set -euo pipefail
 
 TOOL_NAME="fantasy_manager"
-TOOL_VERSION="2.3.0"
+TOOL_VERSION="2.4.0"
 
 # --------------------------------------------------------------------------
 # Hardcoded defaults (run with no parameters)
@@ -124,6 +124,8 @@ Analysis options:
       --fairness X         Trade fairness tolerance as a fraction (default: 0.10)
       --horizon N          Future weeks valued for waivers, drops and trades, 0-6
                            (default: 3; 0 = this week only)
+      --trade TEXT         Grade your own trade(s): "Give A, Give B for Get C".
+                           Names or Sleeper ids; separate trades with ";"
       --locked LIST        Comma-separated player names or ids whose games have
                            started; they are never moved (added to auto-detection)
       --skip-waivers       Skip waiver analysis
@@ -189,6 +191,7 @@ parse_args() {
             --threshold)     need_value "$1" $#; set_cli threshold "$2"; shift 2 ;;
             --fairness)      need_value "$1" $#; set_cli fairness "$2"; shift 2 ;;
             --locked)        need_value "$1" $#; set_cli locked "$2"; shift 2 ;;
+            --trade)         need_value "$1" $#; set_cli trade "$2"; shift 2 ;;
             --horizon)       need_value "$1" $#; set_cli horizon "$2"; shift 2 ;;
             --skip-waivers)  set_cli skip_waivers 1; shift ;;
             --skip-trades)   set_cli skip_trades 1; shift ;;
@@ -331,6 +334,7 @@ load_configuration() {
     SCHEDULE_BASE="$(resolve schedule_base FM_SCHEDULE_BASE "$DEFAULT_SCHEDULE_BASE")"
     SCHEDULE_TTL="$(resolve schedule_ttl FM_SCHEDULE_TTL "$DEFAULT_SCHEDULE_TTL")"
     LOCKED="$(resolve locked FM_LOCKED "")"
+    TRADE="$(resolve trade FM_TRADE "")"
     HORIZON="$(resolve horizon FM_HORIZON "$DEFAULT_HORIZON")"
     WEEK="$(resolve week FM_WEEK "")"
     SEASON="$(resolve season FM_SEASON "")"
@@ -883,6 +887,7 @@ build_bundle() {
         --slurpfile schedule "$TMP_DIR/schedule.json" \
         --argjson schedule_available "$SCHEDULE_AVAILABLE" \
         --arg locked "$LOCKED" \
+        --arg custom_trades "$TRADE" \
         --arg week_rolled_from "$WEEK_ROLLED_FROM" \
         --slurpfile future "$TMP_DIR/future.json" \
         --argjson horizon "$HORIZON" \
@@ -896,7 +901,8 @@ build_bundle() {
              skip_waivers: $skip_waivers, skip_trades: $skip_trades, offline: $offline,
              locked: ($locked | split(",") | map(gsub("^ +| +$"; "")) | map(select(length > 0))),
              week_rolled_from: (if $week_rolled_from == "" then null else ($week_rolled_from | tonumber) end),
-             horizon: $horizon
+             horizon: $horizon,
+             custom_trades: (if $custom_trades == "" then null else $custom_trades end)
            },
            provenance: {
              projections: {url: $projections_url, source: $projections_source,
@@ -1047,6 +1053,27 @@ render_text() {
                         + [""]) | add)
                  end)
          end)
+      + (if (.custom_trades // null) == null then []
+         else ["TRADE ANALYZER", line]
+              + (.custom_trades | map(
+                   if .error != null then ["  " + .input, "    ERROR: " + .error, ""]
+                   else
+                     ["  " + .input + "  (with " + (.partner.team // ("roster " + (.partner.roster_id|tostring))) + ")",
+                      "    GRADE  you " + pad(.my_grade; 4) + "them " + pad(.their_grade; 4)
+                        + "acceptance: " + .acceptance,
+                      "    " + .verdict,
+                      "    gain per week: you " + n(.my_gain_per_week) + ", them " + n(.their_gain_per_week)
+                        + "   over weeks " + (.window_weeks | map(tostring) | join(", ")) + ": you " + n(.my_gain) + ", them " + n(.their_gain),
+                      "    weekly (you): " + (.my_weekly_gains | map(n(.)) | join(" / ")),
+                      ((.window_weeks | length | tostring) as $nw
+                       | "    give: " + (.give | map(.name + " (" + (.position // "?") + ", starts " + ((.weeks_started_before // 0)|tostring) + "/" + $nw + " wks for you)") | join(", "))),
+                      ((.window_weeks | length | tostring) as $nw
+                       | "    get:  " + (.get | map(.name + " (" + (.position // "?") + ", would start " + ((.weeks_started_after // 0)|tostring) + "/" + $nw + ")") | join(", ")))]
+                     + (.notes | map("    - " + .))
+                     + (.flags | map("    ! " + .))
+                     + [""]
+                   end) | add)
+         end)
       + ["DIAGNOSTICS", line]
       + (.diagnostics.fetches | map("  " + pad(.key; 16) + pad(.source; 14)
             + (if .cache_age_seconds == null then "" else "age " + ((.cache_age_seconds/60|floor)|tostring) + "m  " end)
@@ -1155,6 +1182,26 @@ render_markdown() {
                              + [""]
                         end)) | add)
                  end)
+         end)
+      + (if (.custom_trades // null) == null then []
+         else ["## Trade analyzer", ""]
+              + (.custom_trades | map(
+                   if .error != null then ["### " + .input, "", "**Error:** " + .error, ""]
+                   else
+                     ["### " + .input, "",
+                      "With " + (.partner.team // ("roster " + (.partner.roster_id|tostring))) + ". **Your grade: " + .my_grade
+                        + "**, their grade: " + .their_grade + ", acceptance: " + .acceptance + ".", "",
+                      .verdict, "",
+                      "| | You | Them |", "| --- | ---: | ---: |",
+                      "| Gain per week | " + n(.my_gain_per_week) + " | " + n(.their_gain_per_week) + " |",
+                      "| Gain over weeks " + (.window_weeks | map(tostring) | join(", ")) + " | " + n(.my_gain) + " | " + n(.their_gain) + " |",
+                      "",
+                      "- Give: " + (.give | map(.name + " (" + (.position // "?") + ")") | join(", ")),
+                      "- Get: " + (.get | map(.name + " (" + (.position // "?") + ")") | join(", "))]
+                     + (.notes | map("- " + .))
+                     + (.flags | map("- **" + . + "**"))
+                     + [""]
+                   end) | add)
          end)
       + ["## Diagnostics", "", "| Source | Origin | Cache age | Records | Note |", "| --- | --- | --- | ---: | --- |"]
       + (.diagnostics.fetches | map("| " + .key + " | " + .source + " | "
