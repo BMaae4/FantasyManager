@@ -26,6 +26,10 @@
     Writes the JSON report without opening a window.
 
 .EXAMPLE
+    .\FantasyManager.ps1 -NoGui -Trade "Josh Allen for Kenneth Walker III" -OutFile trade.json
+    Grades a trade you are considering (also available in the window's Trade Analyzer tab).
+
+.EXAMPLE
     .\FantasyManager.ps1 -ReportFile report.json
     Opens a saved report in the window.
 #>
@@ -41,6 +45,7 @@ param(
     [string]$Fairness,
     [string]$Horizon,
     [string]$Locked,
+    [string]$Trade,
     [switch]$SkipWaivers,
     [switch]$SkipTrades,
     [switch]$NoGui,
@@ -66,7 +71,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'   # Invoke-WebRequest is very slow with progress on 5.1
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '2.3.0'
+$ToolVersion = '2.4.0'
 
 # --------------------------------------------------------------------------
 # Defaults (kept in step with fantasy_manager.sh)
@@ -216,6 +221,7 @@ function Initialize-Configuration {
     $c.fairness         = Resolve-Setting 'fairness' 'FM_FAIRNESS' $Fairness (Test-CliSet 'Fairness') $Defaults.fairness
     $c.horizon          = Resolve-Setting 'horizon' 'FM_HORIZON' $Horizon (Test-CliSet 'Horizon') $Defaults.horizon
     $c.locked           = Resolve-Setting 'locked' 'FM_LOCKED' $Locked (Test-CliSet 'Locked') ''
+    $c.trade            = Resolve-Setting 'trade' 'FM_TRADE' $Trade (Test-CliSet 'Trade') ''
     $c.skip_waivers     = Resolve-Setting 'skip_waivers' 'FM_SKIP_WAIVERS' '1' (Test-CliSet 'SkipWaivers') '0'
     $c.skip_trades      = Resolve-Setting 'skip_trades' 'FM_SKIP_TRADES' '1' (Test-CliSet 'SkipTrades') '0'
     $c.cache_dir        = Resolve-Setting 'cache_dir' 'FM_CACHE_DIR' $CacheDir (Test-CliSet 'CacheDir') ''
@@ -651,6 +657,7 @@ function Invoke-Pipeline($c) {
             locked = $lockedList
             week_rolled_from = $rolledFrom
             horizon = [int]$c.horizon
+            custom_trades = $(if ($c.trade) { $c.trade } else { $null })
         }
         provenance = [ordered]@{
             projections = [ordered]@{ url = $projUrl; source = $projSource; cache_age_seconds = $projAge; fetched_at = $projFetchedAt }
@@ -890,6 +897,62 @@ $script:WindowXaml = @'
           </DataGrid>
         </Grid>
       </TabItem>
+      <TabItem x:Name="AnalyzerTab" Header="Trade Analyzer">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="2*"/>
+          </Grid.ColumnDefinitions>
+          <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+              <TextBlock Text="Trade with" VerticalAlignment="Center" Margin="0,0,8,0"/>
+              <ComboBox x:Name="PartnerBox" Width="240" DisplayMemberPath="Label"/>
+              <TextBlock Text="Click players to pick them; click again to unpick." VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource Muted}"/>
+            </StackPanel>
+            <Grid Grid.Row="1" Margin="0,0,0,4">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="You give" FontWeight="SemiBold"/>
+              <TextBlock Grid.Column="2" Text="You get" FontWeight="SemiBold"/>
+            </Grid>
+            <Grid Grid.Row="2">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <ListBox x:Name="GiveList" Grid.Column="0" SelectionMode="Multiple" DisplayMemberPath="Label" BorderBrush="#D5DAE0"/>
+              <ListBox x:Name="GetList" Grid.Column="2" SelectionMode="Multiple" DisplayMemberPath="Label" BorderBrush="#D5DAE0"/>
+            </Grid>
+            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10,0,0">
+              <Button x:Name="GradeButton" Content="Grade trade" Padding="16,4"
+                      Background="{StaticResource Accent}" Foreground="White" BorderThickness="0" FontWeight="SemiBold"/>
+              <Button x:Name="ClearTradeButton" Content="Clear" Margin="8,0,0,0" Padding="10,4"/>
+              <TextBlock x:Name="TradePickSummary" Margin="14,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
+            </StackPanel>
+          </Grid>
+          <Border Grid.Column="2" Style="{StaticResource Card}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <StackPanel>
+                <Grid>
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                    <TextBlock Text="Your grade" Foreground="{StaticResource Muted}" HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="YouGrade" Text="-" FontSize="46" FontWeight="Bold" HorizontalAlignment="Center"/>
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                    <TextBlock x:Name="ThemLabel" Text="Their grade" Foreground="{StaticResource Muted}" HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="ThemGrade" Text="-" FontSize="46" FontWeight="Bold" HorizontalAlignment="Center"/>
+                  </StackPanel>
+                </Grid>
+                <TextBlock x:Name="AcceptText" HorizontalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,2,0,8"/>
+                <TextBlock x:Name="VerdictText" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="14" Margin="0,0,0,8"
+                           Text="Pick a team and the players on each side, then press Grade trade."/>
+                <TextBlock x:Name="TradeDetail" TextWrapping="Wrap" LineHeight="20"/>
+                <TextBlock TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,12,0,0"
+                           Text="Grades are projected starting points gained per week across the window (this week plus the horizon). A+ 4 or more, A 3, A- 2.25, B+ 1.5, B 1, B- 0.5, C+ 0.25, C about even, C- -0.5, D+ -1, D -1.5, F worse. Roster limits are applied: if a side ends up over the limit, its cheapest player is dropped."/>
+              </StackPanel>
+            </ScrollViewer>
+          </Border>
+        </Grid>
+      </TabItem>
       <TabItem Header="Matchup">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <TextBlock x:Name="MatchupDetail" Margin="4" TextWrapping="Wrap" FontSize="14" LineHeight="24"/>
@@ -1092,6 +1155,115 @@ function Update-ReportView($ui, $report) {
             Records = $_.records; Note = $_.note; Url = $_.url
         }
     })
+    Update-TradeAnalyzer $ui $report
+}
+
+function Get-GradeBrush([string]$grade) {
+    $color = switch -Regex ($grade) { '^A' { '#1A7F37' } '^B' { '#1F6FEB' } '^C' { '#5B6570' } '^D' { '#BC4C00' } '^F' { '#CF222E' } default { '#1B1F24' } }
+    $converterType = 'Windows.Media.BrushConverter' -as [type]
+    if ($null -eq $converterType) { return $null }
+    return (New-Object Windows.Media.BrushConverter).ConvertFromString($color)
+}
+
+function Set-GradeText($block, [string]$grade) {
+    $block.Text = $(if ($grade) { $grade } else { '-' })
+    $brush = Get-GradeBrush $grade
+    if ($null -ne $brush) { $block.Foreground = $brush }
+}
+
+function Format-TradeLabel($p, [int]$weeks) {
+    $team = $(if ($p.team) { $p.team } else { 'FA' })
+    $label = '{0}   {1}/{2}   {3} this wk' -f $p.name, $p.position, $team, (Format-Points $p.projection)
+    if ($weeks -gt 1) { $label += (' / {0} over {1} wks' -f (Format-Points $p.window_projection), $weeks) }
+    if (Get-Prop $p 'injury_status') { $label += '   [' + $p.injury_status + ']' }
+    return $label
+}
+
+function Update-TradeAnalyzer($ui, $report) {
+    $rosters = @(Get-Prop $report 'rosters' | Where-Object { $_ })
+    $script:TradeRosters = $rosters
+    $script:TradeWeeks = [Math]::Max(1, @(Get-Prop $report.metadata 'window_weeks').Count)
+    $mine = $rosters | Where-Object { $_.is_me } | Select-Object -First 1
+    $ui.GiveList.ItemsSource = @(if ($mine) { @($mine.players) | ForEach-Object {
+        [pscustomobject]@{ Label = (Format-TradeLabel $_ $script:TradeWeeks); Id = $_.player_id; Name = $_.name; Window = $_.window_projection }
+    } })
+    $previous = $null
+    if ($ui.PartnerBox.SelectedItem) { $previous = $ui.PartnerBox.SelectedItem.RosterId }
+    $partners = @($rosters | Where-Object { -not $_.is_me } | ForEach-Object {
+        [pscustomobject]@{ Label = $(if ($_.team) { $_.team } else { 'Roster ' + $_.roster_id }); RosterId = $_.roster_id }
+    })
+    $ui.PartnerBox.ItemsSource = $partners
+    $index = 0
+    for ($i = 0; $i -lt $partners.Count; $i++) { if ($partners[$i].RosterId -eq $previous) { $index = $i } }
+    $ui.PartnerBox.SelectedIndex = $(if ($partners.Count) { $index } else { -1 })
+    Update-TradeGetList $ui
+    $custom = @(Get-Prop $report 'custom_trades' | Where-Object { $_ })
+    if ($custom.Count) { Show-TradeResult $ui $custom[0] } else { Show-TradeResult $ui $null }
+}
+
+function Update-TradeGetList($ui) {
+    $partner = $null
+    $selected = $ui.PartnerBox.SelectedItem
+    if ($selected) { $partner = @($script:TradeRosters) | Where-Object { $_.roster_id -eq $selected.RosterId } | Select-Object -First 1 }
+    $ui.GetList.ItemsSource = @(if ($partner) { @($partner.players) | ForEach-Object {
+        [pscustomobject]@{ Label = (Format-TradeLabel $_ $script:TradeWeeks); Id = $_.player_id; Name = $_.name; Window = $_.window_projection }
+    } })
+    Update-TradePickSummary $ui
+}
+
+function Update-TradePickSummary($ui) {
+    $give = @($ui.GiveList.SelectedItems | Where-Object { $_ })
+    $get = @($ui.GetList.SelectedItems | Where-Object { $_ })
+    $sum = { param($items) $t = 0.0; foreach ($i in $items) { if ($null -ne $i.Window) { $t += [double]$i.Window } }; $t }
+    $ui.TradePickSummary.Text = $(if ($give.Count -or $get.Count) {
+        'Give {0} ({1} pts)   Get {2} ({3} pts)   over {4} wk(s)' -f $give.Count, (Format-Points (& $sum $give)), $get.Count, (Format-Points (& $sum $get)), $script:TradeWeeks
+    } else { '' })
+}
+
+function Get-TradeText($ui) {
+    $give = @($ui.GiveList.SelectedItems | Where-Object { $_ } | ForEach-Object { 'id:' + $_.Id })
+    $get = @($ui.GetList.SelectedItems | Where-Object { $_ } | ForEach-Object { 'id:' + $_.Id })
+    if ($give.Count -eq 0 -or $get.Count -eq 0) { return $null }
+    return ($give -join ', ') + ' for ' + ($get -join ', ')
+}
+
+function Show-TradeResult($ui, $t) {
+    if ($null -eq $t) {
+        Set-GradeText $ui.YouGrade ''; Set-GradeText $ui.ThemGrade ''
+        $ui.AcceptText.Text = ''
+        $ui.VerdictText.Text = 'Pick a team and the players on each side, then press Grade trade.'
+        $ui.TradeDetail.Text = ''
+        return
+    }
+    if (Get-Prop $t 'error') {
+        Set-GradeText $ui.YouGrade ''; Set-GradeText $ui.ThemGrade ''
+        $ui.AcceptText.Text = ''
+        $ui.VerdictText.Text = 'Could not grade this trade: ' + $t.error
+        $ui.TradeDetail.Text = ''
+        return
+    }
+    Set-GradeText $ui.YouGrade $t.my_grade
+    Set-GradeText $ui.ThemGrade $t.their_grade
+    $ui.ThemLabel.Text = $(if ($t.partner.team) { $t.partner.team + "'s grade" } else { 'Their grade' })
+    $ui.AcceptText.Text = 'Chance they accept: ' + $t.acceptance
+    $ui.VerdictText.Text = $t.verdict
+    $weeks = @($t.window_weeks)
+    $lines = @(
+        ('Gain per week:  you {0},  them {1}' -f (Format-Points $t.my_gain_per_week), (Format-Points $t.their_gain_per_week)),
+        ('Over weeks {0}:  you {1},  them {2}' -f ($weeks -join ', '), (Format-Points $t.my_gain), (Format-Points $t.their_gain))
+    )
+    if ($weeks.Count -gt 1) {
+        $parts = @(); for ($i = 0; $i -lt $weeks.Count; $i++) { $parts += ('wk {0}: {1}' -f $weeks[$i], (Format-Points @($t.my_weekly_gains)[$i])) }
+        $lines += ('Your gain by week:  ' + ($parts -join ',  '))
+    }
+    $lines += ''
+    $lines += 'You give:'
+    foreach ($p in @($t.give)) { $lines += ('   {0} ({1}) - started {2} of {3} wks for you' -f $p.name, $p.position, $p.weeks_started_before, $weeks.Count) }
+    $lines += 'You get:'
+    foreach ($p in @($t.get)) { $lines += ('   {0} ({1}) - would start {2} of {3} wks' -f $p.name, $p.position, $p.weeks_started_after, $weeks.Count) }
+    $extra = @(@($t.notes) + @($t.flags) | Where-Object { $_ })
+    if ($extra.Count) { $lines += ''; foreach ($e in $extra) { $lines += ('- ' + $e) } }
+    $ui.TradeDetail.Text = ($lines -join "`n")
 }
 
 function Import-ReportFile([string]$path) {
@@ -1121,12 +1293,13 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
             'Busy', 'StatusText', 'TitleText', 'SubtitleText', 'NoticeText', 'MyTeamText', 'MyScoreText', 'MyProjText',
             'OppTeamText', 'OppScoreText', 'OppProjText', 'WarningsExpander', 'WarningsHeader', 'WarningsList',
             'LineupSummary', 'LineupGrid', 'RiskGrid', 'WaiverSummary', 'WaiverGrid', 'TradeSummary', 'TradeGrid',
-            'MatchupDetail', 'DiagSummary', 'DiagGrid')) {
+            'MatchupDetail', 'DiagSummary', 'DiagGrid', 'Tabs', 'AnalyzerTab', 'PartnerBox', 'GiveList', 'GetList',
+            'GradeButton', 'ClearTradeButton', 'TradePickSummary', 'YouGrade', 'ThemGrade', 'ThemLabel', 'AcceptText',
+            'VerdictText', 'TradeDetail')) {
         $ui[$name] = $window.FindName($name)
     }
     $script:Ui = $ui
     $script:CurrentReportPath = $null
-    $script:RefreshProc = $null
 
     # Defaults for the inputs follow the normal precedence (CLI > env > config > defaults).
     try {
@@ -1146,72 +1319,112 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         param([string]$path)
         $report = Import-ReportFile $path
         Update-ReportView $script:Ui $report
+        $script:CurrentReport = $report
         $script:CurrentReportPath = $path
         $script:Ui.SaveButton.IsEnabled = $true
     }
-
     $script:LoadReport = $loadReport
+    $script:CurrentReport = $null
+
+    # One background job at a time (refresh or trade grade). The data layer
+    # runs as a separate process so the window stays responsive.
+    $script:Job = $null
+    $script:StartJob = {
+        param([string[]]$extraArgs, [scriptblock]$onSuccess, [string]$busyText, [string]$failText)
+        $ui = $script:Ui
+        if ($script:Job) { return }
+        $work = Join-Path ([IO.Path]::GetTempPath()) 'fantasy_manager_gui'
+        if (-not (Test-Path -LiteralPath $work)) { New-Item -ItemType Directory -Path $work | Out-Null }
+        $out = Join-Path $work ('report_{0}.json' -f [Guid]::NewGuid().ToString('N').Substring(0, 8))
+        $log = Join-Path $work 'last_run.log'
+        if (Test-Path -LiteralPath $log) { Remove-Item -LiteralPath $log -Force }
+        $childArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $script:ScriptPath, '-NoGui',
+            '-OutFile', $out, '-LogFile', $log) + $extraArgs
+        foreach ($pass in @('Season', 'SeasonType', 'Top', 'Threshold', 'Fairness', 'Locked', 'CacheDir', 'Config', 'Python', 'Fixtures')) {
+            if ($script:BoundParams.ContainsKey($pass)) { $childArgs += @("-$pass", [string]$script:BoundParams[$pass]) }
+        }
+        foreach ($flag in @('Offline', 'NoCache', 'SkipWaivers', 'SkipTrades')) {
+            if ($script:BoundParams.ContainsKey($flag) -and $childArgs -notcontains "-$flag") { $childArgs += "-$flag" }
+        }
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = (Get-Process -Id $PID).Path
+        $psi.Arguments = (($childArgs | ForEach-Object { ConvertTo-Argument $_ }) -join ' ')
+        $psi.UseShellExecute = $false
+        $psi.CreateNoWindow = $true
+        $script:Job = @{ Proc = [Diagnostics.Process]::Start($psi); Out = $out; Log = $log; OnSuccess = $onSuccess; FailText = $failText }
+        $ui.Busy.Visibility = 'Visible'
+        $ui.RefreshButton.IsEnabled = $false
+        $ui.GradeButton.IsEnabled = $false
+        $ui.StatusText.Text = $busyText
+        $script:Timer.Start()
+    }
+
     $script:Timer = New-Object Windows.Threading.DispatcherTimer
     $script:Timer.Interval = [TimeSpan]::FromMilliseconds(250)
     $script:Timer.Add_Tick({
-        $proc = $script:RefreshProc
-        if ($null -eq $proc -or -not $proc.HasExited) { return }
+        $job = $script:Job
+        if ($null -eq $job -or -not $job.Proc.HasExited) { return }
         $script:Timer.Stop()
-        $script:RefreshProc = $null
+        $script:Job = $null
         $ui = $script:Ui
         $ui.Busy.Visibility = 'Collapsed'
         $ui.RefreshButton.IsEnabled = $true
+        $ui.GradeButton.IsEnabled = $true
         $logText = ''
-        if (Test-Path -LiteralPath $script:RefreshLog) { $logText = [IO.File]::ReadAllText($script:RefreshLog) }
-        if ($proc.ExitCode -eq 0 -and (Test-Path -LiteralPath $script:RefreshOut)) {
+        if (Test-Path -LiteralPath $job.Log) { $logText = [IO.File]::ReadAllText($job.Log) }
+        if ($job.Proc.ExitCode -eq 0 -and (Test-Path -LiteralPath $job.Out)) {
             try {
-                & $script:LoadReport $script:RefreshOut
-                $ui.StatusText.Text = 'Updated ' + (Get-Date).ToString('h:mm tt')
+                & $job.OnSuccess $job.Out
             } catch {
                 $ui.StatusText.Text = 'Could not read the report.'
                 [Windows.MessageBox]::Show($_.Exception.Message, 'Fantasy Manager', 'OK', 'Error') | Out-Null
             }
         } else {
             $errors = @($logText -split "`n" | Where-Object { $_ -match '\[ERROR\]' } | ForEach-Object { ($_ -replace '^\S+ \[ERROR\] ', '').Trim() })
-            $message = $(if ($errors.Count) { $errors -join "`n" } else { "The update failed (exit code $($proc.ExitCode))." })
-            $ui.StatusText.Text = 'Update failed'
+            $message = $(if ($errors.Count) { $errors -join "`n" } else { "$($job.FailText) (exit code $($job.Proc.ExitCode))." })
+            $ui.StatusText.Text = $job.FailText
             [Windows.MessageBox]::Show($message, 'Fantasy Manager', 'OK', 'Warning') | Out-Null
         }
     })
 
     $ui.RefreshButton.Add_Click({
         $ui = $script:Ui
-        if ($script:RefreshProc) { return }
-        $work = Join-Path ([IO.Path]::GetTempPath()) 'fantasy_manager_gui'
-        if (-not (Test-Path -LiteralPath $work)) { New-Item -ItemType Directory -Path $work | Out-Null }
-        $script:RefreshOut = Join-Path $work ('report_{0}.json' -f [Guid]::NewGuid().ToString('N').Substring(0, 8))
-        $script:RefreshLog = Join-Path $work 'last_refresh.log'
-        if (Test-Path -LiteralPath $script:RefreshLog) { Remove-Item -LiteralPath $script:RefreshLog -Force }
+        $extra = @('-LeagueId', $ui.LeagueBox.Text.Trim(), '-Username', $ui.UserBox.Text.Trim())
+        if ($ui.WeekBox.Text.Trim()) { $extra += @('-Week', $ui.WeekBox.Text.Trim()) }
+        if ($ui.HorizonBox.SelectedIndex -ge 0) { $extra += @('-Horizon', [string]$ui.HorizonBox.SelectedIndex) }
+        if ($ui.FreshBox.IsChecked) { $extra += '-Refresh' }
+        & $script:StartJob $extra {
+            param($path)
+            & $script:LoadReport $path
+            $script:Ui.StatusText.Text = 'Updated ' + (Get-Date).ToString('h:mm tt')
+        } 'Fetching from Sleeper...' 'Update failed'
+    })
 
-        # The data layer runs as a separate process so the window stays responsive.
-        $childArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $script:ScriptPath, '-NoGui',
-            '-OutFile', $script:RefreshOut, '-LogFile', $script:RefreshLog,
-            '-LeagueId', $ui.LeagueBox.Text.Trim(), '-Username', $ui.UserBox.Text.Trim())
-        if ($ui.WeekBox.Text.Trim()) { $childArgs += @('-Week', $ui.WeekBox.Text.Trim()) }
-        if ($ui.HorizonBox.SelectedIndex -ge 0) { $childArgs += @('-Horizon', [string]$ui.HorizonBox.SelectedIndex) }
-        if ($ui.FreshBox.IsChecked) { $childArgs += '-Refresh' }
-        foreach ($pass in @('Season', 'SeasonType', 'Top', 'Threshold', 'Fairness', 'Locked', 'CacheDir', 'Config', 'Python', 'Fixtures')) {
-            if ($script:BoundParams.ContainsKey($pass)) { $childArgs += @("-$pass", [string]$script:BoundParams[$pass]) }
-        }
-        foreach ($flag in @('Offline', 'NoCache', 'SkipWaivers', 'SkipTrades')) {
-            if ($script:BoundParams.ContainsKey($flag)) { $childArgs += "-$flag" }
-        }
-
-        $psi = New-Object System.Diagnostics.ProcessStartInfo
-        $psi.FileName = (Get-Process -Id $PID).Path
-        $psi.Arguments = (($childArgs | ForEach-Object { ConvertTo-Argument $_ }) -join ' ')
-        $psi.UseShellExecute = $false
-        $psi.CreateNoWindow = $true
-        $script:RefreshProc = [Diagnostics.Process]::Start($psi)
-        $ui.Busy.Visibility = 'Visible'
-        $ui.RefreshButton.IsEnabled = $false
-        $ui.StatusText.Text = 'Fetching from Sleeper...'
-        $script:Timer.Start()
+    $ui.PartnerBox.Add_SelectionChanged({ Update-TradeGetList $script:Ui })
+    $ui.GiveList.Add_SelectionChanged({ Update-TradePickSummary $script:Ui })
+    $ui.GetList.Add_SelectionChanged({ Update-TradePickSummary $script:Ui })
+    $ui.ClearTradeButton.Add_Click({
+        $script:Ui.GiveList.UnselectAll(); $script:Ui.GetList.UnselectAll()
+        Show-TradeResult $script:Ui $null
+    })
+    $ui.GradeButton.Add_Click({
+        $ui = $script:Ui
+        $report = $script:CurrentReport
+        if (-not $report) { $ui.VerdictText.Text = 'Load a report first (Refresh).'; return }
+        $text = Get-TradeText $ui
+        if (-not $text) { $ui.VerdictText.Text = 'Pick at least one player on each side.'; return }
+        # Grade against the same league, week and window as the loaded report.
+        $meta = $report.metadata
+        $extra = @('-LeagueId', [string]$meta.league_id, '-Username', [string]$meta.username, '-Week', [string]$meta.week,
+            '-Horizon', [string]([Math]::Max(0, @($meta.window_weeks).Count - 1)), '-SkipWaivers', '-SkipTrades', '-Trade', $text)
+        $ui.VerdictText.Text = 'Grading...'
+        & $script:StartJob $extra {
+            param($path)
+            $result = Import-ReportFile $path
+            $trades = @(Get-Prop $result 'custom_trades' | Where-Object { $_ })
+            Show-TradeResult $script:Ui $(if ($trades.Count) { $trades[0] } else { $null })
+            $script:Ui.StatusText.Text = 'Trade graded ' + (Get-Date).ToString('h:mm tt')
+        } 'Grading trade...' 'Grading failed'
     })
 
     $ui.OpenButton.Add_Click({
@@ -1256,14 +1469,14 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         $window.Measure((New-Object Windows.Size 1180, 800))
         $window.Arrange((New-Object Windows.Rect 0, 0, 1180, 800))
         $window.UpdateLayout()
-        [Console]::Out.WriteLine(('GUI smoke test ok: lineup rows {0}, waiver rows {1}, trade rows {2}, warnings {3}' -f
+        [Console]::Out.WriteLine(('GUI smoke test ok: lineup rows {0}, waiver rows {1}, trade rows {2}, warnings {3}, give list {4}, get list {5}, trade grade {6}' -f
             @($ui.LineupGrid.ItemsSource).Count, @($ui.WaiverGrid.ItemsSource).Count, @($ui.TradeGrid.ItemsSource).Count,
-            @($ui.WarningsList.ItemsSource).Count))
+            @($ui.WarningsList.ItemsSource).Count, @($ui.GiveList.ItemsSource).Count, @($ui.GetList.ItemsSource).Count, $ui.YouGrade.Text))
         $window.Close()
         return
     }
     [void]$window.ShowDialog()
-    if ($script:RefreshProc -and -not $script:RefreshProc.HasExited) { try { $script:RefreshProc.Kill() } catch { } }
+    if ($script:Job -and -not $script:Job.Proc.HasExited) { try { $script:Job.Proc.Kill() } catch { } }
 }
 
 

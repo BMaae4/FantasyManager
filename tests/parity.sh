@@ -16,12 +16,15 @@ NORMALISE='del(.metadata.generated_at, .metadata.projections.fetched_at) | .diag
 pass=0; fail=0; failed=()
 for dir in "$ROOT"/tests/fixtures/*/; do
     name="$(basename "$dir")"
-    for args in "" "--horizon 0" "--locked Wes Charlie"; do
+    for args in "" "--horizon 0" "--locked Wes Charlie" "--trade"; do
         label="$name${args:+ ($args)}"
         # shellcheck disable=SC2086
         case "$args" in
             "") sh_args=(); ps_args=() ;;
             "--horizon 0") sh_args=(--horizon 0); ps_args=(-Horizon 0) ;;
+            "--trade") [ "$name" = "ppr_basic" ] || continue
+                sh_args=(--trade "Wes Delta, Ryan Echo for Team2 RB1; Bravo for Team2 TE1")
+                ps_args=(-Trade "Wes Delta, Ryan Echo for Team2 RB1; Bravo for Team2 TE1") ;;
             *) sh_args=(--locked "Wes Charlie"); ps_args=(-Locked "Wes Charlie") ;;
         esac
         FM_OFFLINE=1 FM_FIXTURES="$dir" "$ROOT/fantasy_manager.sh" --no-cache -q -f json "${sh_args[@]}" \

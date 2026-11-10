@@ -1483,6 +1483,289 @@ class Analyzer:
         }
 
     # -- report -----------------------------------------------------------
+    # -- custom trade analyzer -------------------------------------------
+    # Grades on projected starting points gained per window week. The scale
+    # is deliberately absolute: one point a week is a real but small edge for
+    # a typical 120-150 point lineup.
+    GRADE_SCALE = (
+        (4.0, "A+"), (3.0, "A"), (2.25, "A-"), (1.5, "B+"), (1.0, "B"), (0.5, "B-"),
+        (0.25, "C+"), (-0.25, "C"), (-0.5, "C-"), (-1.0, "D+"), (-1.5, "D"),
+    )
+    NAME_SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v"}
+
+    @classmethod
+    def grade_for(cls, per_week: float) -> str:
+        for floor, letter in cls.GRADE_SCALE:
+            if per_week >= floor - 1e-9:
+                return letter
+        return "F"
+
+    @classmethod
+    def normalise_name(cls, text: str) -> List[str]:
+        cleaned = "".join(ch if ch.isalnum() or ch.isspace() else "" for ch in lower(text).replace("-", " "))
+        return [t for t in cleaned.split() if t and t not in cls.NAME_SUFFIXES]
+
+    @staticmethod
+    def parse_trade_text(text: str) -> List[Tuple[str, List[str], List[str]]]:
+        """'A, B for C; D for E' -> [(raw, [A, B], [C]), (raw, [D], [E])].
+        ' for ', '->' and '=>' separate the sides; ';' separates trades."""
+        trades = []
+        for raw in str(text or "").split(";"):
+            raw = raw.strip()
+            if not raw:
+                continue
+            sides = None
+            for sep in (" for ", "->", "=>"):
+                low = raw.lower()
+                idx = low.find(sep)
+                if idx >= 0:
+                    sides = (raw[:idx], raw[idx + len(sep):])
+                    break
+            if sides is None:
+                trades.append((raw, [], []))
+                continue
+            give = [p.strip() for p in sides[0].split(",") if p.strip()]
+            get = [p.strip() for p in sides[1].split(",") if p.strip()]
+            trades.append((raw, give, get))
+        return trades
+
+    def resolve_player(self, token: str, pool: Sequence[str]) -> Tuple[Optional[str], Optional[str]]:
+        """Match a name or player id against `pool`. Returns (pid, error)."""
+        token = token.strip()
+        if token.lower().startswith("id:"):
+            token = token[3:].strip()
+        if token in pool:
+            return token, None
+        wanted = self.normalise_name(token)
+        if not wanted:
+            return None, "empty player name"
+        exact = [p for p in pool if self.normalise_name(self.player_name(p)) == wanted]
+        if len(exact) == 1:
+            return exact[0], None
+        partial = [p for p in pool if set(wanted) <= set(self.normalise_name(self.player_name(p)))]
+        if len(partial) == 1:
+            return partial[0], None
+        candidates = exact or partial
+        if candidates:
+            return None, "'%s' is ambiguous: %s" % (
+                token, ", ".join(sorted(self.player_name(p) for p in candidates)))
+        return None, "'%s' not found" % token
+
+    def roster_limit(self) -> int:
+        """Roster spots for active players (starters + bench; IR/taxi excluded)."""
+        return len([p for p in self.roster_positions if p.upper() not in ("IR", "TAXI", "RESERVE")])
+
+    def trim_roster(self, players: List[str], keep: set, limit_floor: int) -> Tuple[List[str], List[str]]:
+        """Drop the cheapest players (by window value) until the roster fits.
+        `keep` (just-acquired players) are dropped only as a last resort."""
+        players = list(players)
+        limit = max(self.roster_limit(), limit_floor)
+        drops: List[str] = []
+        while len(players) > limit:
+            best = None
+            for pid in players:
+                total, _ = self.window_value([p for p in players if p != pid])
+                key = (pid in keep, -total, self.player_name(pid))
+                if best is None or key < best[0]:
+                    best = (key, pid)
+            players.remove(best[1])
+            drops.append(best[1])
+        return players, drops
+
+    def weeks_started(self, players: Sequence[str], targets: Iterable[str]) -> Dict[str, int]:
+        counts = {str(t): 0 for t in targets}
+        for w in range(self.n_weeks):
+            for pid in self.optimize(players, w=w)[1].values():
+                if pid in counts:
+                    counts[pid] += 1
+        return counts
+
+    def trade_flags(self, pid: str, side: str) -> List[str]:
+        flags = []
+        info = self.player(pid)
+        name = self.player_name(pid)
+        injury = info.get("injury_status")
+        status = lower(info.get("status"))
+        if status in LONG_TERM_UNAVAILABLE:
+            flags.append("%s %s is %s" % (side, name, info.get("status")))
+        elif injury:
+            flags.append("%s %s is %s" % (side, name, injury))
+        missing = [str(self.window_weeks[w]) for w in range(self.n_weeks) if not self.has_projection(pid, w)]
+        if missing:
+            flags.append("%s %s has no projection in week %s (bye or out)" % (side, name, ", ".join(missing)))
+        if self.is_locked(pid):
+            flags.append("%s %s has already played this week" % (side, name))
+        return flags
+
+    def analyze_custom_trades(self) -> Optional[List[dict]]:
+        text = self.config.get("custom_trades")
+        if not text:
+            return None
+        rosters = {r.get("roster_id"): r for r in self.rosters}
+        mine = rosters.get(self.my_roster_id) or {}
+        my_players = self.roster_active_players(mine)
+        others = {
+            rid: self.roster_active_players(r) for rid, r in rosters.items() if rid != self.my_roster_id
+        }
+        all_other = sorted({p for players in others.values() for p in players})
+        results = []
+        for raw, give_tokens, get_tokens in self.parse_trade_text(text):
+            result: dict = {"input": raw}
+            results.append(result)
+            if not give_tokens or not get_tokens:
+                result["error"] = "Write a trade as 'players you give for players you get', e.g. 'Josh Allen for Kenneth Walker III'."
+                continue
+            errors = []
+            give, get = [], []
+            for token in give_tokens:
+                pid, err = self.resolve_player(token, my_players)
+                if err:
+                    errors.append("give: %s on your roster" % err if "not found" in err else "give: " + err)
+                elif pid in give:
+                    errors.append("give: %s listed twice" % self.player_name(pid))
+                else:
+                    give.append(pid)
+            for token in get_tokens:
+                pid, err = self.resolve_player(token, all_other)
+                if err:
+                    errors.append("get: %s on another roster" % err if "not found" in err else "get: " + err)
+                elif pid in get:
+                    errors.append("get: %s listed twice" % self.player_name(pid))
+                else:
+                    get.append(pid)
+            partners = {rid for rid, players in others.items() for pid in get if pid in players}
+            if not errors and len(partners) > 1:
+                errors.append("players to get are on different teams (%s); only two-team trades are supported"
+                              % ", ".join(sorted(str(self.team_name(r)) for r in partners)))
+            if errors:
+                result["error"] = "; ".join(errors)
+                continue
+            partner_id = partners.pop()
+            theirs = others[partner_id]
+            result["partner"] = {"roster_id": partner_id, "team": self.team_name(partner_id)}
+            n = self.n_weeks
+
+            my_base, my_base_weeks = self.window_value(my_players)
+            their_base, their_base_weeks = self.window_value(theirs)
+            my_after_players = [p for p in my_players if p not in give] + get
+            their_after_players = [p for p in theirs if p not in get] + give
+            my_after_players, my_drops = self.trim_roster(my_after_players, set(get), len(my_players))
+            their_after_players, their_drops = self.trim_roster(their_after_players, set(give), len(theirs))
+            my_after, my_weeks = self.window_value(my_after_players)
+            their_after, their_weeks = self.window_value(their_after_players)
+            my_gain = my_after - my_base
+            their_gain = their_after - their_base
+            my_pw = my_gain / n
+            their_pw = their_gain / n
+
+            started_before_mine = self.weeks_started(my_players, give)
+            started_after_mine = self.weeks_started(my_after_players, get)
+            started_before_theirs = self.weeks_started(theirs, get)
+            started_after_theirs = self.weeks_started(their_after_players, give)
+
+            def side(pids: List[str], before: Dict[str, int], after: Dict[str, int]) -> List[dict]:
+                rows = []
+                for pid in pids:
+                    ref = self.player_ref(pid)
+                    ref["window_projection"] = r2(self.window_points(pid))
+                    ref["weeks_started_before"] = before.get(pid)
+                    ref["weeks_started_after"] = after.get(pid)
+                    rows.append(ref)
+                return rows
+
+            result["give"] = side(give, started_before_mine, started_after_theirs)
+            result["get"] = side(get, started_before_theirs, started_after_mine)
+            value_given = sum(self.window_points(p) for p in give)
+            value_received = sum(self.window_points(p) for p in get)
+
+            my_grade = self.grade_for(my_pw)
+            their_grade = self.grade_for(their_pw)
+            if their_pw >= 0.5:
+                acceptance = "likely"
+            elif their_pw >= -0.5:
+                acceptance = "possible"
+            else:
+                acceptance = "unlikely"
+            if my_pw >= 0.5:
+                if their_pw >= 0:
+                    verdict = "Good for you and it helps them too: worth proposing."
+                elif their_pw >= -1.0:
+                    verdict = "Good for you; slightly worse for them, so they may need convincing."
+                else:
+                    verdict = "Lopsided in your favour; unlikely to be accepted as is."
+            elif my_pw >= -0.25:
+                verdict = ("Roughly neutral for you" + (", but it helps them." if their_pw >= 0.5 else "."))
+            else:
+                verdict = "Costs you projected points: not recommended" + (
+                    " (they win this one)." if their_pw >= 0.5 else ".")
+
+            notes = []
+            if len(give) > len(get) and value_given > value_received and my_gain > 0:
+                notes.append("Consolidation: you give more total points but your starting lineup improves.")
+            if len(get) > len(give) and their_gain > 0 and value_received > value_given:
+                notes.append("They consolidate: you get more total points, they upgrade a starter.")
+            if my_drops:
+                notes.append("To make room you would drop: %s." % ", ".join(self.player_name(p) for p in my_drops))
+            if their_drops:
+                notes.append("To make room they would drop: %s." % ", ".join(self.player_name(p) for p in their_drops))
+            if len(give) > len(get):
+                notes.append("Opens %d roster spot(s) for a waiver pickup (not included in the grade)."
+                             % (len(give) - len(get)))
+            for pid in get:
+                if started_after_mine.get(pid, 0) == 0:
+                    notes.append("%s would not start for you in any window week." % self.player_name(pid))
+            if n == 1:
+                notes.append("Judged on this week only (--horizon 0); rest-of-season value is not included.")
+
+            flags = []
+            for pid in get:
+                flags.extend(self.trade_flags(pid, "You get"))
+            for pid in give:
+                flags.extend(self.trade_flags(pid, "You give"))
+
+            result.update({
+                "window_weeks": self.window_weeks,
+                "my_gain": r2(my_gain),
+                "their_gain": r2(their_gain),
+                "my_gain_per_week": r2(my_pw),
+                "their_gain_per_week": r2(their_pw),
+                "my_weekly_gains": [r2(a - b) for a, b in zip(my_weeks, my_base_weeks)],
+                "their_weekly_gains": [r2(a - b) for a, b in zip(their_weeks, their_base_weeks)],
+                "value_given": r2(value_given),
+                "value_received": r2(value_received),
+                "my_grade": my_grade,
+                "their_grade": their_grade,
+                "acceptance": acceptance,
+                "verdict": verdict,
+                "my_drops": [self.player_ref(p) for p in my_drops],
+                "their_drops": [self.player_ref(p) for p in their_drops],
+                "notes": notes,
+                "flags": flags,
+            })
+        return results
+
+    def roster_summaries(self) -> List[dict]:
+        """Every roster with its players, for building trades by hand."""
+        out = []
+        for roster in sorted(self.rosters, key=lambda r: r.get("roster_id") or 0):
+            rid = roster.get("roster_id")
+            players = []
+            for pid in self.roster_active_players(roster):
+                players.append({
+                    "player_id": pid,
+                    "name": self.player_name(pid),
+                    "position": self.primary_position(pid),
+                    "team": self.player(pid).get("team"),
+                    "projection": r2(self.points(pid)) if self.has_projection(pid) else None,
+                    "window_projection": r2(self.window_points(pid)),
+                    "injury_status": self.player(pid).get("injury_status"),
+                })
+            order = {p: i for i, p in enumerate(("QB", "RB", "WR", "TE", "K", "DEF"))}
+            players.sort(key=lambda p: (order.get(p["position"], 9), -(p["window_projection"] or 0), p["name"]))
+            out.append({"roster_id": rid, "team": self.team_name(rid), "is_me": rid == self.my_roster_id,
+                        "players": players})
+        return out
+
     def run(self) -> dict:
         if not self.starting_slots:
             raise SystemExit("league has no starting slots in roster_positions")
@@ -1499,6 +1782,7 @@ class Analyzer:
         matchup = self.analyze_matchup()
         waivers = None if self.config.get("skip_waivers") else self.analyze_waivers(my_roster)
         trades = None if self.config.get("skip_trades") else self.analyze_trades(my_roster)
+        custom_trades = self.analyze_custom_trades()
 
         projections_provenance = (self.provenance.get("projections") or {})
         report = {
@@ -1549,6 +1833,8 @@ class Analyzer:
             "matchup": matchup,
             "waivers": waivers,
             "trades": trades,
+            "custom_trades": custom_trades,
+            "rosters": self.roster_summaries(),
             "diagnostics": {
                 "fetches": self.bundle.get("diagnostics") or [],
                 "trending_available": self.provenance.get("trending_available"),

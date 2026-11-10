@@ -22,7 +22,10 @@ opens and loads the current week:
 - **Header:** live score and projected final for your matchup, plus any
   warnings.
 - **Tabs:** Lineup (colour-coded actions and risk list), Waivers, Trades,
-  Matchup and Diagnostics.
+  Trade Analyzer, Matchup and Diagnostics.
+- **Trade Analyzer:** pick a team, click the players you'd give and get, then
+  press **Grade trade**. Grades, the verdict and the week-by-week breakdown
+  appear on the right.
 
 Refresh runs in the background, so the window stays responsive.
 
@@ -75,7 +78,7 @@ Run `./fantasy_manager.sh --help` for the full list. Frequently used:
 -l, --league-id ID     -u, --username NAME    -w, --week N       -s, --season YYYY
 -n, --top N            -f, --format text|json|markdown           -o, --output PATH
     --threshold X          --fairness X       --skip-waivers         --skip-trades
-    --locked LIST          --horizon N
+    --locked LIST          --horizon N        --trade TEXT
     --cache-dir DIR        --cache-ttl SEC    --no-cache             --refresh
     --offline              --fixtures DIR     --config PATH
 -q, --quiet            -v, --verbose          --debug                --log-file PATH
@@ -144,6 +147,36 @@ value when `--horizon 0`) are omitted, the remaining weights are renormalised, a
 listed. With FAAB leagues a suggested bid in dollars and percent of remaining
 budget is shown; otherwise waiver-priority advice.
 
+**Trade analyzer.** Grade a trade you're considering:
+
+```bash
+./fantasy_manager.sh --trade "Josh Allen for Kenneth Walker III"
+./fantasy_manager.sh --trade "Jared Goff, Devaughn Vele for Jameson Williams; Aaron Jones for Rachaad White"
+```
+
+Name the players you give, then `for`, then the players you get. You can use
+full names, unique parts of names (`Jacobs`), or Sleeper ids (`id:4984`), and
+`;` separates several trades. The other team is worked out from who owns the
+players you get.
+
+Each trade is judged the way suggested trades are: optimal starting lineups for
+both teams across the window, before and after. Roster limits are applied: a
+team that ends up over the limit drops its cheapest player, and the report says
+who. The report gives:
+
+- **Grades** for you and for them, based on starting points gained per week.
+  A+ is 4 or more, A 3, A- 2.25, B+ 1.5, B 1, B- 0.5, C+ 0.25 and C about
+  even. C- is -0.5, D+ -1, D -1.5, and anything worse is F.
+- A **chance they accept** (likely, possible or unlikely) and a one-line
+  verdict.
+- Gains week by week, and how often each player would start.
+- Notes on consolidation, open roster spots and drops, plus flags for
+  injuries, byes and players who have already played this week.
+
+Names that are ambiguous or not found, and three-team trades, get a clear
+error instead of a grade. In the Windows app, the **Trade Analyzer** tab does
+the same by point and click.
+
 **Trades.** Partner rosters are profiled by optimal starting points (averaged
 over the window), bench value above replacement, positional scarcity, needs and
 surplus. Gains and fairness use the whole window; each package also shows this
@@ -187,7 +220,7 @@ Diagnostics (`ERROR`/`WARN`/`INFO`/`DEBUG`) go to stderr and the optional
 Fully offline — the suite never touches the network:
 
 ```bash
-bash tests/run.sh                 # 193 assertions
+bash tests/run.sh                 # 211 assertions
 python3 tests/make_fixtures.py    # regenerate fixtures
 bash tests/parity.sh              # PowerShell front end vs bash, every fixture (needs pwsh)
 ```

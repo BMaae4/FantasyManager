@@ -16,4 +16,7 @@ FM_OFFLINE=1 FM_FIXTURES="$ROOT/tests/fixtures/ppr_basic" "$ROOT/fantasy_manager
     > "$OUT/ppr_basic__horizon0.json" 2>/dev/null; echo $? > "$OUT/ppr_basic__horizon0.status"
 FM_OFFLINE=1 FM_FIXTURES="$ROOT/tests/fixtures/ppr_basic" "$ROOT/fantasy_manager.sh" --no-cache -q -f json --locked "Wes Charlie" \
     > "$OUT/ppr_basic__locked.json" 2>/dev/null; echo $? > "$OUT/ppr_basic__locked.status"
+FM_OFFLINE=1 FM_FIXTURES="$ROOT/tests/fixtures/ppr_basic" "$ROOT/fantasy_manager.sh" --no-cache -q -f json \
+    --trade "Wes Delta, Ryan Echo for Team2 RB1; Bravo for Team2 TE1" \
+    > "$OUT/ppr_basic__trade.json" 2>/dev/null; echo $? > "$OUT/ppr_basic__trade.status"
 echo "expected reports written to $OUT"

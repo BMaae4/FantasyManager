@@ -2,6 +2,29 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.4.0
+
+### Added
+
+- Trade analyzer: `--trade "Give A, Give B for Get C"` (PowerShell `-Trade`,
+  `FM_TRADE`) grades your own trades.
+  - Players can be named in full, by a unique part of the name, or by
+    Sleeper id; `;` separates trades, and the partner is inferred from who
+    owns the players you get.
+  - Both teams' optimal lineups are compared across the window, with roster
+    limits enforced by dropping the cheapest player.
+  - The result has grades for you and the partner (A+ to F on starting
+    points per week), chance of acceptance, a verdict, weekly gains, weeks
+    started per player, notes and injury/bye/lock flags.
+  - Clear errors for ambiguous or unknown names, one-sided input and
+    three-team trades.
+- Text and Markdown "Trade analyzer" sections; JSON `custom_trades`.
+- JSON `rosters`: every team's active players with this-week and window
+  projections.
+- Windows app: a **Trade Analyzer** tab with a partner picker, give/get
+  lists, a running total and a Grade button. It grades against the loaded
+  report's week and window. Refresh and grading share one background runner.
+
 ## 2.3.0
 
 ### Added
