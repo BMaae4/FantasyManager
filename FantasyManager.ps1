@@ -914,8 +914,8 @@ function Update-TrendsView($ui, $o) {
     }
     $sources = @($o.sources.PSObject.Properties | ForEach-Object { '{0} {1} wk' -f $(if ($_.Name -eq 'sleeper') { 'Sleeper stats' } else { $_.Name }), $_.Value }) -join ', '
     $ui.TrendsSummary.Text = ('Snap share and targets + carries, weeks {0} ({1}). Earlier weeks compared with the last two.' -f (@($o.weeks) -join ', '), $sources)
-    $ui.BreakoutGrid.ItemsSource = ConvertTo-TrendRows $o.breakouts
-    $ui.DecliningGrid.ItemsSource = ConvertTo-TrendRows $o.declining
+    $ui.BreakoutGrid.ItemsSource = @(ConvertTo-TrendRows $o.breakouts)
+    $ui.DecliningGrid.ItemsSource = @(ConvertTo-TrendRows $o.declining)
 }
 
 function Format-Signed($value) {
