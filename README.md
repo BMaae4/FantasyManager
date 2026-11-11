@@ -225,6 +225,10 @@ league.
   percentile), and any swap that improves your chances.
 - **Trades** list your needs and surplus, then trade ideas that improve
   *both* lineups and are within the fairness tolerance.
+- **Projection sources** compare Sleeper's projections with ESPN's for this
+  week (Windows: the **Sources** tab). It lists your players, and free
+  agents projected 8+ points, where the two are 4+ points and 30%+ apart.
+  That's worth a second look before you set a lineup or make a claim.
 - **Opportunity** tracks each player's role: snap share and targets +
   carries, comparing the earlier weeks with the last two (Windows: the
   **Trends** tab).
@@ -350,6 +354,7 @@ Run `./fantasy_manager.sh --help` for the full list. The most useful options:
     --horizon N            --threshold X      --fairness X           --locked LIST
     --trade TEXT           --value-trade TEXT --scoring FMT          --teams N
     --skip-waivers         --skip-trades      --no-history           --history-db PATH
+    --compare espn|none    --projections sleeper|blend
     --cache-dir DIR        --cache-ttl SEC    --no-cache             --refresh
     --offline              --fixtures DIR     --config PATH
 -q, --quiet            -v, --verbose          --debug                --log-file PATH
@@ -373,6 +378,8 @@ default.**
 | Ignore lineup moves smaller than | `--threshold` | `-Threshold` | `threshold` / `FM_THRESHOLD` | `0.5` points |
 | Trade fairness tolerance | `--fairness` | `-Fairness` | `fairness` / `FM_FAIRNESS` | `0.10` |
 | Treat as locked | `--locked "A, B"` | `-Locked` | `locked` / `FM_LOCKED` | none |
+| Second projection source | `--compare` | `-Compare` | `compare` / `FM_COMPARE` | `espn` (or `none`) |
+| Projections used for advice | `--projections` | `-Projections` | `projections_mode` / `FM_PROJECTIONS_MODE` | `sleeper` (or `blend`) |
 | Record and report past weeks | `--no-history` turns off | `-NoHistory` | `history` / `FM_HISTORY` (`0`/`1`) | on |
 | History database | `--history-db` | `-HistoryDb` | `history_db` / `FM_HISTORY_DB` | `history.sqlite` in the cache folder |
 | Grade league trades | `--trade` | `-Trade` | `trade` / `FM_TRADE` | none |
@@ -460,6 +467,22 @@ report lists what was left out. A free agent whose game this week has already
 started is judged on next week, since that is when a claim pays off. FAAB
 leagues get a suggested bid; other leagues get waiver-priority advice.
 
+**Projection sources.** Sleeper's projection feed is the main source: its
+projected stats are scored with your league's rules. ESPN's weekly
+projections are fetched as a second source, PPR points matched to Sleeper
+players by ESPN id, or by name and team. Defenses are matched by team.
+- **By default ESPN is only compared:** the report lists where the sources
+  disagree, and nothing in the advice changes.
+- **`--projections blend`** (Windows: `-Projections blend`) uses a 50/50
+  consensus instead. Each Sleeper projection, in your league's scoring, moves
+  halfway toward ESPN's, as a ratio of the two PPR totals capped at ±50%.
+  This covers the lineup, matchup, win probability, waivers and league trades
+  for every window week ESPN covers.
+- Players ESPN doesn't project keep Sleeper's number. If ESPN is unavailable,
+  the report says so and Sleeper is used alone.
+
+The projection-accuracy history measures Sleeper's feed.
+
 **History.** Each run saves this week's projections to a small database
 (`history.sqlite` in the cache folder) before each player's game kicks off.
 On the first run of a season it also fills in every past week once:
@@ -506,6 +529,9 @@ when the move clearly improves your lineup.
 - Sleeper's read-only API: `https://api.sleeper.app/v1`
 - Projections: `https://api.sleeper.app/projections/nfl/<season>/<week>`. This
   is **not** part of Sleeper's documented API and could change without notice.
+- ESPN projections (second source): `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/<season>/segments/0/leaguedefaults/3?view=kona_player_info`.
+  Unofficial and optional. If it fails, the comparison is marked unavailable
+  and nothing else changes.
 - Weekly stats (history only): `https://api.sleeper.app/stats/nfl/<season>/<week>`.
   Undocumented and optional. Without it, history still has every rostered
   player's league points, and the report says which weeks lack stats.
@@ -561,10 +587,11 @@ include the effective configuration and every request.
 | --- | --- |
 | `lib/fm_app.py` | The application: command line, configuration, fetching, caching, validation, text/Markdown/JSON output |
 | `lib/fm_analysis.py` | All analysis: scoring, lineup optimisation, waivers, trades, trade grading, history |
+| `lib/fm_providers.py` | Projection providers: the ESPN reader, matching to Sleeper players, blend and disagreement rules |
 | `lib/fm_history.py` | The history database (SQLite), accuracy / recent-form statistics, usage trends and the nflverse usage reader |
 | `fantasy_manager.sh` | macOS/Linux launcher: finds Python and runs `lib/fm_app.py` |
 | `FantasyManager.ps1` / `.cmd` | Windows: the WPF window, `-NoGui` mapped onto `lib/fm_app.py`, and a launcher |
-| `tests/run.sh` | Offline test suite (339 checks, no network) |
+| `tests/run.sh` | Offline test suite (360 checks, no network) |
 | `tests/make_fixtures.py` | Generates the synthetic test leagues in `tests/fixtures/` |
 | `tests/parity.sh` | Runs every fixture through both front ends and compares the reports (needs `pwsh`) |
 | `tests/windows.ps1`, `tests/make_expected.sh`, `tests/compare_reports.py` | Windows checks, including a GUI smoke test |
@@ -597,6 +624,8 @@ The suite covers:
   database across runs, pre-kickoff snapshots, and a missing stats feed.
 - Opportunity: breakouts and declines from the stats feed and from nflverse
   (GSIS ids, names, team codes), and the download kept in the database.
+- The second projection source: the ESPN reader on its own (response
+  shapes, D/ST, name matching), the comparison, and blending.
 - Rest of season and the two trade grades, including a bye week and a
   passed trade deadline.
 - Win probability: checked against the closed-form normal result,
@@ -615,5 +644,6 @@ entry.
   modelled either. What's left out is disclosed in the report rather than
   guessed.
 - Draft picks and keeper or dynasty value beyond this season aren't priced.
-- The projection and schedule feeds are unofficial and may change or
-  disappear without notice.
+- The projection, schedule, stats and ESPN feeds are unofficial and may
+  change or disappear without notice. Each one fails gracefully, and the
+  report says what was missing.

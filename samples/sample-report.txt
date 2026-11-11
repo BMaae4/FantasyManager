@@ -1,12 +1,12 @@
 ========================================================================
 FANTASY MANAGER - Test League - Week 5 (2025 regular)
 Manager: MaTrasaMaae   Team: Trasa Titans
-Generated: 2026-11-11T00:56:03Z   Tool: fantasy_manager 2.5.1
+Generated: 2026-11-11T20:19:30Z   Tool: fantasy_manager 2.12.0
 ========================================================================
 
 SCORING: league scoring_settings (source: league.scoring_settings x projected stats)
 PROJECTIONS: fixture | https://api.sleeper.app/projections/nfl/2025/5?season_type=regular&order_by=pts_ppr
-  fetched 2026-11-11T00:56:03Z | cache age 0m | records 62
+  fetched 2026-11-11T20:19:30Z | cache age 0m | records 62
 
 WARNINGS
 ------------------------------------------------------------------------
@@ -37,7 +37,18 @@ MATCHUP
   Differential: -4.7
   Live/final points: 0  vs  0
   Projected final (live + remaining): 96  vs  100.7  (-4.7)
+  Win probability: 38.2% with your current lineup, 69.2% with the recommended one (10000 simulations)
+  Likely range (10th-90th percentile): you 94-125, them 86-116
+  Score spreads: this season's projection misses for QB, RB, TE, WR; typical spreads for the rest
   Note: Projection-only optimisation: correlation, game script and opponent defensive matchups are not modelled.
+
+PROJECTION SOURCES - Sleeper vs ESPN, week 5 (PPR points)
+------------------------------------------------------------------------
+  Using: Sleeper's projections (--projections blend for a 50/50 consensus)
+  Matched 57 players (5 not matched); typical gap 0.8 points.
+  Where they disagree (4+ points and 30%+ apart):
+    Wes Alpha (WR/AAA)            your starter   Sleeper 15    ESPN 8     (-7)
+    Free Run One (RB/EEE)         free agent     Sleeper 12    ESPN 18    (+6)
 
 WAIVERS
 ------------------------------------------------------------------------
@@ -47,19 +58,19 @@ WAIVERS
   Omitted components: schedule_fit
 
   PRIORITY CLAIMS
-    Free Wide One (WR/EEE)        proj 16.5   net 4.5    win 18     score 1      bid $18 (22% est) drop Wes Delta
-    Free Kick One (K/HHH)         proj 8.5    net 1.5    win 6      score 0.4    bid $6 (8% est) drop Wes Delta
-    Hotel Defense (DEF/HHH)       proj 7.5    net 1.5    win 6      score 0.4    bid $6 (8% est) drop Wes Delta
-    Free Tight One (TE/GGG)       proj 9      net 1      win 4      score 0.3    bid $4 (5% est) drop Wes Delta
+    Free Wide One (WR/EEE)        proj 16.5   net 4.5    win 18     score 1      form 14.6/16.6 bid $18 (22% est) drop Wes Delta
+    Free Kick One (K/HHH)         proj 8.5    net 1.5    win 6      score 0.4    form 8/8.5 bid $6 (8% est) drop Wes Delta
+    Hotel Defense (DEF/HHH)       proj 7.5    net 1.5    win 6      score 0.4    form 8.6/7.5 bid $6 (8% est) drop Wes Delta
+    Free Tight One (TE/GGG)       proj 9      net 1      win 4      score 0.3    form 9.6/8.9 bid $4 (5% est) drop Wes Delta
 
   BENCH UPGRADES / STASHES
-    Free Hurt One (WR/EEE)        proj 15     net 0      win 9      score 0.3    bid $9 (11% est) drop Wes Delta [injury Out]
+    Free Hurt One (WR/EEE)        proj 15     net 0      win 9      score 0.3    form 15.1/15.2 bid $9 (11% est) drop Wes Delta [injury Out]
 
   STREAMERS
     (none)
 
   AVOID
-    Free Retired One (RB/FFF)     proj 14     net 0      win 0      score 0.2     [marked inactive; status Inactive]
+    Free Retired One (RB/FFF)     proj 14     net 0      win 0      score 0.2    form 16.2/13.8  [marked inactive; status Inactive]
 
 TRADES
 ------------------------------------------------------------------------
@@ -69,6 +80,46 @@ TRADES
   Team 2  needs: RB
     depth before: DEF 6, K 7, QB 17.5, RB 24.5, TE 12, WR 39.9
     GIVE Ryan Bravo (RB)  GET Team2 TE1 (TE)  | my gain 8.8, their gain 10 over 4 wks (this wk 2.2), fairness gap 3.2
+
+OPPORTUNITY - usage trends, weeks 1, 3, 4 (Sleeper stats: 3 wk)
+------------------------------------------------------------------------
+  BREAKOUT WATCH (free agents whose role is growing)
+    Free Run Two (RB/FFF)         snaps 25% -> 57%      targets+carries 5 -> 13
+
+  YOUR PLAYERS LOSING ROLE
+    Wes Bravo (WR/BBB)            snaps 89% -> 52%      targets+carries 8 -> 4.5
+
+HISTORY - weeks 1-4 (projected vs actual, league scoring)
+------------------------------------------------------------------------
+  Projection accuracy (player-weeks projected 1+ points):
+    POS   N     AVG MISS  BIAS   WITHIN 5
+    DEF   19    2.5       -0.2   100%
+    K     19    1.8       -0.3   100%
+    QB    35    3.1       +0.9   86%
+    RB    65    3.9       0      65%
+    TE    35    2.2       -0.1   100%
+    WR    64    3.4       -0.3   73%
+    ALL   237   3.1       0      81%
+  Projections compared: 0 recorded before kickoff, 237 fetched afterwards. Bias > 0: players beat projections.
+  ! No stats feed for week 2: only rostered players have results there.
+
+  YOUR ROSTER - recent form (last 4 weeks played)
+    PLAYER                        GP  AVG    PROJ   BEAT  WEEKLY (actual)
+    Quinn Alpha (QB/AAA)          4   18.3   18.3   2/4   23.3 15.8 14.5 19.6
+    Wes Charlie (WR/CCC)          4   16     13.9   3/4   11.6 16.7 15.2 20.3
+    Ryan Alpha (RB/AAA)           4   15.4   16     2/4   12.3 14.4 16 18.8
+    Quinn Bravo (QB/BBB)          4   14.7   12.1   4/4   12.3 14.1 15.4 17.2
+    Wes Alpha (WR/AAA)            4   13.3   15     1/4   12.3 10.2 8.7 21.8
+    Ryan Charlie (RB/CCC)         4   12.6   13.3   2/4   17 11.8 13.4 8.2
+    Ryan Echo (RB/EEE)            4   11.5   11.9   2/4   15.7 17.7 5.3 7.3
+    Ryan Bravo (RB/BBB)           4   9      11     1/4   5.2 10.3 7.8 12.9
+    Wes Bravo (WR/BBB)            4   7.8    10.6   1/4   14 9 5 3
+    Tom Alpha (TE/AAA)            4   7.1    7.9    1/4   3.9 7.5 6.4 10.6
+    Kai Alpha (K/AAA)             4   6.7    6.8    2/4   8.2 7.3 6.4 5.1
+    Wes Delta (WR/DDD)            4   6.1    3.5    3/4   6.6 8.1 9.7 0
+    Alpha Defense (DEF/AAA)       4   5.2    6      1/4   9.7 3.1 2 5.9
+    Ryan Delta (RB/DDD)           4   4.4    4      2/4   0 0 9.9 7.5
+    Tom Bravo (TE/BBB)            4   4.2    6      0/4   2.4 3.8 4.9 5.8
 
 DIAGNOSTICS
 ------------------------------------------------------------------------
@@ -86,6 +137,10 @@ DIAGNOSTICS
   projections_w8  fixture       age 0m  62 records  ok
   trending_add    fixture       age 0m  3 records  ok
   transactions    fixture       age 0m  1 records  ok
+  espn            fixture       age 0m  1 records  ok
+  history         fixture       4 records  weeks 1-4; 0 stored, 4 fetched; no stats feed for week 2 (rostered players only)
+  nflverse_stats  unavailable   fetch or validation failed
+  nflverse_snaps  unavailable   fetch or validation failed
 
 This tool is read-only: it cannot submit lineups, waiver claims or trades.
 Projections are advisory; no correlation or game-script modelling is performed.

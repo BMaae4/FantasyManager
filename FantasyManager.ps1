@@ -56,6 +56,8 @@ param(
     [switch]$SkipWaivers,
     [switch]$SkipTrades,
     [switch]$NoHistory,
+    [string]$Compare,
+    [string]$Projections,
     [string]$HistoryDb,
     [switch]$NoGui,
     [string]$Format,
@@ -80,7 +82,7 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '2.11.0'
+$ToolVersion = '2.12.0'
 
 # --------------------------------------------------------------------------
 # Shared application: lib/fm_app.py does configuration, fetching, caching,
@@ -260,7 +262,7 @@ function ConvertTo-AppArgs($bound, [string[]]$skip = @()) {
         Horizon = '--horizon'; Locked = '--locked'; Trade = '--trade'; ValueTrade = '--value-trade'
         Scoring = '--scoring'; Teams = '--teams'; Format = '--format'; CacheDir = '--cache-dir'
         CacheTtl = '--cache-ttl'; Fixtures = '--fixtures'; Config = '--config'; LogFile = '--log-file'
-        HistoryDb = '--history-db'
+        HistoryDb = '--history-db'; Compare = '--compare'; Projections = '--projections'
     }
     $flags = [ordered]@{
         SkipWaivers = '--skip-waivers'; SkipTrades = '--skip-trades'; NoCache = '--no-cache'; Refresh = '--refresh'
@@ -613,6 +615,23 @@ $script:WindowXaml = @'
           <TextBlock x:Name="MatchupDetail" Margin="4" TextWrapping="Wrap" FontSize="14" LineHeight="24"/>
         </ScrollViewer>
       </TabItem>
+      <TabItem Header="Sources">
+        <Grid>
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <TextBlock x:Name="SourcesSummary" Grid.Row="0" Margin="2,0,0,8" TextWrapping="Wrap"/>
+          <DataGrid x:Name="SourcesGrid" Grid.Row="1">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Player" Binding="{Binding Player}" Width="200"/>
+              <DataGridTextColumn Header="Pos" Binding="{Binding Pos}" Width="50"/>
+              <DataGridTextColumn Header="Team" Binding="{Binding Team}" Width="60"/>
+              <DataGridTextColumn Header="Where" Binding="{Binding Where}" Width="100"/>
+              <DataGridTextColumn Header="Sleeper (PPR)" Binding="{Binding Sleeper}" Width="100"/>
+              <DataGridTextColumn Header="ESPN (PPR)" Binding="{Binding Espn}" Width="90"/>
+              <DataGridTextColumn Header="Difference" Binding="{Binding Diff}" Width="*"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </Grid>
+      </TabItem>
       <TabItem Header="Trends">
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
@@ -858,6 +877,7 @@ function Update-ReportView($ui, $report) {
     # history (reports from 2.8.0 on) and usage trends (2.10.0 on)
     Update-HistoryView $ui (Get-Prop $report 'history')
     Update-TrendsView $ui (Get-Prop $report 'opportunity')
+    Update-SourcesView $ui (Get-Prop $report 'projection_sources')
 
     # diagnostics
     $proj = $meta.projections
@@ -890,6 +910,28 @@ function Get-WinProbabilityLines($wp) {
     }
     $lines += ('Score spreads: ' + $wp.spread_source)
     return $lines + @('')
+}
+
+function Update-SourcesView($ui, $p) {
+    # Second projection source (reports from 2.12.0 on).
+    if ($null -eq $p) {
+        $ui.SourcesSummary.Text = 'No second projection source in this report (from version 2.12.0, or turned off with -Compare none).'
+        $ui.SourcesGrid.ItemsSource = @()
+        return
+    }
+    if (-not $p.available) {
+        $ui.SourcesSummary.Text = 'ESPN unavailable: ' + $p.reason
+        $ui.SourcesGrid.ItemsSource = @()
+        return
+    }
+    $using = $(if ($p.mode -eq 'blend' -and @($p.blended_weeks).Count) { 'a 50/50 Sleeper + ESPN blend for weeks ' + (@($p.blended_weeks) -join ', ') }
+               else { "Sleeper's projections (-Projections blend for a 50/50 consensus)" })
+    $ui.SourcesSummary.Text = ('Sleeper vs ESPN, week {0} (PPR points). Using {1}. Matched {2} players ({3} not matched); typical gap {4} points. Listed: 4+ points and 30%+ apart.' -f
+        $p.week, $using, $p.matched, $p.unmatched, (Format-Points $p.mean_abs_diff))
+    $ui.SourcesGrid.ItemsSource = @(@($p.disagreements) | Where-Object { $_ } | ForEach-Object {
+        [pscustomobject]@{ Player = $_.name; Pos = $_.position; Team = $_.team; Where = $_.where
+            Sleeper = (Format-Points $_.sleeper_ppr); Espn = (Format-Points $_.espn_ppr); Diff = (Format-Signed $_.difference) }
+    })
 }
 
 function ConvertTo-TrendRows($entries) {
@@ -1275,7 +1317,7 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
             'Busy', 'StatusText', 'TitleText', 'SubtitleText', 'NoticeText', 'MyTeamText', 'MyScoreText', 'MyProjText',
             'OppTeamText', 'OppScoreText', 'OppProjText', 'WarningsExpander', 'WarningsHeader', 'WarningsList',
             'LineupSummary', 'LineupGrid', 'RiskGrid', 'WaiverSummary', 'WaiverGrid', 'TradeSummary', 'TradeGrid',
-            'MatchupDetail', 'HistorySummary', 'HistoryAccGrid', 'HistoryFormGrid', 'TrendsSummary', 'BreakoutGrid', 'DecliningGrid', 'DiagSummary', 'DiagGrid', 'Tabs', 'AnalyzerTab', 'PartnerBox', 'GiveList', 'GetList',
+            'MatchupDetail', 'HistorySummary', 'HistoryAccGrid', 'HistoryFormGrid', 'TrendsSummary', 'BreakoutGrid', 'DecliningGrid', 'SourcesSummary', 'SourcesGrid', 'DiagSummary', 'DiagGrid', 'Tabs', 'AnalyzerTab', 'PartnerBox', 'GiveList', 'GetList',
             'GradeButton', 'ClearTradeButton', 'TradePickSummary', 'YouGrade', 'ThemGrade', 'ThemLabel', 'AcceptText',
             'VerdictText', 'TradeDetail', 'YouLabel', 'LeagueModeRadio', 'OpenModeRadio', 'LeaguePanel', 'OpenPanel',
             'FromBox', 'GiveHeader', 'GetHeader', 'ScoringBox', 'TeamsBox', 'SearchA', 'SearchB', 'ResultsA', 'ResultsB',
@@ -1327,7 +1369,7 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         if (Test-Path -LiteralPath $log) { Remove-Item -LiteralPath $log -Force }
         $childArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $script:ScriptPath, '-NoGui',
             '-OutFile', $out, '-LogFile', $log) + $extraArgs
-        foreach ($pass in @('Season', 'SeasonType', 'Top', 'Threshold', 'Fairness', 'Locked', 'CacheDir', 'Config', 'Python', 'Fixtures', 'HistoryDb')) {
+        foreach ($pass in @('Season', 'SeasonType', 'Top', 'Threshold', 'Fairness', 'Locked', 'CacheDir', 'Config', 'Python', 'Fixtures', 'HistoryDb', 'Compare', 'Projections')) {
             if ($script:BoundParams.ContainsKey($pass)) { $childArgs += @("-$pass", [string]$script:BoundParams[$pass]) }
         }
         foreach ($flag in @('Offline', 'NoCache', 'SkipWaivers', 'SkipTrades', 'NoHistory')) {
@@ -1528,10 +1570,10 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
             @($ui.LineupGrid.ItemsSource).Count, @($ui.WaiverGrid.ItemsSource).Count, @($ui.TradeGrid.ItemsSource).Count,
             @($ui.WarningsList.ItemsSource).Count, @($ui.GiveList.ItemsSource).Count, @($ui.GetList.ItemsSource).Count, $ui.YouGrade.Text,
             $(if (Test-OpenMode $ui) { 'open' } else { 'league' }), @($ui.ResultsA.ItemsSource).Count, $pickedCount) +
-            (', remember {0}, history rows {1}, form rows {2}, breakouts {4}, declining {5}, win {3}' -f [bool]$ui.RememberBox.IsChecked,
+            (', remember {0}, history rows {1}, form rows {2}, breakouts {4}, declining {5}, sources {6}, win {3}' -f [bool]$ui.RememberBox.IsChecked,
                 @($ui.HistoryAccGrid.ItemsSource).Count, @($ui.HistoryFormGrid.ItemsSource).Count,
                 $(if ($ui.MyProjText.Text -match 'win ([\d.]+)%') { $Matches[1] } else { 'n/a' }),
-                @($ui.BreakoutGrid.ItemsSource).Count, @($ui.DecliningGrid.ItemsSource).Count))
+                @($ui.BreakoutGrid.ItemsSource).Count, @($ui.DecliningGrid.ItemsSource).Count, @($ui.SourcesGrid.ItemsSource).Count))
         $window.Close()
         return
     }

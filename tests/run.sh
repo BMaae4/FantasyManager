@@ -406,7 +406,7 @@ run_case ppr_basic --format json
 assert_json "json has metadata" '.metadata.league_id == "1400680781302525952"'
 assert_json "json has diagnostics" '(.diagnostics.fetches | length) > 0'
 assert_json "json keys stable" \
-    '[keys[]] == ["custom_trades","diagnostics","history","lineup","matchup","metadata","opportunity","player_pool","rosters","schema_version","trades","value_trades","waivers","warnings"]'
+    '[keys[]] == ["custom_trades","diagnostics","history","lineup","matchup","metadata","opportunity","player_pool","projection_sources","rosters","schema_version","trades","value_trades","waivers","warnings"]'
 
 run_case ppr_basic --format json --quiet
 assert_status "--quiet exits 0" 0
@@ -987,6 +987,68 @@ assert_status "horizon 9 rejected" 2
 assert_match "horizon message mentions ros" "$STDERR" 'between 0 and 6, or ros'
 STDOUT="$("$SCRIPT" --horizon ros --print-config 2>/dev/null)"
 assert_json "--print-config shows ros" '.horizon == "ros"'
+
+# --------------------------------------------------------------------------
+section "second projection source"
+# --------------------------------------------------------------------------
+run_case espn_compare --format json
+assert_status "ESPN comparison exits 0" 0
+assert_json "ESPN projections matched to Sleeper players" \
+    '.projection_sources | .available and .provider == "espn" and .week == 5 and .matched == 57 and .unmatched == 5'
+assert_json "matched by name and team when there is no ESPN id" '.projection_sources.compared >= 55'
+assert_json "disagreements: my starter first, then a free agent" \
+    '[.projection_sources.disagreements[] | [.player_id, .where, .difference]] == [["wr1","your starter",-7],["fa_rb1","free agent",6]]'
+assert_json "typical gap reported" '.projection_sources.mean_abs_diff == 0.8'
+assert_json "comparison alone changes no advice" '.lineup.optimal_points == 109 and .projection_sources.mode == "sleeper"'
+run_case espn_compare --format json --projections blend
+assert_json "blend: every window week blended" '.projection_sources.blended_weeks == [5,6,7,8] and .metadata.projections_mode == "blend"'
+assert_json "blend: the starter ESPN dislikes is projected halfway between" \
+    '[.lineup.slots[] | select(.recommended.player_id == "wr1") | .recommended.points] == [11.5]'
+assert_json "blend changes the lineup total" '.lineup.optimal_points < 109'
+run_case espn_compare --format text
+assert_match "text sources section" "$STDOUT" 'PROJECTION SOURCES - Sleeper vs ESPN, week 5 \(PPR points\)'
+assert_match "text disagreement row" "$STDOUT" 'Wes Alpha \(WR/AAA\) +your starter +Sleeper 15 +ESPN 8 +\(-7\)'
+run_case espn_compare --format markdown
+assert_match "markdown sources table" "$STDOUT" '\| Free Run One \| RB \| EEE \| free agent \| 12 \| 18 \| \+6 \|'
+run_case ppr_basic --format json
+assert_json "no ESPN data: explained, advice unchanged" \
+    '.projection_sources.available == false and ([.diagnostics.fetches[] | select(.key == "espn") | .source] == ["unavailable"])'
+run_case ppr_basic --format json --projections blend
+assert_json "blend without ESPN data warns and uses Sleeper" \
+    '([.warnings[] | select(test("blend uses Sleeper only"))] | length == 1) and .projection_sources.blended_weeks == []'
+run_case espn_compare --format json --compare none
+assert_json "--compare none: no second source" '.projection_sources == null and ([.diagnostics.fetches[] | select(.key == "espn")] | length == 0)'
+run_case ppr_basic --compare yahoo
+assert_status "unknown second source rejected" 2
+run_case ppr_basic --projections blend --compare none
+assert_status "blend needs a second source" 2
+assert_match "blend without a source explained" "$STDERR" 'needs a second source'
+# The ESPN parser on its own: response shapes, D/ST by team, other stat rows ignored.
+PARSED="$(python3 - "$ROOT/lib" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import fm_providers as p
+players = {"buf_wr": {"full_name": "Joe Example Jr.", "team": "BUF", "position": "WR"},
+           "BUF": {"full_name": "Buffalo", "team": "BUF", "position": "DEF"},
+           "e1": {"full_name": "Id Match", "team": "MIA", "position": "RB", "espn_id": 77}}
+week_rows = lambda w, pts: [{"statSourceId": 0, "statSplitTypeId": 1, "scoringPeriodId": w, "appliedTotal": 50},
+                            {"statSourceId": 1, "statSplitTypeId": 0, "scoringPeriodId": 0, "appliedTotal": 200},
+                            {"statSourceId": 1, "statSplitTypeId": 1, "scoringPeriodId": w, "appliedTotal": pts}]
+payload = {"players": [
+    {"player": {"id": 1, "fullName": "Joe Example", "defaultPositionId": 3, "proTeamId": 2, "stats": week_rows(9, 14.2)}},
+    {"player": {"id": -16002, "fullName": "Bills D/ST", "defaultPositionId": 16, "proTeamId": 2, "stats": week_rows(9, 7.0)}},
+    {"player": {"id": 77, "fullName": "Renamed", "defaultPositionId": 2, "proTeamId": 15, "stats": week_rows(9, 11.0)}},
+    {"player": {"id": 5, "fullName": "Nobody", "defaultPositionId": 3, "proTeamId": 3, "stats": week_rows(9, 9.0)}},
+    {"player": {"id": 6, "fullName": "Wrong Week", "defaultPositionId": 3, "proTeamId": 2, "stats": week_rows(8, 9.0)}}]}
+points, matched, unmatched = p.parse_espn(payload, 9, players)
+print(sorted(points.items()), matched, unmatched)
+print(p.parse_espn(payload["players"], 9, players)[1], p.parse_espn({"oops": 1}, 9, players)[1])
+print(p.blend_factor(10, 30), p.blend_factor(0.2, 5), p.disagrees(3, 6), p.disagrees(20, 25))
+PY
+)"
+assert_match "parser: id, name (suffix-insensitive) and D/ST matches" "$PARSED" "\[\('BUF', 7\.0\), \('buf_wr', 14\.2\), \('e1', 11\.0\)\] 3 \['Nobody'\]"
+assert_match "parser: plain list accepted, bad shape ignored" "$PARSED" $'\n3 0\n'
+assert_match "parser: blend limits and disagreement rule" "$PARSED" '1\.5 None False False'
 
 # --------------------------------------------------------------------------
 printf '\n%s\n' "------------------------------------------------------------"

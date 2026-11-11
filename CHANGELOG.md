@@ -2,6 +2,44 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.12.0
+
+### Added
+
+- A projection provider layer (`lib/fm_providers.py`) with ESPN as a second
+  source.
+  - ESPN's weekly projections (public fantasy API, PPR) are matched to
+    Sleeper players by ESPN id, by name and team, or by team for defenses.
+- By default ESPN is only **compared**. A new **Projection sources** section
+  (text, Markdown, JSON `projection_sources`, and a **Sources** tab on
+  Windows) shows:
+  - the number of matched players and the typical gap
+  - your players, and free agents projected 8+ points, where the sources are
+    4+ points and 30%+ apart
+- `--projections blend` (`-Projections blend`, `projections_mode=blend`):
+  a 50/50 consensus for every window week ESPN covers.
+  - Each league-scored Sleeper projection moves halfway toward ESPN's, as a
+    ratio of the PPR totals capped at ±50%.
+  - It covers the lineup, matchup, win probability, waivers and league
+    trades.
+- `--compare espn|none` (`-Compare`, `compare=`; default `espn`).
+  `FM_ESPN_BASE` overrides the source.
+- If ESPN is unavailable, the section says so. A blend falls back to Sleeper
+  with a warning.
+- The player database keeps `espn_id`. JSON schema version 1.5.
+
+### Tests
+
+- New fixture `espn_compare` in ESPN's response format, with one name-only
+  match. 21 new checks (360 total):
+  - matching, disagreements and the typical gap
+  - the comparison leaving advice unchanged, and blending (halfway
+    projection, lineup total, all window weeks)
+  - unavailable ESPN, `--compare none` and validation
+  - the ESPN parser on its own: response shapes, D/ST, suffix-insensitive
+    names, other stat rows ignored
+- Windows GUI check for the Sources tab after a `-Projections blend` run.
+
 ## 2.11.0
 
 ### Added
