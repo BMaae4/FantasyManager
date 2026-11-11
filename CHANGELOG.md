@@ -2,6 +2,20 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.6.0
+
+### Added
+
+- Windows app: a **Remember** checkbox, ticked by default. After a successful
+  refresh it saves the league, username and horizon to `config.env`, so the
+  app opens on your league next time.
+  - Nothing is saved when the refresh fails, so a typo is never remembered.
+  - Other settings and comments in the file are kept, and existing
+    `league_id` / `FM_LEAGUE_ID` lines are updated in place.
+  - The file is written atomically as UTF-8, and the command line reads the
+    same file.
+  - Windows CI checks the save round trip under PowerShell 5.1 and 7.
+
 ## 2.5.1
 
 ### Changed

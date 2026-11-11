@@ -81,6 +81,21 @@ $cfgReport = $null
 if ($r.Code -eq 0) { $cfgReport = Get-Content -Raw (Join-Path $work 'cfg.json') | ConvertFrom-Json }
 Check 'config file with spaces and CRLF is read' ($r.Code -eq 0 -and $cfgReport.metadata.top_n -eq 6) ("$($r.Err)")
 
+# Remember: Save-Defaults keeps other settings and the result is read back.
+$ast = [System.Management.Automation.Language.Parser]::ParseFile($script, [ref]$null, [ref]$null)
+$fn = $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Save-Defaults' }, $true) | Select-Object -First 1
+. ([scriptblock]::Create($fn.Extent.Text))
+$savePath = Join-Path $work 'saved\config.env'
+[void](New-Item -ItemType Directory -Force (Split-Path $savePath))
+[IO.File]::WriteAllText($savePath, "# mine`r`nFM_LEAGUE_ID = 999`r`ntop_n = 6`r`n")
+[void](Save-Defaults $savePath ([ordered]@{ league_id = '1400680781302525952'; username = 'MaTrasaMaae'; horizon = '2' }))
+$saved = [IO.File]::ReadAllText($savePath)
+$r = Run-Script @('-NoGui', '-Offline', '-Fixtures', "`"$(Join-Path $fixtures 'ppr_basic')`"", '-NoCache', '-Quiet', '-Config', "`"$savePath`"", '-OutFile', "`"$(Join-Path $work 'saved.json')`"")
+$savedReport = $null
+if ($r.Code -eq 0) { $savedReport = Get-Content -Raw (Join-Path $work 'saved.json') | ConvertFrom-Json }
+Check 'Remember saves defaults and keeps other settings' ($r.Code -eq 0 -and $saved -match '# mine' -and $saved -notmatch '999' -and
+    $savedReport.metadata.top_n -eq 6 -and @($savedReport.metadata.window_weeks).Count -eq 3) ("$saved $($r.Err)")
+
 # GUI: builds, lays out and fills from a report without being shown.
 $r = Run-Script @('-ReportFile', "`"$(Join-Path $Expected 'locked_players.json')`"", '-GuiSmokeTest')
 Check 'GUI builds and loads a report' ($r.Code -eq 0 -and $r.Out -match 'GUI smoke test ok: lineup rows 9') ("$($r.Out) $($r.Err)")
@@ -91,7 +106,7 @@ Check 'GUI trade analyzer fills from a report' ($r.Code -eq 0 -and $r.Out -match
 $r = Run-Script @('-ReportFile', "`"$(Join-Path $Expected 'ppr_basic__value.json')`"", '-GuiSmokeTest')
 Check 'GUI any-player mode shows the result and picks players' ($r.Code -eq 0 -and $r.Out -match 'trade grade F, mode open, pool results 40, picked 2') ("$($r.Out) $($r.Err)")
 $r = Run-Script @('-GuiSmokeTest')
-Check 'GUI builds with no report' ($r.Code -eq 0 -and $r.Out -match 'GUI smoke test ok') ("$($r.Out) $($r.Err)")
+Check 'GUI builds with no report' ($r.Code -eq 0 -and $r.Out -match 'GUI smoke test ok.*remember True') ("$($r.Out) $($r.Err)")
 
 Remove-Item -Recurse -Force $work -ErrorAction SilentlyContinue
 Write-Host ''
