@@ -8,7 +8,7 @@
 set -euo pipefail
 
 TOOL_NAME="fantasy_manager"
-TOOL_VERSION="2.4.0"
+TOOL_VERSION="2.5.0"
 
 # --------------------------------------------------------------------------
 # Hardcoded defaults (run with no parameters)
@@ -126,6 +126,13 @@ Analysis options:
                            (default: 3; 0 = this week only)
       --trade TEXT         Grade your own trade(s): "Give A, Give B for Get C".
                            Names or Sleeper ids; separate trades with ";"
+      --value-trade TEXT   Grade any players for any players, no league or rosters
+                           needed (e.g. a friend's offer): "A, B for C".
+                           Add a team or position to disambiguate ("Josh Allen BUF")
+      --scoring FMT        Scoring for --value-trade: ppr, half, std or league
+                           (default: ppr)
+      --teams N            League size for --value-trade replacement levels,
+                           4-32 (default: 12)
       --locked LIST        Comma-separated player names or ids whose games have
                            started; they are never moved (added to auto-detection)
       --skip-waivers       Skip waiver analysis
@@ -192,6 +199,9 @@ parse_args() {
             --fairness)      need_value "$1" $#; set_cli fairness "$2"; shift 2 ;;
             --locked)        need_value "$1" $#; set_cli locked "$2"; shift 2 ;;
             --trade)         need_value "$1" $#; set_cli trade "$2"; shift 2 ;;
+            --value-trade)   need_value "$1" $#; set_cli value_trade "$2"; shift 2 ;;
+            --scoring)       need_value "$1" $#; set_cli scoring "$2"; shift 2 ;;
+            --teams)         need_value "$1" $#; set_cli teams "$2"; shift 2 ;;
             --horizon)       need_value "$1" $#; set_cli horizon "$2"; shift 2 ;;
             --skip-waivers)  set_cli skip_waivers 1; shift ;;
             --skip-trades)   set_cli skip_trades 1; shift ;;
@@ -298,6 +308,13 @@ validate_config() {
     if ! is_uint "$TOP_N" || [ "$TOP_N" -lt 1 ] || [ "$TOP_N" -gt 50 ]; then
         die "$EX_USAGE" "Top N must be an integer between 1 and 50 (got '$TOP_N')."
     fi
+    case "$SCORING" in
+        ppr|half|std|league) ;;
+        *) die "$EX_USAGE" "Scoring must be ppr, half, std or league (got '$SCORING')." ;;
+    esac
+    if ! is_uint "$TEAMS" || [ "$TEAMS" -lt 4 ] || [ "$TEAMS" -gt 32 ]; then
+        die "$EX_USAGE" "Teams must be an integer between 4 and 32 (got '$TEAMS')."
+    fi
     if ! is_uint "$HORIZON" || [ "$HORIZON" -gt 6 ]; then
         die "$EX_USAGE" "Horizon must be an integer between 0 and 6 (got '$HORIZON')."
     fi
@@ -335,6 +352,9 @@ load_configuration() {
     SCHEDULE_TTL="$(resolve schedule_ttl FM_SCHEDULE_TTL "$DEFAULT_SCHEDULE_TTL")"
     LOCKED="$(resolve locked FM_LOCKED "")"
     TRADE="$(resolve trade FM_TRADE "")"
+    VALUE_TRADE="$(resolve value_trade FM_VALUE_TRADE "")"
+    SCORING="$(resolve scoring FM_SCORING "ppr")"
+    TEAMS="$(resolve teams FM_TEAMS "12")"
     HORIZON="$(resolve horizon FM_HORIZON "$DEFAULT_HORIZON")"
     WEEK="$(resolve week FM_WEEK "")"
     SEASON="$(resolve season FM_SEASON "")"
@@ -888,6 +908,9 @@ build_bundle() {
         --argjson schedule_available "$SCHEDULE_AVAILABLE" \
         --arg locked "$LOCKED" \
         --arg custom_trades "$TRADE" \
+        --arg value_trades "$VALUE_TRADE" \
+        --arg value_scoring "$SCORING" \
+        --argjson value_teams "$TEAMS" \
         --arg week_rolled_from "$WEEK_ROLLED_FROM" \
         --slurpfile future "$TMP_DIR/future.json" \
         --argjson horizon "$HORIZON" \
@@ -902,7 +925,10 @@ build_bundle() {
              locked: ($locked | split(",") | map(gsub("^ +| +$"; "")) | map(select(length > 0))),
              week_rolled_from: (if $week_rolled_from == "" then null else ($week_rolled_from | tonumber) end),
              horizon: $horizon,
-             custom_trades: (if $custom_trades == "" then null else $custom_trades end)
+             custom_trades: (if $custom_trades == "" then null else $custom_trades end),
+             value_trades: (if $value_trades == "" then null else $value_trades end),
+             value_scoring: $value_scoring,
+             value_teams: $value_teams
            },
            provenance: {
              projections: {url: $projections_url, source: $projections_source,
@@ -1058,17 +1084,41 @@ render_text() {
               + (.custom_trades | map(
                    if .error != null then ["  " + .input, "    ERROR: " + .error, ""]
                    else
-                     ["  " + .input + "  (with " + (.partner.team // ("roster " + (.partner.roster_id|tostring))) + ")",
-                      "    GRADE  you " + pad(.my_grade; 4) + "them " + pad(.their_grade; 4)
-                        + "acceptance: " + .acceptance,
+                     ((if (if .side_a == null then true else .side_a.is_me end) then "you" else (.side_a.team // "side A") end) as $a
+                      | (if (if .side_a == null then true else .side_a.is_me end) then "them" else (.partner.team // "side B") end) as $b
+                      | ["  " + .input + "  ("
+                           + (if (if .side_a == null then true else .side_a.is_me end) then "with " + (.partner.team // ("roster " + (.partner.roster_id|tostring)))
+                              else $a + " <-> " + $b end) + ")",
+                         "    GRADE  " + $a + " " + pad(.my_grade; 4) + $b + " " + pad(.their_grade; 4)
+                           + "acceptance: " + .acceptance])
+                     + [
                       "    " + .verdict,
-                      "    gain per week: you " + n(.my_gain_per_week) + ", them " + n(.their_gain_per_week)
-                        + "   over weeks " + (.window_weeks | map(tostring) | join(", ")) + ": you " + n(.my_gain) + ", them " + n(.their_gain),
-                      "    weekly (you): " + (.my_weekly_gains | map(n(.)) | join(" / ")),
+                      ((if (if .side_a == null then true else .side_a.is_me end) then "you" else (.side_a.team // "side A") end) as $a
+                       | (if (if .side_a == null then true else .side_a.is_me end) then "them" else (.partner.team // "side B") end) as $b
+                       | "    gain per week: " + $a + " " + n(.my_gain_per_week) + ", " + $b + " " + n(.their_gain_per_week)
+                         + "   over weeks " + (.window_weeks | map(tostring) | join(", ")) + ": " + $a + " " + n(.my_gain) + ", " + $b + " " + n(.their_gain)),
+                      "    weekly (" + (if (if .side_a == null then true else .side_a.is_me end) then "you" else (.side_a.team // "side A") end) + "): " + (.my_weekly_gains | map(n(.)) | join(" / ")),
                       ((.window_weeks | length | tostring) as $nw
-                       | "    give: " + (.give | map(.name + " (" + (.position // "?") + ", starts " + ((.weeks_started_before // 0)|tostring) + "/" + $nw + " wks for you)") | join(", "))),
+                       | "    give: " + (.give | map(.name + " (" + (.position // "?") + ", starts " + ((.weeks_started_before // 0)|tostring) + "/" + $nw + " wks now)") | join(", "))),
                       ((.window_weeks | length | tostring) as $nw
                        | "    get:  " + (.get | map(.name + " (" + (.position // "?") + ", would start " + ((.weeks_started_after // 0)|tostring) + "/" + $nw + ")") | join(", ")))]
+                     + (.notes | map("    - " + .))
+                     + (.flags | map("    ! " + .))
+                     + [""]
+                   end) | add)
+         end)
+      + (if (.value_trades // null) == null then []
+         else ["ANY-PLAYER TRADES", line]
+              + (.value_trades | map(
+                   if .error != null then ["  " + .input, "    ERROR: " + .error, ""]
+                   else
+                     ["  " + .input + "  (" + ({"ppr":"PPR","half":"half-PPR","std":"standard","league":"league scoring"}[.scoring] // .scoring)
+                        + ", " + (.teams|tostring) + " teams, weeks " + (.window_weeks | map(tostring) | join(", ")) + ")",
+                      "    GRADE  side A " + pad(.my_grade; 4) + "side B " + pad(.their_grade; 4) + "acceptance (B): " + .acceptance,
+                      "    " + .verdict,
+                      "    value over replacement per week: side A " + n(.my_gain_per_week) + ", side B " + n(.their_gain_per_week),
+                      "    side A gives: " + (.give | map(.name + " (" + (.position // "?") + "/" + (.team // "FA") + ", " + n(.value_over_replacement) + " above repl.)") | join(", ")),
+                      "    side B gives: " + (.get | map(.name + " (" + (.position // "?") + "/" + (.team // "FA") + ", " + n(.value_over_replacement) + " above repl.)") | join(", "))]
                      + (.notes | map("    - " + .))
                      + (.flags | map("    ! " + .))
                      + [""]
@@ -1189,15 +1239,39 @@ render_markdown() {
                    if .error != null then ["### " + .input, "", "**Error:** " + .error, ""]
                    else
                      ["### " + .input, "",
-                      "With " + (.partner.team // ("roster " + (.partner.roster_id|tostring))) + ". **Your grade: " + .my_grade
-                        + "**, their grade: " + .their_grade + ", acceptance: " + .acceptance + ".", "",
+                      (if (if .side_a == null then true else .side_a.is_me end)
+                       then "With " + (.partner.team // ("roster " + (.partner.roster_id|tostring))) + ". **Your grade: " + .my_grade
+                         + "**, their grade: " + .their_grade + ", acceptance: " + .acceptance + "."
+                       else (.side_a.team // "Side A") + " <-> " + (.partner.team // "Side B") + ". **" + (.side_a.team // "Side A") + ": " + .my_grade
+                         + "**, **" + (.partner.team // "Side B") + ": " + .their_grade + "**, acceptance: " + .acceptance + "." end), "",
                       .verdict, "",
-                      "| | You | Them |", "| --- | ---: | ---: |",
+                      (if (if .side_a == null then true else .side_a.is_me end) then "| | You | Them |"
+                       else "| | " + (.side_a.team // "Side A") + " | " + (.partner.team // "Side B") + " |" end), "| --- | ---: | ---: |",
                       "| Gain per week | " + n(.my_gain_per_week) + " | " + n(.their_gain_per_week) + " |",
                       "| Gain over weeks " + (.window_weeks | map(tostring) | join(", ")) + " | " + n(.my_gain) + " | " + n(.their_gain) + " |",
                       "",
                       "- Give: " + (.give | map(.name + " (" + (.position // "?") + ")") | join(", ")),
                       "- Get: " + (.get | map(.name + " (" + (.position // "?") + ")") | join(", "))]
+                     + (.notes | map("- " + .))
+                     + (.flags | map("- **" + . + "**"))
+                     + [""]
+                   end) | add)
+         end)
+      + (if (.value_trades // null) == null then []
+         else ["## Any-player trades", ""]
+              + (.value_trades | map(
+                   if .error != null then ["### " + .input, "", "**Error:** " + .error, ""]
+                   else
+                     ["### " + .input, "",
+                      "**Side A: " + .my_grade + "**, **Side B: " + .their_grade + "**, acceptance (side B): " + .acceptance
+                        + ". " + ({"ppr":"PPR","half":"half-PPR","std":"standard","league":"league scoring"}[.scoring] // .scoring)
+                        + ", " + (.teams|tostring) + " teams, weeks " + (.window_weeks | map(tostring) | join(", ")) + ".", "",
+                      .verdict, "",
+                      "| Side A gives | Pos | Team | Points | Above repl. |", "| --- | --- | --- | ---: | ---: |"]
+                     + (.give | map("| " + .name + " | " + (.position // "?") + " | " + (.team // "FA") + " | " + n(.window_points) + " | " + n(.value_over_replacement) + " |"))
+                     + ["", "| Side B gives | Pos | Team | Points | Above repl. |", "| --- | --- | --- | ---: | ---: |"]
+                     + (.get | map("| " + .name + " | " + (.position // "?") + " | " + (.team // "FA") + " | " + n(.window_points) + " | " + n(.value_over_replacement) + " |"))
+                     + [""]
                      + (.notes | map("- " + .))
                      + (.flags | map("- **" + . + "**"))
                      + [""]

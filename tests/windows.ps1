@@ -37,6 +37,7 @@ foreach ($case in $cases) {
     $extra = @()
     if ($parts.Count -gt 1 -and $parts[1] -eq 'horizon0') { $extra = @('-Horizon', '0') }
     if ($parts.Count -gt 1 -and $parts[1] -eq 'locked') { $extra = @('-Locked', '"Wes Charlie"') }
+    if ($parts.Count -gt 1 -and $parts[1] -eq 'value') { $extra = @('-ValueTrade', '"Team2 RB1 for Team3 RB2, Team4 WR3; Alpha for Team2 TE1"', '-Scoring', 'half', '-Teams', '4') }
     if ($parts.Count -gt 1 -and $parts[1] -eq 'trade') { $extra = @('-Trade', '"Wes Delta, Ryan Echo for Team2 RB1; Bravo for Team2 TE1"') }
     $actual = Join-Path $work "$case.json"
     if (Test-Path $actual) { Remove-Item $actual }
@@ -78,7 +79,9 @@ Check 'GUI builds and loads a report' ($r.Code -eq 0 -and $r.Out -match 'GUI smo
 $r = Run-Script @('-ReportFile', "`"$(Join-Path $Expected 'ppr_basic__horizon0.json')`"", '-GuiSmokeTest')
 Check 'GUI loads a this-week-only report' ($r.Code -eq 0 -and $r.Out -match 'GUI smoke test ok') ("$($r.Out) $($r.Err)")
 $r = Run-Script @('-ReportFile', "`"$(Join-Path $Expected 'ppr_basic__trade.json')`"", '-GuiSmokeTest')
-Check 'GUI trade analyzer fills from a report' ($r.Code -eq 0 -and $r.Out -match 'give list 15, get list 12, trade grade A\+') ("$($r.Out) $($r.Err)")
+Check 'GUI trade analyzer fills from a report' ($r.Code -eq 0 -and $r.Out -match 'give list 15, get list 12, trade grade A\+, mode league') ("$($r.Out) $($r.Err)")
+$r = Run-Script @('-ReportFile', "`"$(Join-Path $Expected 'ppr_basic__value.json')`"", '-GuiSmokeTest')
+Check 'GUI any-player mode shows the result and picks players' ($r.Code -eq 0 -and $r.Out -match 'trade grade F, mode open, pool results 40, picked 2') ("$($r.Out) $($r.Err)")
 $r = Run-Script @('-GuiSmokeTest')
 Check 'GUI builds with no report' ($r.Code -eq 0 -and $r.Out -match 'GUI smoke test ok') ("$($r.Out) $($r.Err)")
 

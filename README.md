@@ -23,9 +23,14 @@ opens and loads the current week:
   warnings.
 - **Tabs:** Lineup (colour-coded actions and risk list), Waivers, Trades,
   Trade Analyzer, Matchup and Diagnostics.
-- **Trade Analyzer:** pick a team, click the players you'd give and get, then
-  press **Grade trade**. Grades, the verdict and the week-by-week breakdown
-  appear on the right.
+- **Trade Analyzer**, with two modes:
+  - **My league:** choose Team A (you by default) and Team B, then click
+    players on each side.
+  - **Any players:** set the scoring and league size, search by name, team or
+    position, and click players into Side A or Side B.
+
+  Press **Grade trade** in either mode; the grades and breakdown appear on the
+  right.
 
 Refresh runs in the background, so the window stays responsive.
 
@@ -79,6 +84,7 @@ Run `./fantasy_manager.sh --help` for the full list. Frequently used:
 -n, --top N            -f, --format text|json|markdown           -o, --output PATH
     --threshold X          --fairness X       --skip-waivers         --skip-trades
     --locked LIST          --horizon N        --trade TEXT
+    --value-trade TEXT     --scoring FMT      --teams N
     --cache-dir DIR        --cache-ttl SEC    --no-cache             --refresh
     --offline              --fixtures DIR     --config PATH
 -q, --quiet            -v, --verbose          --debug                --log-file PATH
@@ -173,8 +179,34 @@ who. The report gives:
 - Notes on consolidation, open roster spots and drops, plus flags for
   injuries, byes and players who have already played this week.
 
+Trades don't have to involve you: `--trade "Team2 Player for Team3 Player"`
+grades a trade between any two teams in the league, labelled with their team
+names.
+
 Names that are ambiguous or not found, and three-team trades, get a clear
-error instead of a grade. In the Windows app, the **Trade Analyzer** tab does
+error instead of a grade.
+
+**Any-player trades.** For a trade outside your league, such as a friend's
+offer, `--value-trade` grades any players against any players, with no rosters
+needed:
+
+```bash
+./fantasy_manager.sh --value-trade "Bijan Robinson for Ja'Marr Chase, Jaylen Waddle" --scoring half --teams 10
+```
+
+- Each player is valued by projected points above a replacement-level starter
+  across the window. The replacement level is the Nth best player at the
+  position in a league of `--teams` (default 12) with a standard lineup.
+- Scoring is `--scoring ppr` (default), `half`, `std`, or `league` for your
+  league's rules.
+- Side A gives the players before `for` and side B gives the rest. Both get a
+  grade on the same A+ to F scale; here one side's gain is the other's loss.
+- The report notes when the side getting fewer players gets the best one
+  (which matters more in deep leagues), roster spots that need clearing, and
+  players at or below replacement.
+- It can't know either team's needs or depth, and it says so.
+- Any player can be named, including free agents. Add a position or team to
+  pick between players with the same name (`Josh Allen BUF`). In the Windows app, the **Trade Analyzer** tab does
 the same by point and click.
 
 **Trades.** Partner rosters are profiled by optimal starting points (averaged
@@ -220,7 +252,7 @@ Diagnostics (`ERROR`/`WARN`/`INFO`/`DEBUG`) go to stderr and the optional
 Fully offline — the suite never touches the network:
 
 ```bash
-bash tests/run.sh                 # 211 assertions
+bash tests/run.sh                 # 239 assertions
 python3 tests/make_fixtures.py    # regenerate fixtures
 bash tests/parity.sh              # PowerShell front end vs bash, every fixture (needs pwsh)
 ```
