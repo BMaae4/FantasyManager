@@ -10,8 +10,14 @@ your league and it tells you:
 - **Trades:** fair trade ideas with other teams in your league.
 - **Trade analyzer:** a grade for any trade you're considering, in your league
   or someone else's.
-- **Matchup:** your live score and projected final against this week's
-  opponent.
+- **Matchup:** your live score, projected final and **chance to win**
+  against this week's opponent.
+- **Trends:** free agents whose role is growing (breakout watch) and your
+  players who are losing theirs.
+- **History:** how accurate the projections have been this season, and each
+  player's recent form.
+- **Second opinion:** where ESPN's projections disagree with Sleeper's, with
+  an optional 50/50 blend.
 
 It is **read-only**: it reads public Sleeper data and never changes anything
 in your league. It can't set lineups, make claims or send trades.
@@ -96,27 +102,33 @@ PowerShell 7 works too. Python is the only other thing you need.
   season), **Remember** (save these as
   your defaults after a successful refresh), **Bypass cache**, **Refresh**,
   and **Open/Save report**.
-- **Header:** live score and projected final for your matchup, plus a
-  warnings panel when something needs your attention.
+- **Header:** live score, projected final and chance to win for your
+  matchup, plus a warnings panel when something needs your attention.
 - **Tabs:**
   - **Lineup:** colour-coded START / MOVE / BENCH / LOCKED rows, plus
     injuries and availability.
   - **Waivers**
   - **Trades:** suggested trade ideas.
-  - **Trade Analyzer:** grade your own trade ideas.
-  - **Matchup**
+  - **Trade Analyzer:** grade any trade, with a this-week and a longer-view
+    grade.
+  - **Matchup:** scores, win probability, likely score range and any swap
+    that improves your chances.
+  - **Sources:** players Sleeper and ESPN disagree on.
+  - **Trends:** breakout watch and players losing their role.
+  - **History:** projection accuracy and your roster's recent form.
   - **Diagnostics:** where each piece of data came from and how fresh it is.
 
 Refresh runs in the background, so the window stays responsive while data
 loads.
 
-**Windows command line** (optional; this produces JSON, and the window is the
-readable view):
+**Windows command line** (optional; `-NoGui` produces JSON unless you add
+`-Format text` or `-Format markdown`):
 
 ```powershell
 .\FantasyManager.ps1                                   # open the window
 .\FantasyManager.ps1 -LeagueId 1234... -Username you   # window for a specific league
 .\FantasyManager.ps1 -NoGui -OutFile report.json       # JSON report, no window
+.\FantasyManager.ps1 -NoGui -Format text               # readable report in the console
 .\FantasyManager.ps1 -ReportFile report.json           # open a saved report
 Get-Help .\FantasyManager.ps1 -Detailed                # every parameter
 ```
@@ -181,9 +193,9 @@ command line share the same file.
 
 | When | What to look at |
 | --- | --- |
-| **Tuesday / Wednesday** (once Monday night's game is final) | The report moves on to the new week by itself. Check **Waivers**: priority claims, suggested drops, and FAAB bids or priority advice. Check **Trades** for trade ideas. |
-| **Thursday – Sunday** | **Lineup**: make the START/BENCH moves. Players whose game has started are shown as LOCKED and never moved, so mid-week runs only suggest moves you can still make. Check the risk list for injuries. |
-| **During games** | **Matchup**: live score plus the projected final for both teams. |
+| **Tuesday / Wednesday** (once Monday night's game is final) | The report moves on to the new week by itself. Check **Waivers**: priority claims, suggested drops, and FAAB bids or priority advice. Check **Trends** for breakout players before they get popular, and **Trades** for trade ideas. |
+| **Thursday – Sunday** | **Lineup**: make the START/BENCH moves. Players whose game has started are shown as LOCKED and never moved, so mid-week runs only suggest moves you can still make. Check the risk list for injuries, and **Sources** for starters ESPN sees very differently. |
+| **During games** | **Matchup**: live score, projected final and your chance to win. |
 | **Any time** | **Trade Analyzer**: grade a trade you're thinking about, or one a friend asks about. |
 
 Data is cached, so running it often is quick. Use **Bypass cache** (or
@@ -574,6 +586,8 @@ to stdout.
 | Windows: `Python 3.8+ not found` | Install Python from python.org with **Add python.exe to PATH** ticked, then reopen the app. Or set `-Python C:\path\to\python.exe` or `python=` in the config file. |
 | Windows: the window doesn't open, or there is a security prompt | Unblock the ZIP before extracting (see [Windows](#2a-windows)), or run `powershell -ExecutionPolicy Bypass -File .\FantasyManager.ps1` to see any error. |
 | `Python 3.8 or newer is required` | Install Python 3 (see [macOS and Linux](#2b-macos-and-linux)), or point `FM_PYTHON` at one. |
+| `PROJECTION SOURCES: ESPN unavailable` | ESPN's projections couldn't be loaded. Nothing else is affected. Use `--compare none` to stop trying. |
+| `HISTORY: unavailable` / `OPPORTUNITY: unavailable` | Normal in week 1, or before 3 weeks of usage data exist. Otherwise the past-week data couldn't be fetched; it's retried the next day, or now with `--refresh`. |
 | Ambiguous player name in a trade | Use more of the name, add a team or position (`Josh Allen BUF`), or use the Sleeper id (`id:4984`). |
 
 For more detail, run with `--debug` (Windows: `-DebugLog`). Diagnostics then
