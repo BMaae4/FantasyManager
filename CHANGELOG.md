@@ -2,6 +2,28 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.5.1
+
+### Changed
+
+- README rewritten for new users. It now covers:
+  - finding your league ID and username, and step-by-step setup on Windows,
+    macOS and Linux
+  - saving your league in a config file
+  - a weekly routine and how to read the report
+  - all three trade-analyzer modes
+  - a settings table covering the command line, PowerShell and config keys
+  - troubleshooting for the common error messages
+- `--trade` help text: works between any two teams, not only your own.
+- Sample reports regenerated with every current section, plus a new
+  `samples/sample-trades.txt`.
+
+### Fixed
+
+- Config files: values are trimmed, so `key = value`, trailing spaces and
+  Windows line endings work in both front ends. Before this, a hand-written
+  `league_id = 123` line failed validation.
+
 ## 2.5.0
 
 ### Added

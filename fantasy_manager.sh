@@ -8,7 +8,7 @@
 set -euo pipefail
 
 TOOL_NAME="fantasy_manager"
-TOOL_VERSION="2.5.0"
+TOOL_VERSION="2.5.1"
 
 # --------------------------------------------------------------------------
 # Hardcoded defaults (run with no parameters)
@@ -124,8 +124,8 @@ Analysis options:
       --fairness X         Trade fairness tolerance as a fraction (default: 0.10)
       --horizon N          Future weeks valued for waivers, drops and trades, 0-6
                            (default: 3; 0 = this week only)
-      --trade TEXT         Grade your own trade(s): "Give A, Give B for Get C".
-                           Names or Sleeper ids; separate trades with ";"
+      --trade TEXT         Grade trade(s) in your league: "Give A, Give B for Get C".
+                           Any two teams; names or Sleeper ids; ";" between trades
       --value-trade TEXT   Grade any players for any players, no league or rosters
                            needed (e.g. a friend's offer): "A, B for C".
                            Add a team or position to disambiguate ("Josh Allen BUF")
@@ -250,6 +250,10 @@ load_config_file() {
         [ "$key" != "$line" ] || continue
         key="$(printf '%s' "$key" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
         key="${key#fm_}"
+        # Tolerate "key = value", trailing spaces and Windows line endings.
+        value="${value%$'\r'}"
+        value="${value#"${value%%[![:space:]]*}"}"
+        value="${value%"${value##*[![:space:]]}"}"
         value="${value%\"}"
         value="${value#\"}"
         value="${value%\'}"

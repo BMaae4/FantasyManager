@@ -78,7 +78,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'   # Invoke-WebRequest is very slow with progress on 5.1
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '2.5.0'
+$ToolVersion = '2.5.1'
 
 # --------------------------------------------------------------------------
 # Defaults (kept in step with fantasy_manager.sh)
@@ -178,7 +178,8 @@ function Read-ConfigFile([string]$path) {
         if ($idx -lt 0) { continue }
         $key = ($line.Substring(0, $idx) -replace '\s', '').ToLowerInvariant()
         if ($key.StartsWith('fm_')) { $key = $key.Substring(3) }
-        $value = $line.Substring($idx + 1).Trim('"').Trim("'")
+        # Tolerate "key = value" and trailing spaces.
+        $value = $line.Substring($idx + 1).Trim().Trim('"').Trim("'")
         $script:FileValues[$key] = $value
     }
     Write-Log 'DEBUG' ("Loaded config file {0} ({1} keys)" -f $path, $script:FileValues.Count)
