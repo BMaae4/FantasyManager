@@ -2,6 +2,32 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.5.0
+
+### Added
+
+- `--trade` now grades trades between any two teams in the league, not just
+  your own; results carry `side_a` and use team names in the verdict, notes
+  and reports.
+- Any-player trade grader: `--value-trade "A, B for C"` (PowerShell
+  `-ValueTrade`, `FM_VALUE_TRADE`), e.g. a friend's offer in another league.
+  - No rosters needed; any NFL players can be named, including free agents.
+  - Players are valued by projected points above a replacement-level starter
+    across the window.
+  - `--scoring ppr|half|std|league` (default ppr; half and standard are
+    derived from PPR and receptions when the feed lacks them) and
+    `--teams N` (4-32, default 12) set the replacement levels.
+  - The result has grades for both sides, acceptance, a verdict, and per
+    player points and value above replacement. Notes cover consolidation,
+    roster spots and below-replacement players; injury and bye flags are
+    included.
+  - Ambiguous names list position and team; adding either narrows the match.
+- JSON `value_trades` and `player_pool` (projected players with window points
+  in each scoring format).
+- Windows app: the Trade Analyzer tab gains a Team A picker (any two teams)
+  and an **Any players** mode. That mode has scoring and league-size inputs
+  and searchable pick lists for each side.
+
 ## 2.4.0
 
 ### Added

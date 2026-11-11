@@ -242,6 +242,7 @@ class Analyzer:
         self._use_custom = False
         self._aggregate_field_used: Optional[str] = None
         self.projection_stats: Dict[str, dict] = {}
+        self.week_stats: List[Dict[str, dict]] = [self.projection_stats]
         self.scoring_mode = "unknown"
         self.scoring_source = "unknown"
         self.unsupported_scoring_keys: List[str] = []
@@ -538,17 +539,20 @@ class Analyzer:
         weeks = sorted(int(w) for w in future.keys() if str(w).isdigit())
         for week in weeks:
             points: Dict[str, float] = {}
+            stats_by_pid: Dict[str, dict] = {}
             for record in future.get(str(week)) or []:
                 if not isinstance(record, dict) or not isinstance(record.get("stats"), dict):
                     continue
                 pid = record.get("player_id")
                 if pid is None:
                     continue
+                stats_by_pid[str(pid)] = record["stats"]
                 value = self.score_stats(str(pid), record["stats"])
                 if value is not None:
                     points[str(pid)] = value
             if points:
                 self.week_points.append(points)
+                self.week_stats.append(stats_by_pid)
                 self.window_weeks.append(week)
 
     def _aggregate_field(self, stats_keys_seen: set) -> Optional[str]:
@@ -1500,6 +1504,31 @@ class Analyzer:
                 return letter
         return "F"
 
+    @staticmethod
+    def acceptance_for(their_per_week: float) -> str:
+        if their_per_week >= 0.5:
+            return "likely"
+        if their_per_week >= -0.5:
+            return "possible"
+        return "unlikely"
+
+    @staticmethod
+    def neutral_verdict(a_pw: float, b_pw: float, a: str, b: str) -> str:
+        """Verdict for a trade you are judging for someone else."""
+        if a_pw >= 0.5 and b_pw >= 0.5:
+            return "Win-win: both %s and %s improve." % (a, b)
+        if abs(a_pw) < 0.5 and abs(b_pw) < 0.5:
+            return "About even: neither side gains or loses much."
+        if a_pw >= b_pw:
+            winner, loser, margin = a, b, a_pw - b_pw
+        else:
+            winner, loser, margin = b, a, b_pw - a_pw
+        if margin >= 3.0:
+            return "Lopsided: %s wins this clearly; %s should ask for more." % (winner, loser)
+        if margin >= 1.0:
+            return "%s wins this one; %s gives up more than they get." % (winner, loser)
+        return "Slight edge to %s; close to fair." % winner
+
     @classmethod
     def normalise_name(cls, text: str) -> List[str]:
         cleaned = "".join(ch if ch.isalnum() or ch.isspace() else "" for ch in lower(text).replace("-", " "))
@@ -1529,8 +1558,10 @@ class Analyzer:
             trades.append((raw, give, get))
         return trades
 
-    def resolve_player(self, token: str, pool: Sequence[str]) -> Tuple[Optional[str], Optional[str]]:
-        """Match a name or player id against `pool`. Returns (pid, error)."""
+    def resolve_player(self, token: str, pool: Sequence[str], with_meta: bool = False) -> Tuple[Optional[str], Optional[str]]:
+        """Match a name or player id against `pool`. Returns (pid, error).
+        With `with_meta`, a position or NFL team in the text narrows the
+        match ("Josh Allen BUF") and candidates are listed with both."""
         token = token.strip()
         if token.lower().startswith("id:"):
             token = token[3:].strip()
@@ -1542,13 +1573,32 @@ class Analyzer:
         exact = [p for p in pool if self.normalise_name(self.player_name(p)) == wanted]
         if len(exact) == 1:
             return exact[0], None
-        partial = [p for p in pool if set(wanted) <= set(self.normalise_name(self.player_name(p)))]
+        def tokens(p: str) -> set:
+            found = set(self.normalise_name(self.player_name(p)))
+            if with_meta:
+                found.update(t for t in (lower(self.primary_position(p)), lower(self.player(p).get("team"))) if t)
+            return found
+
+        partial = [p for p in pool if set(wanted) <= tokens(p)]
         if len(partial) == 1:
             return partial[0], None
         candidates = exact or partial
         if candidates:
-            return None, "'%s' is ambiguous: %s" % (
-                token, ", ".join(sorted(self.player_name(p) for p in candidates)))
+            def label(p: str) -> str:
+                if not with_meta:
+                    return self.player_name(p)
+                return "%s (%s, %s)" % (self.player_name(p), self.primary_position(p) or "?",
+                                        self.player(p).get("team") or "FA")
+            listed = sorted(label(p) for p in candidates)
+            more = "" if len(listed) <= 8 else " and %d more" % (len(listed) - 8)
+            hint = ""
+            if with_meta:
+                first = candidates[0]
+                positions = {self.primary_position(p) for p in candidates}
+                extra = (self.primary_position(first) if len(positions) > 1
+                         else self.player(first).get("team") or self.primary_position(first) or "")
+                hint = "; add a position or team, e.g. '%s %s'" % (token, extra)
+            return None, "'%s' is ambiguous: %s%s%s" % (token, ", ".join(listed[:8]), more, hint)
         return None, "'%s' not found" % token
 
     def roster_limit(self) -> int:
@@ -1602,12 +1652,10 @@ class Analyzer:
         if not text:
             return None
         rosters = {r.get("roster_id"): r for r in self.rosters}
-        mine = rosters.get(self.my_roster_id) or {}
-        my_players = self.roster_active_players(mine)
-        others = {
-            rid: self.roster_active_players(r) for rid, r in rosters.items() if rid != self.my_roster_id
-        }
-        all_other = sorted({p for players in others.values() for p in players})
+        active = {rid: self.roster_active_players(r) for rid, r in rosters.items()}
+        owner = {p: rid for rid, players in active.items() for p in players}
+        my_players = active.get(self.my_roster_id, [])
+        everyone = sorted(owner)
         results = []
         for raw, give_tokens, get_tokens in self.parse_trade_text(text):
             result: dict = {"input": raw}
@@ -1617,23 +1665,35 @@ class Analyzer:
                 continue
             errors = []
             give, get = [], []
+            # The giving side is usually you: look on your roster first, then
+            # anywhere in the league (a trade between two other teams).
             for token in give_tokens:
                 pid, err = self.resolve_player(token, my_players)
+                if err and "not found" in err:
+                    pid, err = self.resolve_player(token, everyone)
                 if err:
-                    errors.append("give: %s on your roster" % err if "not found" in err else "give: " + err)
+                    errors.append("give: %s on any roster in this league (use --value-trade for players elsewhere)" % err
+                                  if "not found" in err else "give: " + err)
                 elif pid in give:
                     errors.append("give: %s listed twice" % self.player_name(pid))
                 else:
                     give.append(pid)
+            a_teams = {owner[p] for p in give}
+            if not errors and len(a_teams) > 1:
+                errors.append("players to give are on different teams (%s); only two-team trades are supported"
+                              % ", ".join(sorted(str(self.team_name(r)) for r in a_teams)))
+            a_id = next(iter(a_teams)) if len(a_teams) == 1 else self.my_roster_id
+            get_pool = [p for p in everyone if owner[p] != a_id]
             for token in get_tokens:
-                pid, err = self.resolve_player(token, all_other)
+                pid, err = self.resolve_player(token, get_pool)
                 if err:
-                    errors.append("get: %s on another roster" % err if "not found" in err else "get: " + err)
+                    where = "on another roster" if a_id == self.my_roster_id else "on a roster other than the giving team's"
+                    errors.append("get: %s %s" % (err, where) if "not found" in err else "get: " + err)
                 elif pid in get:
                     errors.append("get: %s listed twice" % self.player_name(pid))
                 else:
                     get.append(pid)
-            partners = {rid for rid, players in others.items() for pid in get if pid in players}
+            partners = {owner[p] for p in get}
             if not errors and len(partners) > 1:
                 errors.append("players to get are on different teams (%s); only two-team trades are supported"
                               % ", ".join(sorted(str(self.team_name(r)) for r in partners)))
@@ -1641,15 +1701,20 @@ class Analyzer:
                 result["error"] = "; ".join(errors)
                 continue
             partner_id = partners.pop()
-            theirs = others[partner_id]
+            is_me = a_id == self.my_roster_id
+            a_players = active[a_id]
+            theirs = active[partner_id]
+            a_name = self.team_name(a_id) or "roster %s" % a_id
+            b_name = self.team_name(partner_id) or "roster %s" % partner_id
+            result["side_a"] = {"roster_id": a_id, "team": self.team_name(a_id), "is_me": is_me}
             result["partner"] = {"roster_id": partner_id, "team": self.team_name(partner_id)}
             n = self.n_weeks
 
-            my_base, my_base_weeks = self.window_value(my_players)
+            my_base, my_base_weeks = self.window_value(a_players)
             their_base, their_base_weeks = self.window_value(theirs)
-            my_after_players = [p for p in my_players if p not in give] + get
+            my_after_players = [p for p in a_players if p not in give] + get
             their_after_players = [p for p in theirs if p not in get] + give
-            my_after_players, my_drops = self.trim_roster(my_after_players, set(get), len(my_players))
+            my_after_players, my_drops = self.trim_roster(my_after_players, set(get), len(a_players))
             their_after_players, their_drops = self.trim_roster(their_after_players, set(give), len(theirs))
             my_after, my_weeks = self.window_value(my_after_players)
             their_after, their_weeks = self.window_value(their_after_players)
@@ -1658,7 +1723,7 @@ class Analyzer:
             my_pw = my_gain / n
             their_pw = their_gain / n
 
-            started_before_mine = self.weeks_started(my_players, give)
+            started_before_mine = self.weeks_started(a_players, give)
             started_after_mine = self.weeks_started(my_after_players, get)
             started_before_theirs = self.weeks_started(theirs, get)
             started_after_theirs = self.weeks_started(their_after_players, give)
@@ -1680,13 +1745,10 @@ class Analyzer:
 
             my_grade = self.grade_for(my_pw)
             their_grade = self.grade_for(their_pw)
-            if their_pw >= 0.5:
-                acceptance = "likely"
-            elif their_pw >= -0.5:
-                acceptance = "possible"
-            else:
-                acceptance = "unlikely"
-            if my_pw >= 0.5:
+            acceptance = self.acceptance_for(their_pw)
+            if not is_me:
+                verdict = self.neutral_verdict(my_pw, their_pw, a_name, b_name)
+            elif my_pw >= 0.5:
                 if their_pw >= 0:
                     verdict = "Good for you and it helps them too: worth proposing."
                 elif their_pw >= -1.0:
@@ -1699,29 +1761,37 @@ class Analyzer:
                 verdict = "Costs you projected points: not recommended" + (
                     " (they win this one)." if their_pw >= 0.5 else ".")
 
+            you = "you" if is_me else a_name
+            them = "they" if is_me else b_name
+            your = "your" if is_me else a_name + "'s"
             notes = []
             if len(give) > len(get) and value_given > value_received and my_gain > 0:
-                notes.append("Consolidation: you give more total points but your starting lineup improves.")
+                notes.append("Consolidation: %s give%s more total points but %s starting lineup improves."
+                             % (you, "" if is_me else "s", your))
             if len(get) > len(give) and their_gain > 0 and value_received > value_given:
-                notes.append("They consolidate: you get more total points, they upgrade a starter.")
+                notes.append("%s consolidate%s: %s get%s more total points, %s upgrade%s a starter."
+                             % ("They" if is_me else b_name, "" if is_me else "s", you, "" if is_me else "s",
+                                them, "" if is_me else "s"))
             if my_drops:
-                notes.append("To make room you would drop: %s." % ", ".join(self.player_name(p) for p in my_drops))
+                notes.append("To make room %s would drop: %s." % (you, ", ".join(self.player_name(p) for p in my_drops)))
             if their_drops:
-                notes.append("To make room they would drop: %s." % ", ".join(self.player_name(p) for p in their_drops))
+                notes.append("To make room %s would drop: %s." % ("they" if is_me else b_name,
+                                                                   ", ".join(self.player_name(p) for p in their_drops)))
             if len(give) > len(get):
                 notes.append("Opens %d roster spot(s) for a waiver pickup (not included in the grade)."
                              % (len(give) - len(get)))
             for pid in get:
                 if started_after_mine.get(pid, 0) == 0:
-                    notes.append("%s would not start for you in any window week." % self.player_name(pid))
+                    notes.append("%s would not start for %s in any window week."
+                                 % (self.player_name(pid), "you" if is_me else a_name))
             if n == 1:
                 notes.append("Judged on this week only (--horizon 0); rest-of-season value is not included.")
 
             flags = []
             for pid in get:
-                flags.extend(self.trade_flags(pid, "You get"))
+                flags.extend(self.trade_flags(pid, "You get" if is_me else a_name + " gets"))
             for pid in give:
-                flags.extend(self.trade_flags(pid, "You give"))
+                flags.extend(self.trade_flags(pid, "You give" if is_me else a_name + " gives"))
 
             result.update({
                 "window_weeks": self.window_weeks,
@@ -1743,6 +1813,214 @@ class Analyzer:
                 "flags": flags,
             })
         return results
+
+    # -- open trade grader (any players, no rosters) ----------------------
+    OPEN_POSITIONS = ("QB", "RB", "WR", "TE", "K", "DEF")
+    # Starters per team in a generic lineup (1 QB, 2 RB, 2 WR, 1 TE, 1 FLEX
+    # shared by RB/WR/TE, K, DEF); times the number of teams this gives the
+    # replacement-level starter at each position.
+    GENERIC_STARTERS = {"QB": 1.0, "RB": 2 + 1 / 3, "WR": 2 + 1 / 3, "TE": 1 + 1 / 3, "K": 1.0, "DEF": 1.0}
+    SCORING_FIELDS = {"ppr": "pts_ppr", "half": "pts_half_ppr", "std": "pts_std"}
+    SCORING_LABELS = {"ppr": "PPR", "half": "half-PPR", "std": "standard", "league": "your league's scoring"}
+
+    def open_points(self, pid: str, w: int, scoring: str) -> Optional[float]:
+        """Projected points for any player in window week `w` under a generic
+        scoring format (or the loaded league's scoring)."""
+        if scoring == "league":
+            return self.points(pid, w) if self.has_projection(pid, w) else None
+        stats = self.week_stats[w].get(str(pid)) if w < len(self.week_stats) else None
+        if not isinstance(stats, dict):
+            return None
+        value = stats.get(self.SCORING_FIELDS[scoring])
+        if isinstance(value, (int, float)):
+            return float(value)
+        rec = stats.get("rec") if isinstance(stats.get("rec"), (int, float)) else 0.0
+        # Derive the format from whichever total the feed has.
+        base = None
+        for field, per_rec in (("pts_ppr", 1.0), ("pts_half_ppr", 0.5), ("pts_std", 0.0)):
+            if isinstance(stats.get(field), (int, float)):
+                base = float(stats[field]) - per_rec * rec
+                break
+        if base is None:
+            return None
+        return base + {"ppr": 1.0, "half": 0.5, "std": 0.0}[scoring] * rec
+
+    def open_pool(self, scoring: str) -> List[str]:
+        cache = self.__dict__.setdefault("_open_pool_cache", {})
+        if scoring not in cache:
+            ids = set()
+            for stats in self.week_stats:
+                ids.update(stats.keys())
+            pool = []
+            for pid in ids:
+                if self.primary_position(pid) not in self.OPEN_POSITIONS:
+                    continue
+                total = sum(self.open_points(pid, w, scoring) or 0.0 for w in range(self.n_weeks))
+                if total > 0:
+                    pool.append(pid)
+            cache[scoring] = sorted(pool)
+        return cache[scoring]
+
+    def open_replacement(self, scoring: str, teams: int) -> List[Dict[str, float]]:
+        cache = self.__dict__.setdefault("_open_repl_cache", {})
+        key = (scoring, teams)
+        if key not in cache:
+            levels = []
+            pool = self.open_pool(scoring)
+            for w in range(self.n_weeks):
+                by_pos: Dict[str, List[float]] = {}
+                for pid in pool:
+                    value = self.open_points(pid, w, scoring)
+                    if value is not None:
+                        by_pos.setdefault(self.primary_position(pid), []).append(value)
+                week = {}
+                for pos, starters in self.GENERIC_STARTERS.items():
+                    values = sorted(by_pos.get(pos, []), reverse=True)
+                    index = max(0, int(round(teams * starters)) - 1)
+                    week[pos] = values[index] if index < len(values) else 0.0
+                levels.append(week)
+            cache[key] = levels
+        return cache[key]
+
+    def open_value(self, pid: str, scoring: str, teams: int) -> Tuple[float, float, List[Optional[float]]]:
+        """(points above replacement, raw points, weekly points) over the
+        window. A week without a projection (bye, injury) is worth nothing:
+        you would start a replacement-level player instead."""
+        levels = self.open_replacement(scoring, teams)
+        position = self.primary_position(pid)
+        vor = raw = 0.0
+        weekly: List[Optional[float]] = []
+        for w in range(self.n_weeks):
+            value = self.open_points(pid, w, scoring)
+            weekly.append(r2(value) if value is not None else None)
+            if value is None:
+                continue
+            raw += value
+            vor += max(0.0, value - levels[w].get(position, 0.0))
+        return vor, raw, weekly
+
+    def analyze_value_trades(self) -> Optional[List[dict]]:
+        text = self.config.get("value_trades")
+        if not text:
+            return None
+        scoring = str(self.config.get("value_scoring") or "ppr").lower()
+        if scoring not in self.SCORING_LABELS:
+            scoring = "ppr"
+        teams = int(self.config.get("value_teams") or 12)
+        n = self.n_weeks
+        pool = self.open_pool(scoring)
+        everyone = sorted(
+            pid for pid, info in self.players.items()
+            if isinstance(info, dict) and self.primary_position(pid) in self.OPEN_POSITIONS
+            and info.get("active") is not False
+        )
+        levels = self.open_replacement(scoring, teams)
+        results = []
+        for raw, a_tokens, b_tokens in self.parse_trade_text(text):
+            result: dict = {"input": raw}
+            results.append(result)
+            if not a_tokens or not b_tokens:
+                result["error"] = "Write a trade as 'players side A gives for players side B gives', e.g. 'Josh Allen for Kenneth Walker III'."
+                continue
+            errors = []
+            sides: List[List[str]] = [[], []]
+            for label, tokens, picked in (("side A", a_tokens, sides[0]), ("side B", b_tokens, sides[1])):
+                for token in tokens:
+                    # Projected players first, then anyone in the player database.
+                    pid, err = self.resolve_player(token, pool, with_meta=True)
+                    if err and "not found" in err:
+                        pid, err = self.resolve_player(token, everyone, with_meta=True)
+                    if err:
+                        errors.append("%s: %s" % (label, err))
+                    elif pid in sides[0] or pid in sides[1]:
+                        errors.append("%s: %s is already in this trade" % (label, self.player_name(pid)))
+                    else:
+                        picked.append(pid)
+            if errors:
+                result["error"] = "; ".join(errors)
+                continue
+            give, get = sides
+
+            def entry(pid: str) -> dict:
+                vor, raw_pts, weekly = self.open_value(pid, scoring, teams)
+                info = self.player(pid)
+                return {
+                    "player_id": pid, "name": self.player_name(pid), "position": self.primary_position(pid),
+                    "team": info.get("team"), "injury_status": info.get("injury_status"),
+                    "window_points": r2(raw_pts), "value_over_replacement": r2(vor), "weekly_points": weekly,
+                }
+
+            give_rows = [entry(p) for p in give]
+            get_rows = [entry(p) for p in get]
+            value_given = sum(r["value_over_replacement"] or 0.0 for r in give_rows)
+            value_received = sum(r["value_over_replacement"] or 0.0 for r in get_rows)
+            a_gain = value_received - value_given
+            a_pw, b_pw = a_gain / n, -a_gain / n
+
+            notes = ["Values each player by projected points above a replacement-level starter in a "
+                     "%d-team league (%s) over weeks %s; team needs, depth and roster spots are not known."
+                     % (teams, self.SCORING_LABELS[scoring], ", ".join(str(w) for w in self.window_weeks))]
+            rows_all = give_rows + get_rows
+            best = max(rows_all, key=lambda r: (r["value_over_replacement"] or 0.0, r["name"]))
+            best_to_b = best in give_rows
+            fewer_side_gets_best = (len(give) < len(get)) if best_to_b else (len(get) < len(give))
+            if fewer_side_gets_best and (best["value_over_replacement"] or 0) > 0:
+                best_side = "Side B" if best_to_b else "Side A"
+                notes.append("%s gets the best player in the deal (%s); with a thin bench or in a deep "
+                             "league that is worth more than these totals show." % (best_side, best["name"]))
+            more = len(get) - len(give)
+            if more:
+                notes.append("%s receives %d more player(s) and would need to drop someone."
+                             % ("Side A" if more > 0 else "Side B", abs(more)))
+            for r in rows_all:
+                if (r["value_over_replacement"] or 0.0) <= 0.0:
+                    notes.append("%s projects at or below replacement level, so adds no value here." % r["name"])
+            if n == 1:
+                notes.append("Judged on this week only (--horizon 0); rest-of-season value is not included.")
+
+            flags = []
+            for side_label, pids in (("Side A gets", get), ("Side B gets", give)):
+                for pid in pids:
+                    flags.extend(f for f in self.trade_flags(pid, side_label) if "already played" not in f)
+
+            result.update({
+                "mode": "open",
+                "scoring": scoring,
+                "teams": teams,
+                "window_weeks": self.window_weeks,
+                "give": give_rows,
+                "get": get_rows,
+                "value_given": r2(value_given),
+                "value_received": r2(value_received),
+                "points_given": r2(sum(r["window_points"] or 0.0 for r in give_rows)),
+                "points_received": r2(sum(r["window_points"] or 0.0 for r in get_rows)),
+                "my_gain": r2(a_gain),
+                "their_gain": r2(-a_gain),
+                "my_gain_per_week": r2(a_pw),
+                "their_gain_per_week": r2(b_pw),
+                "my_grade": self.grade_for(a_pw),
+                "their_grade": self.grade_for(b_pw),
+                "acceptance": self.acceptance_for(b_pw),
+                "verdict": self.neutral_verdict(a_pw, b_pw, "Side A", "Side B"),
+                "replacement_levels": {
+                    pos: r2(sum(week[pos] for week in levels) / max(1, len(levels))) for pos in self.GENERIC_STARTERS
+                },
+                "notes": notes,
+                "flags": flags,
+            })
+        return results
+
+    def player_pool(self) -> List[dict]:
+        """Projected players at fantasy positions, for picking any-player trades."""
+        rows = []
+        for pid in self.open_pool("ppr"):
+            info = self.player(pid)
+            pts = {s: r2(sum(self.open_points(pid, w, s) or 0.0 for w in range(self.n_weeks)))
+                   for s in ("ppr", "half", "std", "league")}
+            rows.append({"player_id": pid, "name": self.player_name(pid), "position": self.primary_position(pid),
+                         "team": info.get("team"), "injury_status": info.get("injury_status"), "window_points": pts})
+        rows.sort(key=lambda r: (-(r["window_points"]["ppr"] or 0.0), r["name"]))
+        return rows[:1500]
 
     def roster_summaries(self) -> List[dict]:
         """Every roster with its players, for building trades by hand."""
@@ -1783,6 +2061,7 @@ class Analyzer:
         waivers = None if self.config.get("skip_waivers") else self.analyze_waivers(my_roster)
         trades = None if self.config.get("skip_trades") else self.analyze_trades(my_roster)
         custom_trades = self.analyze_custom_trades()
+        value_trades = self.analyze_value_trades()
 
         projections_provenance = (self.provenance.get("projections") or {})
         report = {
@@ -1834,6 +2113,8 @@ class Analyzer:
             "waivers": waivers,
             "trades": trades,
             "custom_trades": custom_trades,
+            "value_trades": value_trades,
+            "player_pool": self.player_pool(),
             "rosters": self.roster_summaries(),
             "diagnostics": {
                 "fetches": self.bundle.get("diagnostics") or [],

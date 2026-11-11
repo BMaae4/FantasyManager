@@ -30,6 +30,10 @@
     Grades a trade you are considering (also available in the window's Trade Analyzer tab).
 
 .EXAMPLE
+    .\FantasyManager.ps1 -NoGui -ValueTrade "Bijan Robinson for Ja'Marr Chase, Jaylen Waddle" -Scoring half -OutFile t.json
+    Grades any players for any players, e.g. a friend's offer in another league.
+
+.EXAMPLE
     .\FantasyManager.ps1 -ReportFile report.json
     Opens a saved report in the window.
 #>
@@ -46,6 +50,9 @@ param(
     [string]$Horizon,
     [string]$Locked,
     [string]$Trade,
+    [string]$ValueTrade,
+    [string]$Scoring,
+    [string]$Teams,
     [switch]$SkipWaivers,
     [switch]$SkipTrades,
     [switch]$NoGui,
@@ -71,7 +78,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'   # Invoke-WebRequest is very slow with progress on 5.1
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '2.4.0'
+$ToolVersion = '2.5.0'
 
 # --------------------------------------------------------------------------
 # Defaults (kept in step with fantasy_manager.sh)
@@ -222,6 +229,9 @@ function Initialize-Configuration {
     $c.horizon          = Resolve-Setting 'horizon' 'FM_HORIZON' $Horizon (Test-CliSet 'Horizon') $Defaults.horizon
     $c.locked           = Resolve-Setting 'locked' 'FM_LOCKED' $Locked (Test-CliSet 'Locked') ''
     $c.trade            = Resolve-Setting 'trade' 'FM_TRADE' $Trade (Test-CliSet 'Trade') ''
+    $c.value_trade      = Resolve-Setting 'value_trade' 'FM_VALUE_TRADE' $ValueTrade (Test-CliSet 'ValueTrade') ''
+    $c.scoring          = Resolve-Setting 'scoring' 'FM_SCORING' $Scoring (Test-CliSet 'Scoring') 'ppr'
+    $c.teams            = Resolve-Setting 'teams' 'FM_TEAMS' $Teams (Test-CliSet 'Teams') '12'
     $c.skip_waivers     = Resolve-Setting 'skip_waivers' 'FM_SKIP_WAIVERS' '1' (Test-CliSet 'SkipWaivers') '0'
     $c.skip_trades      = Resolve-Setting 'skip_trades' 'FM_SKIP_TRADES' '1' (Test-CliSet 'SkipTrades') '0'
     $c.cache_dir        = Resolve-Setting 'cache_dir' 'FM_CACHE_DIR' $CacheDir (Test-CliSet 'CacheDir') ''
@@ -255,6 +265,12 @@ function Initialize-Configuration {
     }
     if (-not (Test-UInt $c.top_n) -or [int]$c.top_n -lt 1 -or [int]$c.top_n -gt 50) {
         Stop-Run $EX_USAGE "Top N must be an integer between 1 and 50 (got '$($c.top_n)')."
+    }
+    if (@('ppr', 'half', 'std', 'league') -notcontains $c.scoring) {
+        Stop-Run $EX_USAGE "Scoring must be ppr, half, std or league (got '$($c.scoring)')."
+    }
+    if (-not (Test-UInt $c.teams) -or [int]$c.teams -lt 4 -or [int]$c.teams -gt 32) {
+        Stop-Run $EX_USAGE "Teams must be an integer between 4 and 32 (got '$($c.teams)')."
     }
     if (-not (Test-UInt $c.horizon) -or [int]$c.horizon -gt 6) {
         Stop-Run $EX_USAGE "Horizon must be an integer between 0 and 6 (got '$($c.horizon)')."
@@ -658,6 +674,9 @@ function Invoke-Pipeline($c) {
             week_rolled_from = $rolledFrom
             horizon = [int]$c.horizon
             custom_trades = $(if ($c.trade) { $c.trade } else { $null })
+            value_trades = $(if ($c.value_trade) { $c.value_trade } else { $null })
+            value_scoring = $c.scoring
+            value_teams = [int]$c.teams
         }
         provenance = [ordered]@{
             projections = [ordered]@{ url = $projUrl; source = $projSource; cache_age_seconds = $projAge; fetched_at = $projFetchedAt }
@@ -904,24 +923,73 @@ $script:WindowXaml = @'
           </Grid.ColumnDefinitions>
           <Grid Grid.Column="0">
             <Grid.RowDefinitions>
-              <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-              <TextBlock Text="Trade with" VerticalAlignment="Center" Margin="0,0,8,0"/>
-              <ComboBox x:Name="PartnerBox" Width="240" DisplayMemberPath="Label"/>
-              <TextBlock Text="Click players to pick them; click again to unpick." VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource Muted}"/>
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+              <RadioButton x:Name="LeagueModeRadio" Content="My league (real rosters)" GroupName="TradeMode" IsChecked="True" VerticalAlignment="Center"/>
+              <RadioButton x:Name="OpenModeRadio" Content="Any players (e.g. a friend's league)" GroupName="TradeMode" Margin="18,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
-            <Grid Grid.Row="1" Margin="0,0,0,4">
-              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-              <TextBlock Grid.Column="0" Text="You give" FontWeight="SemiBold"/>
-              <TextBlock Grid.Column="2" Text="You get" FontWeight="SemiBold"/>
+
+            <Grid x:Name="LeaguePanel" Grid.Row="1">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/>
+              </Grid.RowDefinitions>
+              <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                <TextBlock Text="Team A" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <ComboBox x:Name="FromBox" Width="200" DisplayMemberPath="Label"/>
+                <TextBlock Text="trades with" VerticalAlignment="Center" Margin="10,0,6,0"/>
+                <ComboBox x:Name="PartnerBox" Width="200" DisplayMemberPath="Label"/>
+              </StackPanel>
+              <Grid Grid.Row="1" Margin="0,0,0,4">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="GiveHeader" Grid.Column="0" Text="You give" FontWeight="SemiBold"/>
+                <TextBlock x:Name="GetHeader" Grid.Column="2" Text="You get" FontWeight="SemiBold"/>
+              </Grid>
+              <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <ListBox x:Name="GiveList" Grid.Column="0" SelectionMode="Multiple" DisplayMemberPath="Label" BorderBrush="#D5DAE0"/>
+                <ListBox x:Name="GetList" Grid.Column="2" SelectionMode="Multiple" DisplayMemberPath="Label" BorderBrush="#D5DAE0"/>
+              </Grid>
             </Grid>
-            <Grid Grid.Row="2">
-              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-              <ListBox x:Name="GiveList" Grid.Column="0" SelectionMode="Multiple" DisplayMemberPath="Label" BorderBrush="#D5DAE0"/>
-              <ListBox x:Name="GetList" Grid.Column="2" SelectionMode="Multiple" DisplayMemberPath="Label" BorderBrush="#D5DAE0"/>
+
+            <Grid x:Name="OpenPanel" Grid.Row="1" Visibility="Collapsed">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/>
+              </Grid.RowDefinitions>
+              <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                <TextBlock Text="Scoring" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <ComboBox x:Name="ScoringBox" Width="120" SelectedIndex="0">
+                  <ComboBoxItem Content="PPR"/><ComboBoxItem Content="Half-PPR"/><ComboBoxItem Content="Standard"/><ComboBoxItem Content="My league's"/>
+                </ComboBox>
+                <TextBlock Text="League size" VerticalAlignment="Center" Margin="14,0,6,0"/>
+                <TextBox x:Name="TeamsBox" Width="40" Padding="4,3" Text="12" ToolTip="Number of teams in that league (4-32)"/>
+                <TextBlock Text="Search, click to add; click a picked player to remove." VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource Muted}"/>
+              </StackPanel>
+              <Grid Grid.Row="1" Margin="0,0,0,4">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Side A gives" FontWeight="SemiBold"/>
+                <TextBlock Grid.Column="2" Text="Side B gives" FontWeight="SemiBold"/>
+              </Grid>
+              <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Grid Grid.Column="0">
+                  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="110"/></Grid.RowDefinitions>
+                  <TextBox x:Name="SearchA" Grid.Row="0" Padding="4,3" ToolTip="Type part of a name, a team (BUF) or a position (WR)"/>
+                  <ListBox x:Name="ResultsA" Grid.Row="1" DisplayMemberPath="Label" BorderBrush="#D5DAE0" Margin="0,4,0,0"/>
+                  <TextBlock Grid.Row="2" Text="Picked" Foreground="{StaticResource Muted}" Margin="0,6,0,2"/>
+                  <ListBox x:Name="PickedA" Grid.Row="3" DisplayMemberPath="Label" BorderBrush="#D5DAE0" Background="#F6F8FA"/>
+                </Grid>
+                <Grid Grid.Column="2">
+                  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="110"/></Grid.RowDefinitions>
+                  <TextBox x:Name="SearchB" Grid.Row="0" Padding="4,3" ToolTip="Type part of a name, a team (BUF) or a position (WR)"/>
+                  <ListBox x:Name="ResultsB" Grid.Row="1" DisplayMemberPath="Label" BorderBrush="#D5DAE0" Margin="0,4,0,0"/>
+                  <TextBlock Grid.Row="2" Text="Picked" Foreground="{StaticResource Muted}" Margin="0,6,0,2"/>
+                  <ListBox x:Name="PickedB" Grid.Row="3" DisplayMemberPath="Label" BorderBrush="#D5DAE0" Background="#F6F8FA"/>
+                </Grid>
+              </Grid>
             </Grid>
-            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10,0,0">
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
               <Button x:Name="GradeButton" Content="Grade trade" Padding="16,4"
                       Background="{StaticResource Accent}" Foreground="White" BorderThickness="0" FontWeight="SemiBold"/>
               <Button x:Name="ClearTradeButton" Content="Clear" Margin="8,0,0,0" Padding="10,4"/>
@@ -934,7 +1002,7 @@ $script:WindowXaml = @'
                 <Grid>
                   <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                   <StackPanel Grid.Column="0" HorizontalAlignment="Center">
-                    <TextBlock Text="Your grade" Foreground="{StaticResource Muted}" HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="YouLabel" Text="Your grade" Foreground="{StaticResource Muted}" HorizontalAlignment="Center"/>
                     <TextBlock x:Name="YouGrade" Text="-" FontSize="46" FontWeight="Bold" HorizontalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Grid.Column="1" HorizontalAlignment="Center">
@@ -944,10 +1012,10 @@ $script:WindowXaml = @'
                 </Grid>
                 <TextBlock x:Name="AcceptText" HorizontalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,2,0,8"/>
                 <TextBlock x:Name="VerdictText" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="14" Margin="0,0,0,8"
-                           Text="Pick a team and the players on each side, then press Grade trade."/>
+                           Text="Pick the players on each side, then press Grade trade."/>
                 <TextBlock x:Name="TradeDetail" TextWrapping="Wrap" LineHeight="20"/>
-                <TextBlock TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,12,0,0"
-                           Text="Grades are projected starting points gained per week across the window (this week plus the horizon). A+ 4 or more, A 3, A- 2.25, B+ 1.5, B 1, B- 0.5, C+ 0.25, C about even, C- -0.5, D+ -1, D -1.5, F worse. Roster limits are applied: if a side ends up over the limit, its cheapest player is dropped."/>
+                <TextBlock x:Name="GradeScaleText" TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,12,0,0"
+                           Text="Grades are projected points gained per week across the window (this week plus the horizon): A+ 4 or more, A 3, A- 2.25, B+ 1.5, B 1, B- 0.5, C+ 0.25, C about even, C- -0.5, D+ -1, D -1.5, F worse. My league: starting-lineup points with real rosters and roster limits. Any players: points above a replacement-level starter for that league size and scoring."/>
               </StackPanel>
             </ScrollViewer>
           </Border>
@@ -1179,26 +1247,66 @@ function Format-TradeLabel($p, [int]$weeks) {
     return $label
 }
 
+function Test-OpenMode($ui) { return [bool]$ui.OpenModeRadio.IsChecked }
+
+function Set-TradeMode($ui, [bool]$open) {
+    $ui.LeaguePanel.Visibility = $(if ($open) { 'Collapsed' } else { 'Visible' })
+    $ui.OpenPanel.Visibility = $(if ($open) { 'Visible' } else { 'Collapsed' })
+    if ([bool]$ui.OpenModeRadio.IsChecked -ne $open) { $ui.OpenModeRadio.IsChecked = $open; $ui.LeagueModeRadio.IsChecked = -not $open }
+    Update-TradePickSummary $ui
+}
+
 function Update-TradeAnalyzer($ui, $report) {
     $rosters = @(Get-Prop $report 'rosters' | Where-Object { $_ })
     $script:TradeRosters = $rosters
+    $script:PlayerPool = @(Get-Prop $report 'player_pool' | Where-Object { $_ })
     $script:TradeWeeks = [Math]::Max(1, @(Get-Prop $report.metadata 'window_weeks').Count)
-    $mine = $rosters | Where-Object { $_.is_me } | Select-Object -First 1
-    $ui.GiveList.ItemsSource = @(if ($mine) { @($mine.players) | ForEach-Object {
+    if ($null -eq (Get-Variable -Name OpenPicks -Scope Script -ErrorAction SilentlyContinue)) { $script:OpenPicks = @{ A = @(); B = @() } }
+
+    $previous = $null
+    if ($ui.FromBox.SelectedItem) { $previous = $ui.FromBox.SelectedItem.RosterId }
+    $teams = @($rosters | ForEach-Object {
+        $name = $(if ($_.team) { $_.team } else { 'Roster ' + $_.roster_id })
+        [pscustomobject]@{ Label = $(if ($_.is_me) { $name + ' (you)' } else { $name }); Name = $name; RosterId = $_.roster_id; IsMe = [bool]$_.is_me }
+    })
+    $ui.FromBox.ItemsSource = $teams
+    $index = -1
+    for ($i = 0; $i -lt $teams.Count; $i++) {
+        if ($null -ne $previous -and $teams[$i].RosterId -eq $previous) { $index = $i }
+        elseif ($index -lt 0 -and $null -eq $previous -and $teams[$i].IsMe) { $index = $i }
+    }
+    if ($index -lt 0 -and $teams.Count) { $index = 0 }
+    $ui.FromBox.SelectedIndex = $index
+    Update-TradeSides $ui
+
+    Update-OpenResults $ui 'A'
+    Update-OpenResults $ui 'B'
+    Update-OpenPicked $ui
+
+    $values = @(Get-Prop $report 'value_trades' | Where-Object { $_ })
+    $custom = @(Get-Prop $report 'custom_trades' | Where-Object { $_ })
+    if ($values.Count) { Set-TradeMode $ui $true; Show-TradeResult $ui $values[0] }
+    elseif ($custom.Count) { Set-TradeMode $ui $false; Show-TradeResult $ui $custom[0] }
+    else { Show-TradeResult $ui $null }
+}
+
+function Update-TradeSides($ui) {
+    $from = $ui.FromBox.SelectedItem
+    $fromRoster = $null
+    if ($from) { $fromRoster = @($script:TradeRosters) | Where-Object { $_.roster_id -eq $from.RosterId } | Select-Object -First 1 }
+    $ui.GiveList.ItemsSource = @(if ($fromRoster) { @($fromRoster.players) | ForEach-Object {
         [pscustomobject]@{ Label = (Format-TradeLabel $_ $script:TradeWeeks); Id = $_.player_id; Name = $_.name; Window = $_.window_projection }
     } })
     $previous = $null
     if ($ui.PartnerBox.SelectedItem) { $previous = $ui.PartnerBox.SelectedItem.RosterId }
-    $partners = @($rosters | Where-Object { -not $_.is_me } | ForEach-Object {
-        [pscustomobject]@{ Label = $(if ($_.team) { $_.team } else { 'Roster ' + $_.roster_id }); RosterId = $_.roster_id }
+    $partners = @(@($script:TradeRosters) | Where-Object { -not $from -or $_.roster_id -ne $from.RosterId } | ForEach-Object {
+        [pscustomobject]@{ Label = $(if ($_.team) { $_.team } else { 'Roster ' + $_.roster_id }); RosterId = $_.roster_id; IsMe = [bool]$_.is_me }
     })
     $ui.PartnerBox.ItemsSource = $partners
     $index = 0
     for ($i = 0; $i -lt $partners.Count; $i++) { if ($partners[$i].RosterId -eq $previous) { $index = $i } }
     $ui.PartnerBox.SelectedIndex = $(if ($partners.Count) { $index } else { -1 })
     Update-TradeGetList $ui
-    $custom = @(Get-Prop $report 'custom_trades' | Where-Object { $_ })
-    if ($custom.Count) { Show-TradeResult $ui $custom[0] } else { Show-TradeResult $ui $null }
 }
 
 function Update-TradeGetList($ui) {
@@ -1208,30 +1316,123 @@ function Update-TradeGetList($ui) {
     $ui.GetList.ItemsSource = @(if ($partner) { @($partner.players) | ForEach-Object {
         [pscustomobject]@{ Label = (Format-TradeLabel $_ $script:TradeWeeks); Id = $_.player_id; Name = $_.name; Window = $_.window_projection }
     } })
+    $from = $ui.FromBox.SelectedItem
+    if ($from -and -not $from.IsMe) {
+        $ui.GiveHeader.Text = $from.Name + ' gives'
+        $ui.GetHeader.Text = $(if ($selected) { $selected.Label + ' gives' } else { 'Team B gives' })
+    } else {
+        $ui.GiveHeader.Text = 'You give'
+        $ui.GetHeader.Text = 'You get'
+    }
     Update-TradePickSummary $ui
 }
 
+function Get-OpenScoring($ui) {
+    $index = $ui.ScoringBox.SelectedIndex
+    if ($index -lt 0) { $index = 0 }
+    return @('ppr', 'half', 'std', 'league')[$index]
+}
+
+function Format-PoolLabel($entry, [string]$scoring, [int]$weeks) {
+    $pts = Get-Prop $entry.window_points $scoring
+    $label = '{0}   {1}/{2}   {3} pts' -f $entry.name, $entry.position, $(if ($entry.team) { $entry.team } else { 'FA' }), (Format-Points $pts)
+    if ($weeks -gt 1) { $label += (' over {0} wks' -f $weeks) }
+    if (Get-Prop $entry 'injury_status') { $label += '   [' + $entry.injury_status + ']' }
+    return $label
+}
+
+function Get-PoolMatches([string]$text, [string]$scoring, [int]$limit = 40) {
+    $terms = @(($text.ToLowerInvariant() -replace '[^a-z0-9 ]', ' ') -split '\s+' | Where-Object { $_ })
+    $found = New-Object System.Collections.ArrayList
+    foreach ($entry in @($script:PlayerPool)) {
+        if ($terms.Count) {
+            $hay = ' ' + (($entry.name.ToLowerInvariant() -replace '[^a-z0-9 ]', ' ') + ' ' + ([string]$entry.position).ToLowerInvariant() + ' ' + ([string]$entry.team).ToLowerInvariant()) + ' '
+            $ok = $true
+            foreach ($t in $terms) { if ($hay.IndexOf($t, [StringComparison]::Ordinal) -lt 0) { $ok = $false; break } }
+            if (-not $ok) { continue }
+        }
+        [void]$found.Add($entry)
+    }
+    $sorted = @($found | Sort-Object -Property @{ Expression = { [double](Get-Prop $_.window_points $scoring) }; Descending = $true }, @{ Expression = { $_.name } })
+    return @($sorted | Select-Object -First $limit)
+}
+
+function Update-OpenResults($ui, [string]$side) {
+    $scoring = Get-OpenScoring $ui
+    $search = $ui["Search$side"].Text
+    if ($null -eq $search) { $search = '' }
+    $ui["Results$side"].ItemsSource = @(Get-PoolMatches $search $scoring | ForEach-Object {
+        [pscustomobject]@{ Label = (Format-PoolLabel $_ $scoring $script:TradeWeeks); Id = $_.player_id; Entry = $_ }
+    })
+}
+
+function Update-OpenPicked($ui) {
+    $scoring = Get-OpenScoring $ui
+    foreach ($side in 'A', 'B') {
+        $ui["Picked$side"].ItemsSource = @($script:OpenPicks[$side] | ForEach-Object {
+            [pscustomobject]@{ Label = (Format-PoolLabel $_ $scoring $script:TradeWeeks); Id = $_.player_id; Entry = $_ }
+        })
+    }
+    Update-TradePickSummary $ui
+}
+
+function Add-OpenPick($ui, [string]$side, $item) {
+    if ($null -eq $item) { return }
+    $other = $(if ($side -eq 'A') { 'B' } else { 'A' })
+    $id = $item.Entry.player_id
+    if (@($script:OpenPicks.A + $script:OpenPicks.B | Where-Object { $_.player_id -eq $id }).Count) { return }
+    $script:OpenPicks[$side] = @($script:OpenPicks[$side]) + @($item.Entry)
+    Update-OpenPicked $ui
+}
+
+function Remove-OpenPick($ui, [string]$side, $item) {
+    if ($null -eq $item) { return }
+    $script:OpenPicks[$side] = @($script:OpenPicks[$side] | Where-Object { $_.player_id -ne $item.Entry.player_id })
+    Update-OpenPicked $ui
+}
+
 function Update-TradePickSummary($ui) {
+    $sum = { param($values) $t = 0.0; foreach ($v in $values) { if ($null -ne $v) { $t += [double]$v } }; $t }
+    if (Test-OpenMode $ui) {
+        $scoring = Get-OpenScoring $ui
+        $a = @($script:OpenPicks.A); $b = @($script:OpenPicks.B)
+        $ui.TradePickSummary.Text = $(if ($a.Count -or $b.Count) {
+            'Side A gives {0} ({1} pts)   Side B gives {2} ({3} pts)' -f $a.Count, (Format-Points (& $sum @($a | ForEach-Object { Get-Prop $_.window_points $scoring }))),
+                $b.Count, (Format-Points (& $sum @($b | ForEach-Object { Get-Prop $_.window_points $scoring })))
+        } else { '' })
+        return
+    }
     $give = @($ui.GiveList.SelectedItems | Where-Object { $_ })
     $get = @($ui.GetList.SelectedItems | Where-Object { $_ })
-    $sum = { param($items) $t = 0.0; foreach ($i in $items) { if ($null -ne $i.Window) { $t += [double]$i.Window } }; $t }
     $ui.TradePickSummary.Text = $(if ($give.Count -or $get.Count) {
-        'Give {0} ({1} pts)   Get {2} ({3} pts)   over {4} wk(s)' -f $give.Count, (Format-Points (& $sum $give)), $get.Count, (Format-Points (& $sum $get)), $script:TradeWeeks
+        'Give {0} ({1} pts)   Get {2} ({3} pts)   over {4} wk(s)' -f $give.Count, (Format-Points (& $sum @($give | ForEach-Object { $_.Window }))),
+            $get.Count, (Format-Points (& $sum @($get | ForEach-Object { $_.Window }))), $script:TradeWeeks
     } else { '' })
 }
 
 function Get-TradeText($ui) {
-    $give = @($ui.GiveList.SelectedItems | Where-Object { $_ } | ForEach-Object { 'id:' + $_.Id })
-    $get = @($ui.GetList.SelectedItems | Where-Object { $_ } | ForEach-Object { 'id:' + $_.Id })
+    if (Test-OpenMode $ui) {
+        $give = @($script:OpenPicks.A | ForEach-Object { 'id:' + $_.player_id })
+        $get = @($script:OpenPicks.B | ForEach-Object { 'id:' + $_.player_id })
+    } else {
+        $give = @($ui.GiveList.SelectedItems | Where-Object { $_ } | ForEach-Object { 'id:' + $_.Id })
+        $get = @($ui.GetList.SelectedItems | Where-Object { $_ } | ForEach-Object { 'id:' + $_.Id })
+    }
     if ($give.Count -eq 0 -or $get.Count -eq 0) { return $null }
     return ($give -join ', ') + ' for ' + ($get -join ', ')
+}
+
+function Clear-TradePicks($ui) {
+    $script:OpenPicks = @{ A = @(); B = @() }
+    Update-OpenPicked $ui
+    Show-TradeResult $ui $null
 }
 
 function Show-TradeResult($ui, $t) {
     if ($null -eq $t) {
         Set-GradeText $ui.YouGrade ''; Set-GradeText $ui.ThemGrade ''
         $ui.AcceptText.Text = ''
-        $ui.VerdictText.Text = 'Pick a team and the players on each side, then press Grade trade.'
+        $ui.VerdictText.Text = 'Pick the players on each side, then press Grade trade.'
         $ui.TradeDetail.Text = ''
         return
     }
@@ -1242,25 +1443,44 @@ function Show-TradeResult($ui, $t) {
         $ui.TradeDetail.Text = ''
         return
     }
+    $open = (Get-Prop $t 'mode') -eq 'open'
+    $sideA = Get-Prop $t 'side_a'
+    $isMe = (-not $open) -and ($null -eq $sideA -or $sideA.is_me)
+    if ($open) { $aName = 'Side A'; $bName = 'Side B' }
+    elseif ($isMe) { $aName = 'You'; $bName = $(if ($t.partner.team) { $t.partner.team } else { 'Them' }) }
+    else { $aName = $(if ($sideA.team) { $sideA.team } else { 'Team A' }); $bName = $(if ($t.partner.team) { $t.partner.team } else { 'Team B' }) }
+
     Set-GradeText $ui.YouGrade $t.my_grade
     Set-GradeText $ui.ThemGrade $t.their_grade
-    $ui.ThemLabel.Text = $(if ($t.partner.team) { $t.partner.team + "'s grade" } else { 'Their grade' })
-    $ui.AcceptText.Text = 'Chance they accept: ' + $t.acceptance
+    $ui.YouLabel.Text = $(if ($open) { 'Side A' } elseif ($isMe) { 'Your grade' } else { $aName + "'s grade" })
+    $ui.ThemLabel.Text = $(if ($open) { 'Side B' } else { $bName + "'s grade" })
+    $ui.AcceptText.Text = 'Chance ' + $(if ($open) { 'side B' } elseif ($isMe) { 'they' } else { $bName }) + ' accept' + $(if ($isMe) { '' } else { 's' }) + ': ' + $t.acceptance
     $ui.VerdictText.Text = $t.verdict
     $weeks = @($t.window_weeks)
-    $lines = @(
-        ('Gain per week:  you {0},  them {1}' -f (Format-Points $t.my_gain_per_week), (Format-Points $t.their_gain_per_week)),
-        ('Over weeks {0}:  you {1},  them {2}' -f ($weeks -join ', '), (Format-Points $t.my_gain), (Format-Points $t.their_gain))
-    )
-    if ($weeks.Count -gt 1) {
-        $parts = @(); for ($i = 0; $i -lt $weeks.Count; $i++) { $parts += ('wk {0}: {1}' -f $weeks[$i], (Format-Points @($t.my_weekly_gains)[$i])) }
-        $lines += ('Your gain by week:  ' + ($parts -join ',  '))
+    $lines = @()
+    if ($open) {
+        $scoringLabel = @{ ppr = 'PPR'; half = 'half-PPR'; std = 'standard'; league = "your league's scoring" }[[string]$t.scoring]
+        $lines += ('{0}, {1}-team league, weeks {2}' -f $scoringLabel, $t.teams, ($weeks -join ', '))
+        $lines += ('Value above replacement per week:  side A {0},  side B {1}' -f (Format-Points $t.my_gain_per_week), (Format-Points $t.their_gain_per_week))
+        $lines += ''
+        $lines += 'Side A gives:'
+        foreach ($p in @($t.give)) { $lines += ('   {0} ({1}/{2}) - {3} pts, {4} above replacement' -f $p.name, $p.position, $(if ($p.team) { $p.team } else { 'FA' }), (Format-Points $p.window_points), (Format-Points $p.value_over_replacement)) }
+        $lines += 'Side B gives:'
+        foreach ($p in @($t.get)) { $lines += ('   {0} ({1}/{2}) - {3} pts, {4} above replacement' -f $p.name, $p.position, $(if ($p.team) { $p.team } else { 'FA' }), (Format-Points $p.window_points), (Format-Points $p.value_over_replacement)) }
+    } else {
+        $a = $(if ($isMe) { 'you' } else { $aName }); $b = $(if ($isMe) { 'them' } else { $bName })
+        $lines += ('Gain per week:  {0} {1},  {2} {3}' -f $a, (Format-Points $t.my_gain_per_week), $b, (Format-Points $t.their_gain_per_week))
+        $lines += ('Over weeks {0}:  {1} {2},  {3} {4}' -f ($weeks -join ', '), $a, (Format-Points $t.my_gain), $b, (Format-Points $t.their_gain))
+        if ($weeks.Count -gt 1) {
+            $parts = @(); for ($i = 0; $i -lt $weeks.Count; $i++) { $parts += ('wk {0}: {1}' -f $weeks[$i], (Format-Points @($t.my_weekly_gains)[$i])) }
+            $lines += ('{0} gain by week:  ' -f $(if ($isMe) { 'Your' } else { $aName })) + ($parts -join ',  ')
+        }
+        $lines += ''
+        $lines += $(if ($isMe) { 'You give:' } else { $aName + ' gives:' })
+        foreach ($p in @($t.give)) { $lines += ('   {0} ({1}) - started {2} of {3} wks' -f $p.name, $p.position, $p.weeks_started_before, $weeks.Count) }
+        $lines += $(if ($isMe) { 'You get:' } else { $bName + ' gives:' })
+        foreach ($p in @($t.get)) { $lines += ('   {0} ({1}) - would start {2} of {3} wks' -f $p.name, $p.position, $p.weeks_started_after, $weeks.Count) }
     }
-    $lines += ''
-    $lines += 'You give:'
-    foreach ($p in @($t.give)) { $lines += ('   {0} ({1}) - started {2} of {3} wks for you' -f $p.name, $p.position, $p.weeks_started_before, $weeks.Count) }
-    $lines += 'You get:'
-    foreach ($p in @($t.get)) { $lines += ('   {0} ({1}) - would start {2} of {3} wks' -f $p.name, $p.position, $p.weeks_started_after, $weeks.Count) }
     $extra = @(@($t.notes) + @($t.flags) | Where-Object { $_ })
     if ($extra.Count) { $lines += ''; foreach ($e in $extra) { $lines += ('- ' + $e) } }
     $ui.TradeDetail.Text = ($lines -join "`n")
@@ -1295,7 +1515,9 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
             'LineupSummary', 'LineupGrid', 'RiskGrid', 'WaiverSummary', 'WaiverGrid', 'TradeSummary', 'TradeGrid',
             'MatchupDetail', 'DiagSummary', 'DiagGrid', 'Tabs', 'AnalyzerTab', 'PartnerBox', 'GiveList', 'GetList',
             'GradeButton', 'ClearTradeButton', 'TradePickSummary', 'YouGrade', 'ThemGrade', 'ThemLabel', 'AcceptText',
-            'VerdictText', 'TradeDetail')) {
+            'VerdictText', 'TradeDetail', 'YouLabel', 'LeagueModeRadio', 'OpenModeRadio', 'LeaguePanel', 'OpenPanel',
+            'FromBox', 'GiveHeader', 'GetHeader', 'ScoringBox', 'TeamsBox', 'SearchA', 'SearchB', 'ResultsA', 'ResultsB',
+            'PickedA', 'PickedB')) {
         $ui[$name] = $window.FindName($name)
     }
     $script:Ui = $ui
@@ -1400,12 +1622,37 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         } 'Fetching from Sleeper...' 'Update failed'
     })
 
+    $script:OpenPicks = @{ A = @(); B = @() }
+    $ui.FromBox.Add_SelectionChanged({ Update-TradeSides $script:Ui })
     $ui.PartnerBox.Add_SelectionChanged({ Update-TradeGetList $script:Ui })
     $ui.GiveList.Add_SelectionChanged({ Update-TradePickSummary $script:Ui })
     $ui.GetList.Add_SelectionChanged({ Update-TradePickSummary $script:Ui })
+    $ui.LeagueModeRadio.Add_Checked({ Set-TradeMode $script:Ui $false })
+    $ui.OpenModeRadio.Add_Checked({ Set-TradeMode $script:Ui $true })
+    $ui.ScoringBox.Add_SelectionChanged({ Update-OpenResults $script:Ui 'A'; Update-OpenResults $script:Ui 'B'; Update-OpenPicked $script:Ui })
+    $ui.SearchA.Add_TextChanged({ Update-OpenResults $script:Ui 'A' })
+    $ui.SearchB.Add_TextChanged({ Update-OpenResults $script:Ui 'B' })
+    foreach ($side in 'A', 'B') {
+        # A click adds a result to the side; clicking a picked player removes it.
+        $ui["Results$side"].Tag = $side
+        $ui["Picked$side"].Tag = $side
+        $ui["Results$side"].Add_SelectionChanged({
+            param($sender, $e)
+            $item = $sender.SelectedItem
+            if ($null -eq $item) { return }
+            Add-OpenPick $script:Ui ([string]$sender.Tag) $item
+            $sender.SelectedIndex = -1
+        })
+        $ui["Picked$side"].Add_SelectionChanged({
+            param($sender, $e)
+            $item = $sender.SelectedItem
+            if ($null -eq $item) { return }
+            Remove-OpenPick $script:Ui ([string]$sender.Tag) $item
+        })
+    }
     $ui.ClearTradeButton.Add_Click({
         $script:Ui.GiveList.UnselectAll(); $script:Ui.GetList.UnselectAll()
-        Show-TradeResult $script:Ui $null
+        Clear-TradePicks $script:Ui
     })
     $ui.GradeButton.Add_Click({
         $ui = $script:Ui
@@ -1416,12 +1663,22 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         # Grade against the same league, week and window as the loaded report.
         $meta = $report.metadata
         $extra = @('-LeagueId', [string]$meta.league_id, '-Username', [string]$meta.username, '-Week', [string]$meta.week,
-            '-Horizon', [string]([Math]::Max(0, @($meta.window_weeks).Count - 1)), '-SkipWaivers', '-SkipTrades', '-Trade', $text)
+            '-Horizon', [string]([Math]::Max(0, @($meta.window_weeks).Count - 1)), '-SkipWaivers', '-SkipTrades')
+        if (Test-OpenMode $ui) {
+            $teams = $ui.TeamsBox.Text.Trim()
+            if ($teams -notmatch '^\d+$' -or [int]$teams -lt 4 -or [int]$teams -gt 32) { $ui.VerdictText.Text = 'League size must be 4 to 32.'; return }
+            $extra += @('-ValueTrade', $text, '-Scoring', (Get-OpenScoring $ui), '-Teams', $teams)
+            $section = 'value_trades'
+        } else {
+            $extra += @('-Trade', $text)
+            $section = 'custom_trades'
+        }
+        $script:GradeSection = $section
         $ui.VerdictText.Text = 'Grading...'
         & $script:StartJob $extra {
             param($path)
             $result = Import-ReportFile $path
-            $trades = @(Get-Prop $result 'custom_trades' | Where-Object { $_ })
+            $trades = @(Get-Prop $result $script:GradeSection | Where-Object { $_ })
             Show-TradeResult $script:Ui $(if ($trades.Count) { $trades[0] } else { $null })
             $script:Ui.StatusText.Text = 'Trade graded ' + (Get-Date).ToString('h:mm tt')
         } 'Grading trade...' 'Grading failed'
@@ -1469,9 +1726,20 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         $window.Measure((New-Object Windows.Size 1180, 800))
         $window.Arrange((New-Object Windows.Rect 0, 0, 1180, 800))
         $window.UpdateLayout()
-        [Console]::Out.WriteLine(('GUI smoke test ok: lineup rows {0}, waiver rows {1}, trade rows {2}, warnings {3}, give list {4}, get list {5}, trade grade {6}' -f
+        # Exercise the any-player picker too: search, add one player per side.
+        $ui.SearchA.Text = ''
+        Update-OpenResults $ui 'A'; Update-OpenResults $ui 'B'
+        $firstA = @($ui.ResultsA.ItemsSource) | Select-Object -First 1
+        $secondB = @($ui.ResultsB.ItemsSource) | Select-Object -Skip 1 -First 1
+        $savedPicks = $script:OpenPicks
+        Add-OpenPick $ui 'A' $firstA; Add-OpenPick $ui 'B' $secondB
+        $openText = Get-TradeText $ui
+        $pickedCount = @($ui.PickedA.ItemsSource).Count + @($ui.PickedB.ItemsSource).Count
+        $script:OpenPicks = $savedPicks; Update-OpenPicked $ui
+        [Console]::Out.WriteLine(('GUI smoke test ok: lineup rows {0}, waiver rows {1}, trade rows {2}, warnings {3}, give list {4}, get list {5}, trade grade {6}, mode {7}, pool results {8}, picked {9}' -f
             @($ui.LineupGrid.ItemsSource).Count, @($ui.WaiverGrid.ItemsSource).Count, @($ui.TradeGrid.ItemsSource).Count,
-            @($ui.WarningsList.ItemsSource).Count, @($ui.GiveList.ItemsSource).Count, @($ui.GetList.ItemsSource).Count, $ui.YouGrade.Text))
+            @($ui.WarningsList.ItemsSource).Count, @($ui.GiveList.ItemsSource).Count, @($ui.GetList.ItemsSource).Count, $ui.YouGrade.Text,
+            $(if (Test-OpenMode $ui) { 'open' } else { 'league' }), @($ui.ResultsA.ItemsSource).Count, $pickedCount))
         $window.Close()
         return
     }

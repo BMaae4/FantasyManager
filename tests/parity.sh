@@ -16,7 +16,7 @@ NORMALISE='del(.metadata.generated_at, .metadata.projections.fetched_at) | .diag
 pass=0; fail=0; failed=()
 for dir in "$ROOT"/tests/fixtures/*/; do
     name="$(basename "$dir")"
-    for args in "" "--horizon 0" "--locked Wes Charlie" "--trade"; do
+    for args in "" "--horizon 0" "--locked Wes Charlie" "--trade" "--value-trade"; do
         label="$name${args:+ ($args)}"
         # shellcheck disable=SC2086
         case "$args" in
@@ -25,6 +25,11 @@ for dir in "$ROOT"/tests/fixtures/*/; do
             "--trade") [ "$name" = "ppr_basic" ] || continue
                 sh_args=(--trade "Wes Delta, Ryan Echo for Team2 RB1; Bravo for Team2 TE1")
                 ps_args=(-Trade "Wes Delta, Ryan Echo for Team2 RB1; Bravo for Team2 TE1") ;;
+            "--value-trade") [ "$name" = "ppr_basic" ] || continue
+                sh_args=(--value-trade "Team2 RB1 for Team3 RB2, Team4 WR3; Alpha for Team2 TE1" --scoring half --teams 4
+                         --trade "Team2 RB1 for Team3 RB2")
+                ps_args=(-ValueTrade "Team2 RB1 for Team3 RB2, Team4 WR3; Alpha for Team2 TE1" -Scoring half -Teams 4
+                         -Trade "Team2 RB1 for Team3 RB2") ;;
             *) sh_args=(--locked "Wes Charlie"); ps_args=(-Locked "Wes Charlie") ;;
         esac
         FM_OFFLINE=1 FM_FIXTURES="$dir" "$ROOT/fantasy_manager.sh" --no-cache -q -f json "${sh_args[@]}" \

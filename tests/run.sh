@@ -396,7 +396,7 @@ run_case ppr_basic --format json
 assert_json "json has metadata" '.metadata.league_id == "1400680781302525952"'
 assert_json "json has diagnostics" '(.diagnostics.fetches | length) > 0'
 assert_json "json keys stable" \
-    '[keys[]] == ["custom_trades","diagnostics","lineup","matchup","metadata","rosters","schema_version","trades","waivers","warnings"]'
+    '[keys[]] == ["custom_trades","diagnostics","lineup","matchup","metadata","player_pool","rosters","schema_version","trades","value_trades","waivers","warnings"]'
 
 run_case ppr_basic --format json --quiet
 assert_status "--quiet exits 0" 0
@@ -628,7 +628,7 @@ assert_json "unused incoming player is called out" \
 run_case ppr_basic --format json --skip-waivers --skip-trades \
     --trade "Bravo for Team2 TE1; nobody for Team2 WR1; Wes Charlie for Team2 WR1, Team3 WR1; Team2 TE1; id:wr3 for id:t2_wr1; quinn alpha for TEAM2 qb1"
 assert_json "ambiguous name explained" '.custom_trades[0].error | test("ambiguous: Quinn Bravo, Ryan Bravo, Tom Bravo, Wes Bravo")'
-assert_json "unknown name explained" '.custom_trades[1].error | test("not found on your roster")'
+assert_json "unknown name explained" '.custom_trades[1].error | test("not found on any roster in this league")'
 assert_json "three-team trade rejected" '.custom_trades[2].error | test("only two-team trades")'
 assert_json "one-sided input explained" '.custom_trades[3].error | test("players you give for players you get")'
 assert_json "Sleeper ids accepted" '.custom_trades[4] | .error == null and .give[0].player_id == "wr3" and .get[0].player_id == "t2_wr1"'
@@ -642,6 +642,67 @@ run_case ppr_basic --skip-waivers --skip-trades --trade "Wes Delta, Ryan Echo fo
 assert_match "text report shows the grades" "$STDOUT" 'GRADE  you A\+  them F'
 run_case ppr_basic --format markdown --skip-waivers --skip-trades --trade "Wes Delta, Ryan Echo for Team2 RB1"
 assert_match "markdown shows the grade" "$STDOUT" '\*\*Your grade: A\+\*\*'
+
+# --------------------------------------------------------------------------
+section "trades between any two teams"
+# --------------------------------------------------------------------------
+run_case ppr_basic --format json --skip-waivers --skip-trades \
+    --trade "Team2 RB1 for Team3 RB2, Team3 WR3; Team2 QB2 for Team3 QB2; Team2 WR1 for Team2 WR2; Team2 WR1, Team3 WR1 for Team4 WR1"
+assert_json "trade between two other teams is graded for both" \
+    '.custom_trades[0] | .side_a.roster_id == 2 and (.side_a.is_me | not) and .partner.roster_id == 3 and .my_grade == "F" and .their_grade == "A-"'
+assert_json "third-party verdict names the teams" '.custom_trades[0].verdict | test("Team 3 wins this clearly; Team 2 should ask for more")'
+assert_json "third-party notes use team names" '[.custom_trades[0].notes[] | select(test("would not start for Team 2"))] | length == 1'
+assert_json "even swap reads as about even" '.custom_trades[1].verdict | test("About even")'
+assert_json "same-team trade rejected" '.custom_trades[2].error | test("other than the giving team")'
+assert_json "giving players from two teams rejected" '.custom_trades[3].error | test("players to give are on different teams")'
+run_case ppr_basic --format json --skip-waivers --skip-trades --trade "Wes Delta for Team2 WR2"
+assert_json "trades involving me keep you/them wording" '.custom_trades[0] | .side_a.is_me and (.verdict | test("you|your|them"))'
+run_case ppr_basic --skip-waivers --skip-trades --trade "Team2 RB1 for Team3 RB2, Team3 WR3"
+assert_match "text labels third-party sides by team" "$STDOUT" 'GRADE  Team 2 F   Team 3 A-'
+
+# --------------------------------------------------------------------------
+section "any-player trades"
+# --------------------------------------------------------------------------
+run_case ppr_basic --format json --skip-waivers --skip-trades
+assert_json "no any-player section unless asked" '.value_trades == null'
+assert_json "player pool lists projected players with all scorings" \
+    '(.player_pool | length) == 62 and (.player_pool[0] | (.window_points | keys) == ["half","league","ppr","std"])'
+
+run_case ppr_basic --format json --skip-waivers --skip-trades --teams 4 --scoring half \
+    --value-trade "Team2 RB1 for Team3 RB2, Team4 WR3; Quinn Alpha for Team4 QB1; Free Wide One for Team2 TE2"
+assert_status "any-player run exits 0" 0
+assert_json "any players from any teams and free agents" \
+    '.value_trades[0] | .mode == "open" and .scoring == "half" and .teams == 4 and ([.get[].team] == ["DDD","EEE"])'
+assert_json "values players above replacement" \
+    '.value_trades[0] | .give[0].value_over_replacement == 16 and .get[1].value_over_replacement == 0 and .replacement_levels.RB == 10.5'
+assert_json "grades are mirror images" '.value_trades[0] | .my_grade == "F" and .their_grade == "A-" and .my_gain == -11'
+assert_json "consolidation and roster notes" \
+    '[.value_trades[0].notes[] | select(test("best player in the deal|would need to drop|below replacement"))] | length == 3'
+assert_json "even swap grades C both ways" '.value_trades[1] | .my_grade == "C" and .their_grade == "C"'
+assert_json "free agents can be traded in open mode" '.value_trades[2] | .error == null and .give[0].player_id == "fa_wr1"'
+
+run_case ppr_basic --format json --skip-waivers --skip-trades --teams 4 --value-trade "Team2 RB1 for Team3 RB2"
+assert_json "scoring defaults to PPR" '.value_trades[0].scoring == "ppr"'
+run_case ppr_basic --format json --skip-waivers --skip-trades --value-trade "Team2 RB1 for Team3 RB2"
+assert_json "a 12-team league has deeper replacement levels" '.value_trades[0] | .teams == 12 and .give[0].value_over_replacement == 64'
+
+run_case ppr_basic --format json --skip-waivers --skip-trades \
+    --value-trade "Alpha for Team2 TE1; Alpha QB for Team2 QB1; Team2 RB1 for Team2 RB1; nobody at all for Team2 TE1; Team2 TE1"
+assert_json "ambiguous names list position and team" \
+    '.value_trades[0].error | test("Quinn Alpha \\(QB, AAA\\)") and test("add a position or team")'
+assert_json "position narrows a name" '.value_trades[1] | .error == null and .give[0].player_id == "qb1"'
+assert_json "same player on both sides rejected" '.value_trades[2].error | test("already in this trade")'
+assert_json "unknown player explained" '.value_trades[3].error | test("not found")'
+assert_json "one-sided input explained" '.value_trades[4].error | test("side B gives")'
+
+run_case ppr_basic --scoring bogus
+assert_status "bad --scoring rejected" 2
+run_case ppr_basic --teams 40
+assert_status "bad --teams rejected" 2
+run_case ppr_basic --skip-waivers --skip-trades --teams 4 --value-trade "Team2 RB1 for Team3 RB2, Team4 WR3"
+assert_match "text shows any-player grades" "$STDOUT" 'GRADE  side A F   side B A-'
+run_case ppr_basic --format markdown --skip-waivers --skip-trades --teams 4 --value-trade "Team2 RB1 for Team3 RB2, Team4 WR3"
+assert_match "markdown shows any-player table" "$STDOUT" '\| Side B gives \| Pos \| Team \| Points \| Above repl. \|'
 
 # --------------------------------------------------------------------------
 printf '\n%s\n' "------------------------------------------------------------"
