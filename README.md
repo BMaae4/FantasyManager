@@ -87,7 +87,7 @@ your league. Nothing is saved if the refresh fails, so a typo is never
 remembered.
 
 Nothing else needs installing: Windows PowerShell 5.1 is built in, and
-PowerShell 7 works too. You don't need bash, jq or curl on Windows.
+PowerShell 7 works too. Python is the only other thing you need.
 
 **The window**
 
@@ -125,18 +125,18 @@ If PowerShell refuses to run the script, use the `.cmd` launcher or run
 
 ### 2b. macOS and Linux
 
-Requirements: **Bash 4+**, **jq**, **Python 3.8+** (standard library only) and
-**curl**.
+Requirement: **Python 3.8+** (standard library only). Most Linux systems
+already have it; nothing else is needed.
 
 ```bash
-# macOS (Homebrew). macOS ships Bash 3.2, so install a current one:
-brew install bash jq python
+# macOS (Homebrew), if `python3 --version` says it's missing or older than 3.8
+brew install python
 
 # Debian / Ubuntu
-sudo apt install jq python3 curl
+sudo apt install python3
 
 # Fedora
-sudo dnf install jq python3 curl
+sudo dnf install python3
 ```
 
 Then:
@@ -346,13 +346,13 @@ default.**
 | Grade any-player trades | `--value-trade` | `-ValueTrade` | `value_trade` / `FM_VALUE_TRADE` | none |
 | Any-player scoring | `--scoring` | `-Scoring` | `scoring` / `FM_SCORING` | `ppr` |
 | Any-player league size | `--teams` | `-Teams` | `teams` / `FM_TEAMS` | `12` (4-32) |
-| Report format | `--format` | (JSON only) | `format` / `FM_FORMAT` | `text` |
+| Report format | `--format` | `-Format` | `format` / `FM_FORMAT` | `text` (`-NoGui`: `json`) |
 | Write report to | `--output` | `-OutFile` | `output` / `FM_OUTPUT` | screen |
 | Cache folder | `--cache-dir` | `-CacheDir` | `cache_dir` / `FM_CACHE_DIR` | see below |
 | Projection cache time | `--cache-ttl` | `-CacheTtl` | `projections_ttl` / `FM_PROJECTIONS_TTL` | `21600` s (6 h) |
 | Diagnostics level | `-q` / `-v` / `--debug` | `-Quiet` / `-DebugLog` | `log_level` / `FM_LOG_LEVEL` | `INFO` |
 | Diagnostics log file | `--log-file` | `-LogFile` | `log_file` / `FM_LOG_FILE` | none |
-| Python to use (Windows) | | `-Python` | `python` / `FM_PYTHON` | auto-detected |
+| Python to use | | `-Python` | `python` / `FM_PYTHON` | auto-detected |
 | Config file | `--config` | `-Config` | `FM_CONFIG_FILE` | see [step 3](#3-save-your-league-as-the-default) |
 
 Caches live in `~/.cache/fantasy_manager` on macOS/Linux and
@@ -454,8 +454,7 @@ to stdout.
 | Warning: `N league scoring categories have no matching projection stat ...` | Normal for some custom scoring. Those categories can't be projected; DEF/K switch to Sleeper's own totals. |
 | Windows: `Python 3.8+ not found` | Install Python from python.org with **Add python.exe to PATH** ticked, then reopen the app. Or set `-Python C:\path\to\python.exe` or `python=` in the config file. |
 | Windows: the window doesn't open, or there is a security prompt | Unblock the ZIP before extracting (see [Windows](#2a-windows)), or run `powershell -ExecutionPolicy Bypass -File .\FantasyManager.ps1` to see any error. |
-| macOS: `Bash 4 or newer is required` | `brew install bash`, then open a new terminal (or run `$(brew --prefix)/bin/bash fantasy_manager.sh`). |
-| `Missing dependency 'jq'` (or python3, curl) | Install it; the message includes the command for your system. |
+| `Python 3.8 or newer is required` | Install Python 3 (see [macOS and Linux](#2b-macos-and-linux)), or point `FM_PYTHON` at one. |
 | Ambiguous player name in a trade | Use more of the name, add a team or position (`Josh Allen BUF`), or use the Sleeper id (`id:4984`). |
 
 For more detail, run with `--debug` (Windows: `-DebugLog`). Diagnostics then
@@ -467,11 +466,11 @@ include the effective configuration and every request.
 
 | Path | Purpose |
 | --- | --- |
-| `fantasy_manager.sh` | Command line: configuration, fetching, caching, validation, text/Markdown/JSON output |
-| `FantasyManager.ps1` / `.cmd` | Windows: the same data layer in PowerShell, the WPF window, and a launcher |
-| `lib/fm_analysis.py` | All analysis: scoring, lineup optimisation, waivers, trades, trade grading (standard library only) |
-| `lib/fm_io.py` | JSON checks and bundle assembly for the PowerShell front end |
-| `tests/run.sh` | Offline test suite (241 checks, no network) |
+| `lib/fm_app.py` | The application: command line, configuration, fetching, caching, validation, text/Markdown/JSON output |
+| `lib/fm_analysis.py` | All analysis: scoring, lineup optimisation, waivers, trades, trade grading |
+| `fantasy_manager.sh` | macOS/Linux launcher: finds Python and runs `lib/fm_app.py` |
+| `FantasyManager.ps1` / `.cmd` | Windows: the WPF window, `-NoGui` mapped onto `lib/fm_app.py`, and a launcher |
+| `tests/run.sh` | Offline test suite (256 checks, no network) |
 | `tests/make_fixtures.py` | Generates the synthetic test leagues in `tests/fixtures/` |
 | `tests/parity.sh` | Runs every fixture through both front ends and compares the reports (needs `pwsh`) |
 | `tests/windows.ps1`, `tests/make_expected.sh`, `tests/compare_reports.py` | Windows checks, including a GUI smoke test |
@@ -499,9 +498,12 @@ The suite covers:
 - Locks, week rollover, the multi-week window, waivers and suggested trades.
 - Every trade-analyzer mode and error case.
 - All output formats, config precedence and config-file parsing.
+- The real HTTP path against a local server (404 not retried, 5xx retried).
 
-When changing behaviour, update the version in both `fantasy_manager.sh` and
-`FantasyManager.ps1`, and add a [CHANGELOG](CHANGELOG.md) entry.
+Both front ends run the same Python code (standard library only), so there is
+one place to change behaviour. When you do, update the version in
+`lib/fm_app.py` and `FantasyManager.ps1`, and add a [CHANGELOG](CHANGELOG.md)
+entry.
 
 ## Limitations
 

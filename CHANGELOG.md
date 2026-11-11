@@ -2,6 +2,41 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.7.0
+
+### Changed
+
+- One application for both front ends: `lib/fm_app.py` now does what
+  `fantasy_manager.sh` and `FantasyManager.ps1` each did separately:
+  - the command line and configuration
+  - fetching, retries, caching and the stale-data fallback
+  - validation, the run pipeline and the text, Markdown and JSON reports
+
+  Reports, messages and exit codes are unchanged; all 109 recorded
+  outputs of 2.6.0 were compared byte for byte.
+- `fantasy_manager.sh` is now a small launcher. macOS and Linux need only
+  Python 3.8+: no jq, curl or Bash 4 (macOS's built-in Bash 3.2 works).
+- `FantasyManager.ps1 -NoGui` maps its parameters onto the same module, and
+  the window pre-fills from it, so a setting can no longer behave
+  differently on Windows. About 450 lines of duplicated PowerShell are gone.
+- Windows: new `-Format text|markdown|json` (JSON stays the `-NoGui`
+  default).
+
+### Removed
+
+- `lib/fm_io.py` (its job is now part of `fm_app.py`).
+
+### Tests
+
+- The fake-`curl` test is replaced by a local HTTP server, which checks
+  that a 404 is not retried and a 503 is retried three times.
+- New checks:
+  - `--print-config` precedence
+  - running with only `python3` on `PATH`
+  - the missing-Python error
+  - running `fm_app.py` directly
+  - Windows `-Format`
+
 ## 2.6.0
 
 ### Added
