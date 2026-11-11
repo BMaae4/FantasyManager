@@ -142,11 +142,11 @@
   "season": "2025",
   "season_type": "regular",
   "stats": {
-   "off_snp": 55,
-   "pts_ppr": 18.37,
+   "off_snp": 52,
+   "pts_ppr": 17.0,
    "rec": 5,
-   "rec_tgt": 8,
-   "rec_yd": 133.7,
+   "rec_tgt": 7,
+   "rec_yd": 120.0,
    "tm_off_snp": 65
   },
   "week": 3

@@ -2,6 +2,39 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.10.0
+
+### Added
+
+- Opportunity trends: snap share and targets + carries per player, earlier
+  weeks against the last two (of the last four with usage, byes skipped).
+  - **Breakout watch:** free agents whose role is growing (snaps up 15+
+    points to 45%+, or targets + carries up 4+ and half again).
+  - **Your players losing role:** snaps down 15+ points from 40%+, or
+    touches down 4+ and 40%.
+  - Waiver rows of breakout players get a "Role growing" note.
+  - Shown in text, Markdown, JSON `opportunity` and a new **Trends** tab in
+    the Windows app.
+- Usage from nflverse when Sleeper's stats feed doesn't cover a week:
+  - weekly player stats (targets, carries, target share) and snap counts,
+    from nflverse's public GitHub releases (about 5 MB, cached 12 hours)
+  - matched by GSIS id, or by name and team (`LA` = `LAR`)
+  - stored in the history database, so it's downloaded once per week
+  - `FM_NFLVERSE_BASE` overrides the source
+- The player database keeps `gsis_id`.
+- JSON schema version 1.3.
+
+### Tests
+
+- New fixture `usage_nflverse`: the stats feed is down for every past week,
+  and nflverse supplies the usage. 17 new checks (321 total):
+  - breakout and decline detection from both sources
+  - matching by GSIS id and by name and team code
+  - the waiver note
+  - nflverse usage persisting in the database, and the download cache
+  - text and Markdown output
+- Windows GUI check for the Trends tab.
+
 ## 2.9.0
 
 ### Added

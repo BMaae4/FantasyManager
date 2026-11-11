@@ -129,9 +129,9 @@
   "season": "2025",
   "season_type": "regular",
   "stats": {
-   "pts_ppr": 16.04,
+   "pts_ppr": 13.0,
    "rec": 5,
-   "rec_yd": 110.4
+   "rec_yd": 80.0
   },
   "week": 2
  },

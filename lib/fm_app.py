@@ -12,7 +12,9 @@ Standard library only (Python 3.8+).
 
 from __future__ import annotations
 
+import csv
 import datetime
+import io
 import json
 import math
 import os
@@ -29,7 +31,7 @@ import fm_analysis  # noqa: E402
 import fm_history  # noqa: E402
 
 TOOL_NAME = "fantasy_manager"
-TOOL_VERSION = "2.9.0"
+TOOL_VERSION = "2.10.0"
 
 # --------------------------------------------------------------------------
 # Defaults (run with no parameters)
@@ -42,6 +44,9 @@ DEFAULT_PROJECTIONS_BASE = "https://api.sleeper.app/projections/nfl"
 DEFAULT_SCHEDULE_BASE = "https://api.sleeper.com/schedule/nfl"
 # Unofficial weekly stats (actual results); optional, adds free agents and usage to history.
 DEFAULT_STATS_BASE = "https://api.sleeper.app/stats/nfl"
+# nflverse public data (GitHub releases): weekly usage when the stats feed has none.
+DEFAULT_NFLVERSE_BASE = "https://github.com/nflverse/nflverse-data/releases/download"
+NFLVERSE_TTL = 43200  # 12h
 DEFAULT_SEASON_TYPE = "regular"
 DEFAULT_TOP_N = "10"
 DEFAULT_HORIZON = "3"             # future weeks valued alongside this one
@@ -443,6 +448,7 @@ def load_configuration(cli: Dict[str, str]) -> Config:
     c.history = resolve("history", "FM_HISTORY", "1")
     c.history_db = resolve("history_db", "FM_HISTORY_DB", "")
     c.stats_base = resolve("stats_base", "FM_STATS_BASE", DEFAULT_STATS_BASE)
+    c.nflverse_base = resolve("nflverse_base", "FM_NFLVERSE_BASE", DEFAULT_NFLVERSE_BASE)
 
     # Offline fixture data must never land in (or be read from) the real
     # cache, or the next live run would serve synthetic players/projections.
@@ -644,6 +650,48 @@ class Fetcher:
         ok, value = self.parse(raw, want, key)
         return value if ok else None
 
+    def fetch_text(self, key: str, url: str, cache_file: str, ttl: int, required: str) -> Optional[str]:
+        """A cached text download (CSV). `required` must appear in the first
+        line, which rejects error pages."""
+        path = os.path.join(self.c.cache_dir, cache_file) if self.c.no_cache != "1" else None
+
+        def valid(raw: Optional[bytes]) -> Optional[str]:
+            if not raw:
+                return None
+            text = raw.decode("utf-8-sig", errors="replace")
+            return text if required in text.split("\n", 1)[0] else None
+
+        if path and os.path.isfile(path) and self.c.refresh != "1" and self.cache_age(path) <= ttl:
+            with open(path, "rb") as fh:
+                text = valid(fh.read())
+            if text is not None:
+                self.record(key, url, "cache", self.cache_age(path), None, "fresh cache")
+                return text
+        if self.c.offline == "1":
+            src = os.path.join(self.c.fixtures, key + ".csv")
+            raw = open(src, "rb").read() if os.path.isfile(src) else None
+        else:
+            LOG.info("Fetching %s from %s" % (key, url))
+            raw = self.fetch_url(url)
+        text = valid(raw)
+        if text is not None:
+            if path:
+                os.makedirs(self.c.cache_dir, exist_ok=True)
+                tmp = "%s.tmp.%d" % (path, os.getpid())
+                with open(tmp, "wb") as fh:
+                    fh.write(raw)
+                os.replace(tmp, path)
+            self.record(key, url, "fixture" if self.c.offline == "1" else "network", 0, None, "ok")
+            return text
+        if path and os.path.isfile(path) and self.cache_age(path) <= int(self.c.stale_max_age):
+            with open(path, "rb") as fh:
+                text = valid(fh.read())
+            if text is not None:
+                self.record(key, url, "stale-cache", self.cache_age(path), None, "stale fallback")
+                return text
+        self.record(key, url, "unavailable", None, None, "fetch or validation failed")
+        return None
+
     def fetch_json(self, key: str, url: str, want: str, cache_name: str, ttl: int, allow_stale: bool) -> bool:
         """Leaves validated JSON in self.data[key]; sets self.source / self.age."""
         self.source, self.age = "", None
@@ -744,6 +792,7 @@ def slim_players(players: Dict[str, Any]) -> Dict[str, Any]:
             "depth_chart_position": v.get("depth_chart_position"),
             "depth_chart_order": v.get("depth_chart_order"),
             "news_updated": v.get("news_updated"),
+            "gsis_id": v.get("gsis_id"),
         }
     return out
 
@@ -897,7 +946,7 @@ def run_pipeline(c: Config) -> dict:
         LOG.debug("No transactions for week %d" % week)
 
     store = open_history(c, f)
-    history, week_flags = load_history(c, f, store, season, week)
+    history, week_flags = load_history(c, f, store, season, week, players)
 
     bundle = {
         "config": {
@@ -966,7 +1015,7 @@ def open_history(c: Config, f: Fetcher) -> Optional[fm_history.HistoryStore]:
 
 
 def load_history(c: Config, f: Fetcher, store: Optional[fm_history.HistoryStore], season: str,
-                 week: int) -> Tuple[Optional[dict], Dict[int, dict]]:
+                 week: int, players: Dict[str, Any]) -> Tuple[Optional[dict], Dict[int, dict]]:
     """Stored rows plus raw data for past weeks not yet in the database.
     Each past week is fetched once; parts that failed are retried at most
     once a day (--refresh retries now and refetches last week's results)."""
@@ -1026,8 +1075,37 @@ def load_history(c: Config, f: Fetcher, store: Optional[fm_history.HistoryStore]
     if weeks and not fetched and not stored:
         note = "weeks 1-%d: no past results available" % (week - 1) if week > 2 else "week 1: no results available"
     f.record("history", store.path, source, None, len(weeks), note)
+
+    # Usage (snaps, targets, carries) for weeks the stats feed didn't cover.
+    covered = {int(row[0]) for row in data["actuals"] if len(row) > 4 and fm_history.has_usage(row[4])}
+    for wk, entry in raw.items():
+        if any(fm_history.has_usage(stats) for _, stats in fm_analysis.Analyzer._stat_records(entry.get("stats"))):
+            covered.add(int(wk))
+    usage: Dict[str, dict] = {}
+    missing = [w for w in weeks if w not in covered]
+    if missing:
+        usage = load_nflverse_usage(c, f, season, missing, players)
     return {"weeks": weeks, "stored": data, "raw": raw, "stats_missing": stats_missing,
-            "database": store.path}, flags
+            "usage": usage, "database": store.path}, flags
+
+
+def load_nflverse_usage(c: Config, f: Fetcher, season: str, weeks: List[int],
+                        players: Dict[str, Any]) -> Dict[str, dict]:
+    stats_text = f.fetch_text("nflverse_stats", "%s/stats_player/stats_player_week_%s.csv" % (c.nflverse_base, season),
+                              "nflverse_stats_%s.csv" % season, NFLVERSE_TTL, "player_id")
+    snaps_text = f.fetch_text("nflverse_snaps", "%s/snap_counts/snap_counts_%s.csv" % (c.nflverse_base, season),
+                              "nflverse_snaps_%s.csv" % season, NFLVERSE_TTL, "offense_pct")
+    if stats_text is None and snaps_text is None:
+        return {}
+    try:
+        by_week, matched = fm_history.nflverse_usage(
+            csv.DictReader(io.StringIO(stats_text)) if stats_text else [],
+            csv.DictReader(io.StringIO(snaps_text)) if snaps_text else [], weeks, players)
+    except (csv.Error, KeyError, ValueError) as exc:
+        LOG.warn("nflverse usage could not be read: %s" % exc)
+        return {}
+    LOG.info("nflverse usage: %d player-weeks for week(s) %s" % (matched, ", ".join(str(w) for w in sorted(by_week))))
+    return {str(w): v for w, v in by_week.items()}
 
 
 def run_analysis(bundle: dict, persist: Any = None) -> dict:
@@ -1266,6 +1344,7 @@ def render_text(r: dict) -> str:
             ]
             out += ["    - " + x for x in t["notes"]] + ["    ! " + x for x in t["flags"]] + [""]
 
+    out += opportunity_text(r.get("opportunity"))
     out += history_text(r.get("history"))
     out += ["DIAGNOSTICS", LINE]
     for d in r["diagnostics"]["fetches"]:
@@ -1437,6 +1516,7 @@ def render_markdown(r: dict) -> str:
                     + n1(g.get("window_points")) + " | " + n1(g.get("value_over_replacement")) + " |" for g in t["get"]]
             out += [""] + ["- " + x for x in t["notes"]] + ["- **" + x + "**" for x in t["flags"]] + [""]
 
+    out += opportunity_markdown(r.get("opportunity"))
     out += history_markdown(r.get("history"))
     out += ["## Diagnostics", "", "| Source | Origin | Cache age | Records | Note |", "| --- | --- | --- | ---: | --- |"]
     for d in r["diagnostics"]["fetches"]:
@@ -1516,6 +1596,52 @@ def history_rows(h: dict) -> List[Tuple[str, dict]]:
     if acc.get("overall") is not None:
         rows.append(("ALL", acc["overall"]))
     return rows
+
+
+USAGE_SOURCES = {"sleeper": "Sleeper stats", "nflverse": "nflverse"}
+
+
+def usage_source_text(o: dict) -> str:
+    return ", ".join("%s: %s wk" % (alt(USAGE_SOURCES.get(k), k), ts(v)) for k, v in sorted(o.get("sources", {}).items()))
+
+
+def opportunity_line(e: dict) -> str:
+    return (pad(s(e.get("name")) + " (" + alt(e.get("position"), "?") + "/" + alt(e.get("team"), "FA") + ")", 30)
+            + pad("snaps " + ("n/a" if e.get("snap_then") is None else ts(e["snap_then"]) + "% -> " + ts(e["snap_now"]) + "%"), 22)
+            + "targets+carries " + n1(e.get("opportunities_then")) + " -> " + n1(e.get("opportunities_now")))
+
+
+def opportunity_text(o: Optional[dict]) -> List[str]:
+    if o is None:
+        return []
+    if not o["available"]:
+        return ["OPPORTUNITY: unavailable - " + s(o.get("reason")), ""]
+    out = ["OPPORTUNITY - usage trends, " + weeks_label(o["weeks"]) + " (" + usage_source_text(o) + ")", LINE,
+           "  BREAKOUT WATCH (free agents whose role is growing)"]
+    out += ["    " + opportunity_line(e) for e in o["breakouts"]] or ["    (none)"]
+    out += ["", "  YOUR PLAYERS LOSING ROLE"]
+    out += ["    " + opportunity_line(e) for e in o["declining"]] or ["    (none)"]
+    return out + [""]
+
+
+def opportunity_markdown(o: Optional[dict]) -> List[str]:
+    if o is None:
+        return []
+    if not o["available"]:
+        return ["## Opportunity", "", "Unavailable: " + s(o.get("reason")), ""]
+    out = ["## Opportunity", "", "Usage trends, " + weeks_label(o["weeks"]) + " (" + usage_source_text(o) + ").", ""]
+    for title, rows in (("Breakout watch (free agents)", o["breakouts"]), ("Your players losing role", o["declining"])):
+        out += ["### " + title, ""]
+        if not rows:
+            out += ["_None._", ""]
+            continue
+        out += ["| Player | Pos | Team | Snaps | Targets + carries |", "| --- | --- | --- | --- | --- |"]
+        for e in rows:
+            out.append("| " + s(e.get("name")) + " | " + alt(e.get("position"), "?") + " | " + alt(e.get("team"), "FA") + " | "
+                       + ("n/a" if e.get("snap_then") is None else ts(e["snap_then"]) + "% -> " + ts(e["snap_now"]) + "%")
+                       + " | " + n1(e.get("opportunities_then")) + " -> " + n1(e.get("opportunities_now")) + " |")
+        out.append("")
+    return out
 
 
 def history_text(h: Optional[dict]) -> List[str]:

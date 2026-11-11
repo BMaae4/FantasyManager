@@ -110,7 +110,8 @@ class HistoryStore:
                 cur.execute(
                     "INSERT INTO actuals VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(league_id, season, week, player_id) "
                     "DO UPDATE SET stats=COALESCE(excluded.stats, actuals.stats), "
-                    "points=CASE WHEN actuals.source='league' THEN actuals.points ELSE excluded.points END",
+                    "points=CASE WHEN actuals.source='league' THEN actuals.points "
+                    "ELSE COALESCE(excluded.points, actuals.points) END",
                     (league_id, season, week, pid, points, source, blob, now))
         for week, parts in (updates.get("weeks") or {}).items():
             cur.execute("INSERT OR IGNORE INTO weeks (league_id, season, week) VALUES (?,?,?)",
@@ -121,6 +122,158 @@ class HistoryStore:
                 (int(bool(parts.get("projections_ok"))), int(bool(parts.get("actuals_ok"))),
                  int(bool(parts.get("stats_ok"))), now, league_id, season, int(week)))
         self.db.commit()
+
+
+# --------------------------------------------------------------------------
+# Usage from nflverse (fallback when the stats feed has no usage)
+# --------------------------------------------------------------------------
+USAGE_KEYS = ("off_snp", "rec_tgt", "rush_att", "snap_pct")
+NFLVERSE_TEAMS = {"LA": "LAR"}  # nflverse code -> Sleeper code
+
+
+def has_usage(stats) -> bool:
+    return isinstance(stats, dict) and any(k in stats for k in USAGE_KEYS)
+
+
+def norm_name(name: str) -> str:
+    text = "".join(ch for ch in (name or "").lower() if ch.isalnum() or ch == " ")
+    words = [w for w in text.split() if w not in ("jr", "sr", "ii", "iii", "iv", "v")]
+    return " ".join(words)
+
+
+def nflverse_usage(stats_rows: Iterable[dict], snap_rows: Iterable[dict], weeks: Sequence[int],
+                   players: Dict[str, dict]) -> Tuple[Dict[int, Dict[str, dict]], int]:
+    """Weekly usage per Sleeper player id from nflverse's weekly player stats
+    (targets, carries, target share; GSIS ids) and snap counts (offense snap
+    share; matched by name and team). Returns ({week: {pid: usage}}, matched)."""
+    wanted = set(int(w) for w in weeks)
+    by_gsis = {str(v.get("gsis_id")).strip(): pid for pid, v in players.items() if v.get("gsis_id")}
+    by_name: Dict[Tuple[str, str], Optional[str]] = {}
+    for pid, v in players.items():
+        key = (norm_name(v.get("full_name") or ""), str(v.get("team") or "").upper())
+        if key[0]:
+            by_name[key] = None if key in by_name else pid  # ambiguous names match nobody
+    out: Dict[int, Dict[str, dict]] = {w: {} for w in wanted}
+
+    def week_of(row: dict) -> Optional[int]:
+        try:
+            w = int(row.get("week") or 0)
+        except ValueError:
+            return None
+        return w if w in wanted else None
+
+    def num(value) -> Optional[float]:
+        try:
+            return float(value) if value not in (None, "", "NA") else None
+        except ValueError:
+            return None
+
+    for row in stats_rows:
+        if (row.get("season_type") or "REG") != "REG":
+            continue
+        w = week_of(row)
+        if w is None:
+            continue
+        team = NFLVERSE_TEAMS.get(row.get("team") or "", row.get("team") or "")
+        pid = by_gsis.get((row.get("player_id") or "").strip()) or by_name.get(
+            (norm_name(row.get("player_display_name") or row.get("player_name") or ""), team))
+        if not pid:
+            continue
+        usage = out[w].setdefault(pid, {"nflverse": 1})
+        for src, dst in (("targets", "rec_tgt"), ("carries", "rush_att"), ("target_share", "target_share")):
+            value = num(row.get(src))
+            if value:
+                usage[dst] = round(value, 4)
+    for row in snap_rows:
+        if (row.get("game_type") or "REG") != "REG":
+            continue
+        w = week_of(row)
+        pct = num(row.get("offense_pct"))
+        if w is None or not pct:
+            continue
+        team = NFLVERSE_TEAMS.get(row.get("team") or "", row.get("team") or "")
+        pid = by_name.get((norm_name(row.get("player") or ""), team))
+        if not pid:
+            continue
+        usage = out[w].setdefault(pid, {"nflverse": 1})
+        usage["snap_pct"] = round(pct, 4)
+        snaps = num(row.get("offense_snaps"))
+        if snaps:
+            usage["off_snp"] = snaps
+    matched = sum(len(v) for v in out.values())
+    return {w: v for w, v in out.items() if v}, matched
+
+
+# --------------------------------------------------------------------------
+# Opportunity trends
+# --------------------------------------------------------------------------
+def usage_metrics(usage: Optional[dict]) -> Tuple[Optional[float], float, float, float]:
+    """(snap share 0-1 or None, targets + carries, targets, carries)."""
+    usage = usage or {}
+    snap = usage.get("snap_pct")
+    if snap is None and usage.get("off_snp") and usage.get("tm_off_snp"):
+        snap = float(usage["off_snp"]) / float(usage["tm_off_snp"])
+    targets = float(usage.get("rec_tgt") or 0)
+    carries = float(usage.get("rush_att") or 0)
+    return (None if snap is None else min(1.0, float(snap))), targets + carries, targets, carries
+
+
+def trend(weeks: Dict[int, Optional[dict]], last_n: int = 4) -> Optional[dict]:
+    """weeks: week -> usage (None = no role that week). Compares the earlier
+    weeks of the last `last_n` with the most recent ones."""
+    played = sorted(weeks)[-last_n:]
+    if len(played) < 3:
+        return None
+    split = len(played) // 2
+    early, recent = played[:split], played[split:]
+
+    def avg(ws: Sequence[int], idx: int) -> Optional[float]:
+        values = [usage_metrics(weeks[w])[idx] for w in ws]
+        values = [v for v in values if v is not None]
+        return sum(values) / len(values) if values else None
+
+    snap_then, snap_now = avg(early, 0), avg(recent, 0)
+    if snap_then is None or snap_now is None:
+        snap_then = snap_now = None
+    return {
+        "weeks": played,
+        "snap_then": None if snap_then is None else int(round(snap_then * 100)),
+        "snap_now": None if snap_now is None else int(round(snap_now * 100)),
+        "opportunities_then": _r(avg(early, 1), 1),
+        "opportunities_now": _r(avg(recent, 1), 1),
+        "targets_now": _r(avg(recent, 2), 1),
+        "carries_now": _r(avg(recent, 3), 1),
+    }
+
+
+def classify(t: dict) -> Optional[str]:
+    """'breakout', 'declining' or None for a trend from trend()."""
+    st, sn = t.get("snap_then"), t.get("snap_now")
+    ot, on = t.get("opportunities_then") or 0.0, t.get("opportunities_now") or 0.0
+    if st is not None and sn is not None:
+        if sn >= 45 and sn - st >= 15:
+            return "breakout"
+        if st >= 40 and st - sn >= 15:
+            return "declining"
+    if on >= 8 and on - ot >= 4 and on >= 1.5 * ot:
+        return "breakout"
+    if ot >= 6 and ot - on >= 4 and on <= 0.6 * ot:
+        return "declining"
+    return None
+
+
+def trend_note(t: dict) -> str:
+    parts = []
+    if t.get("snap_then") is not None:
+        parts.append("snaps %d%% -> %d%%" % (t["snap_then"], t["snap_now"]))
+    parts.append("targets+carries %s -> %s a game" % (_fmt(t.get("opportunities_then")), _fmt(t.get("opportunities_now"))))
+    return ", ".join(parts)
+
+
+def _fmt(value: Optional[float]) -> str:
+    if value is None:
+        return "n/a"
+    return str(int(value)) if float(value).is_integer() else "%.1f" % value
 
 
 # --------------------------------------------------------------------------

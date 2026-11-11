@@ -80,7 +80,7 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '2.9.0'
+$ToolVersion = '2.10.0'
 
 # --------------------------------------------------------------------------
 # Shared application: lib/fm_app.py does configuration, fetching, caching,
@@ -612,6 +612,32 @@ $script:WindowXaml = @'
           <TextBlock x:Name="MatchupDetail" Margin="4" TextWrapping="Wrap" FontSize="14" LineHeight="24"/>
         </ScrollViewer>
       </TabItem>
+      <TabItem Header="Trends">
+        <Grid>
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <TextBlock x:Name="TrendsSummary" Grid.Row="0" Margin="2,0,0,8" TextWrapping="Wrap"/>
+          <TextBlock Grid.Row="1" Margin="2,4,0,6" FontWeight="SemiBold" Text="Breakout watch: free agents whose role is growing"/>
+          <DataGrid x:Name="BreakoutGrid" Grid.Row="2" MaxHeight="260">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Player" Binding="{Binding Player}" Width="200"/>
+              <DataGridTextColumn Header="Pos" Binding="{Binding Pos}" Width="50"/>
+              <DataGridTextColumn Header="Team" Binding="{Binding Team}" Width="60"/>
+              <DataGridTextColumn Header="Snaps" Binding="{Binding Snaps}" Width="110"/>
+              <DataGridTextColumn Header="Targets + carries" Binding="{Binding Opp}" Width="*"/>
+            </DataGrid.Columns>
+          </DataGrid>
+          <TextBlock Grid.Row="3" Margin="2,12,0,6" FontWeight="SemiBold" Text="Your players losing role"/>
+          <DataGrid x:Name="DecliningGrid" Grid.Row="4">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Player" Binding="{Binding Player}" Width="200"/>
+              <DataGridTextColumn Header="Pos" Binding="{Binding Pos}" Width="50"/>
+              <DataGridTextColumn Header="Team" Binding="{Binding Team}" Width="60"/>
+              <DataGridTextColumn Header="Snaps" Binding="{Binding Snaps}" Width="110"/>
+              <DataGridTextColumn Header="Targets + carries" Binding="{Binding Opp}" Width="*"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </Grid>
+      </TabItem>
       <TabItem Header="History">
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
@@ -828,8 +854,9 @@ function Update-ReportView($ui, $report) {
         $ui.TradeGrid.ItemsSource = @()
     }
 
-    # history (reports from 2.8.0 on)
+    # history (reports from 2.8.0 on) and usage trends (2.10.0 on)
     Update-HistoryView $ui (Get-Prop $report 'history')
+    Update-TrendsView $ui (Get-Prop $report 'opportunity')
 
     # diagnostics
     $proj = $meta.projections
@@ -862,6 +889,33 @@ function Get-WinProbabilityLines($wp) {
     }
     $lines += ('Score spreads: ' + $wp.spread_source)
     return $lines + @('')
+}
+
+function ConvertTo-TrendRows($entries) {
+    return @(@($entries) | Where-Object { $_ } | ForEach-Object {
+        [pscustomobject]@{
+            Player = $_.name; Pos = $_.position; Team = $_.team
+            Snaps = $(if ($null -eq $_.snap_then) { 'n/a' } else { '{0}% -> {1}%' -f $_.snap_then, $_.snap_now })
+            Opp = ('{0} -> {1} a game' -f (Format-Points $_.opportunities_then), (Format-Points $_.opportunities_now))
+        }
+    })
+}
+
+function Update-TrendsView($ui, $o) {
+    if ($null -eq $o) {
+        $ui.TrendsSummary.Text = 'No usage trends in this report (from version 2.10.0, or turned off with --no-history).'
+        $ui.BreakoutGrid.ItemsSource = @(); $ui.DecliningGrid.ItemsSource = @()
+        return
+    }
+    if (-not $o.available) {
+        $ui.TrendsSummary.Text = 'Usage trends unavailable: ' + $o.reason
+        $ui.BreakoutGrid.ItemsSource = @(); $ui.DecliningGrid.ItemsSource = @()
+        return
+    }
+    $sources = @($o.sources.PSObject.Properties | ForEach-Object { '{0} {1} wk' -f $(if ($_.Name -eq 'sleeper') { 'Sleeper stats' } else { $_.Name }), $_.Value }) -join ', '
+    $ui.TrendsSummary.Text = ('Snap share and targets + carries, weeks {0} ({1}). Earlier weeks compared with the last two.' -f (@($o.weeks) -join ', '), $sources)
+    $ui.BreakoutGrid.ItemsSource = @(ConvertTo-TrendRows $o.breakouts)
+    $ui.DecliningGrid.ItemsSource = @(ConvertTo-TrendRows $o.declining)
 }
 
 function Format-Signed($value) {
@@ -1200,7 +1254,7 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
             'Busy', 'StatusText', 'TitleText', 'SubtitleText', 'NoticeText', 'MyTeamText', 'MyScoreText', 'MyProjText',
             'OppTeamText', 'OppScoreText', 'OppProjText', 'WarningsExpander', 'WarningsHeader', 'WarningsList',
             'LineupSummary', 'LineupGrid', 'RiskGrid', 'WaiverSummary', 'WaiverGrid', 'TradeSummary', 'TradeGrid',
-            'MatchupDetail', 'HistorySummary', 'HistoryAccGrid', 'HistoryFormGrid', 'DiagSummary', 'DiagGrid', 'Tabs', 'AnalyzerTab', 'PartnerBox', 'GiveList', 'GetList',
+            'MatchupDetail', 'HistorySummary', 'HistoryAccGrid', 'HistoryFormGrid', 'TrendsSummary', 'BreakoutGrid', 'DecliningGrid', 'DiagSummary', 'DiagGrid', 'Tabs', 'AnalyzerTab', 'PartnerBox', 'GiveList', 'GetList',
             'GradeButton', 'ClearTradeButton', 'TradePickSummary', 'YouGrade', 'ThemGrade', 'ThemLabel', 'AcceptText',
             'VerdictText', 'TradeDetail', 'YouLabel', 'LeagueModeRadio', 'OpenModeRadio', 'LeaguePanel', 'OpenPanel',
             'FromBox', 'GiveHeader', 'GetHeader', 'ScoringBox', 'TeamsBox', 'SearchA', 'SearchB', 'ResultsA', 'ResultsB',
@@ -1452,9 +1506,10 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
             @($ui.LineupGrid.ItemsSource).Count, @($ui.WaiverGrid.ItemsSource).Count, @($ui.TradeGrid.ItemsSource).Count,
             @($ui.WarningsList.ItemsSource).Count, @($ui.GiveList.ItemsSource).Count, @($ui.GetList.ItemsSource).Count, $ui.YouGrade.Text,
             $(if (Test-OpenMode $ui) { 'open' } else { 'league' }), @($ui.ResultsA.ItemsSource).Count, $pickedCount) +
-            (', remember {0}, history rows {1}, form rows {2}, win {3}' -f [bool]$ui.RememberBox.IsChecked,
+            (', remember {0}, history rows {1}, form rows {2}, breakouts {4}, declining {5}, win {3}' -f [bool]$ui.RememberBox.IsChecked,
                 @($ui.HistoryAccGrid.ItemsSource).Count, @($ui.HistoryFormGrid.ItemsSource).Count,
-                $(if ($ui.MyProjText.Text -match 'win ([\d.]+)%') { $Matches[1] } else { 'n/a' })))
+                $(if ($ui.MyProjText.Text -match 'win ([\d.]+)%') { $Matches[1] } else { 'n/a' }),
+                @($ui.BreakoutGrid.ItemsSource).Count, @($ui.DecliningGrid.ItemsSource).Count))
         $window.Close()
         return
     }
