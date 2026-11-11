@@ -948,6 +948,47 @@ assert_json "nflverse usage is kept in the history database" \
 if [ -f "$UC/nflverse_stats_2025.csv" ]; then pass "nflverse download cached"; else fail "nflverse download cached"; fi
 
 # --------------------------------------------------------------------------
+section "rest of season and two trade grades"
+# --------------------------------------------------------------------------
+run_case rest_of_season --format json --horizon ros --skip-waivers --skip-trades --trade "Ryan Echo for Team2 RB1" \
+    --value-trade "Team2 RB1 for Ryan Echo"
+assert_status "--horizon ros exits 0" 0
+assert_json "rest of season runs through the league's last playoff week" \
+    '.metadata.window_weeks == [5,6,7,8,9,10,11,12,13,14,15,16,17] and .metadata.horizon_mode == "ros"'
+assert_json "window labelled as rest of season" '.metadata.window_label == "rest of season (weeks 5-17)"'
+assert_json "this-week grade: the new back is on bye" \
+    '.custom_trades[0].grades.this_week | .week == 5 and .my_grade == "D+" and .my_gain == -1 and .their_grade == "A+"'
+assert_json "rest-of-season grade: a clear win" \
+    '.custom_trades[0].grades.window | .rest_of_season and .my_grade == "A" and .their_grade == "F" and .my_gain_per_week == 3.38'
+assert_json "overall grade is the window grade" '.custom_trades[0] | .my_grade == .grades.window.my_grade'
+assert_json "disagreeing grades are explained" \
+    '[.custom_trades[0].notes[] | select(test("This week and the longer view disagree for you: -1.0 points this week \\(D\\+\\)"))] | length == 1'
+assert_json "passed trade deadline flagged" \
+    '[.custom_trades[0].flags[] | select(. == "The league'"'"'s trade deadline (week 4) has passed.")] | length == 1'
+assert_json "any-player trade has both grades" \
+    '.value_trades[0].grades | .this_week.my_grade == "A+" and .window.my_grade == "F" and .this_week.my_gain == 12'
+run_case rest_of_season --format text --horizon ros --skip-waivers --skip-trades --trade "Ryan Echo for Team2 RB1"
+assert_match "text shows both grades" "$STDOUT" \
+    'this week \(week 5\): you D\+, them A\+ \(-1 / \+4\)   rest of season \(weeks 5-17\): you A, them F'
+run_case rest_of_season --format markdown --horizon ros --skip-waivers --skip-trades --trade "Ryan Echo for Team2 RB1"
+assert_match "markdown grade table" "$STDOUT" '\| Rest of season \(weeks 5-17\) \| A \(\+3\.4/wk\) \| F \(-3\.2/wk\) \|'
+run_case ppr_basic --format json --horizon ROS
+assert_json "ROS works in capitals; missing weeks shorten the window" \
+    '.metadata.window_weeks == [5,6,7,8] and (.metadata.window_label | test("no projections after week 8 yet"))'
+assert_json "missing rest-of-season weeks are listed" \
+    '[.warnings[] | select(test("week\\(s\\) 9, 10, 11, 12, 13, 14, 15, 16, 17 unavailable"))] | length == 1'
+run_case ppr_basic --format json --trade "Wes Delta, Ryan Echo for Team2 RB1"
+assert_json "default horizon: both grades, no deadline flag" \
+    '.custom_trades[0] | .grades.window.label == "weeks 5, 6, 7, 8" and ([.flags[] | select(test("deadline"))] | length == 0)'
+run_case ppr_basic --format json --horizon 0 --trade "Wes Delta, Ryan Echo for Team2 RB1"
+assert_json "this week only: both grades are the same week" '.custom_trades[0].grades.window.weeks == [5]'
+run_case ppr_basic --horizon 9
+assert_status "horizon 9 rejected" 2
+assert_match "horizon message mentions ros" "$STDERR" 'between 0 and 6, or ros'
+STDOUT="$("$SCRIPT" --horizon ros --print-config 2>/dev/null)"
+assert_json "--print-config shows ros" '.horizon == "ros"'
+
+# --------------------------------------------------------------------------
 printf '\n%s\n' "------------------------------------------------------------"
 printf 'passed: %d   failed: %d\n' "$PASS" "$FAIL"
 if [ "$FAIL" -gt 0 ]; then

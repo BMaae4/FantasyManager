@@ -92,7 +92,8 @@ PowerShell 7 works too. Python is the only other thing you need.
 **The window**
 
 - **Toolbar:** league, user, week (leave blank for automatic), horizon (how
-  many future weeks count; 3 is a good default), **Remember** (save these as
+  many future weeks count; 3 is a good default, **ROS** = the rest of the
+  season), **Remember** (save these as
   your defaults after a successful refresh), **Bypass cache**, **Refresh**,
   and **Open/Save report**.
 - **Header:** live score and projected final for your matchup, plus a
@@ -266,6 +267,15 @@ based on projected points gained per week across the window (this week plus
 Each result also gives the other side's grade, the **chance they accept**
 (likely, possible or unlikely), a one-line verdict, notes and warnings.
 
+Every trade gets **two grades**, on the same scale:
+- **This week:** the immediate effect on your starting lineup.
+- **The window:** the per-week gain over this week plus the horizon. With
+  `--horizon ros` (Windows: **ROS**) that's the rest of the fantasy season.
+
+The overall grade is the window grade. When the two disagree (for example
+the player you get is on bye this week), a note says so. A trade made after
+the league's trade deadline is flagged.
+
 In the Windows app, all of this is on the **Trade Analyzer** tab, point and
 click.
 
@@ -358,7 +368,7 @@ default.**
 | Week | `--week` | `-Week` | `week` / `FM_WEEK` | current week (next week once it's over) |
 | Season | `--season` | `-Season` | `season` / `FM_SEASON` | current season |
 | Season type | `--season-type` | `-SeasonType` | `season_type` / `FM_SEASON_TYPE` | `regular` |
-| Future weeks counted | `--horizon` | `-Horizon` | `horizon` / `FM_HORIZON` | `3` (0-6) |
+| Future weeks counted | `--horizon` | `-Horizon` | `horizon` / `FM_HORIZON` | `3` (0-6, or `ros`) |
 | Rows per section | `--top` | `-Top` | `top_n` / `FM_TOP_N` | `10` |
 | Ignore lineup moves smaller than | `--threshold` | `-Threshold` | `threshold` / `FM_THRESHOLD` | `0.5` points |
 | Trade fairness tolerance | `--fairness` | `-Fairness` | `fairness` / `FM_FAIRNESS` | `0.10` |
@@ -434,6 +444,13 @@ weeks are fetched and scored the same way. Waivers, drops and trades are
 judged on best lineups across the whole window. So a player on bye or briefly
 out keeps his value, stashes can show up, and a partner's one-week bye doesn't
 look like a long-term need. Lineup advice is always for this week only.
+
+`--horizon ros` values the **rest of the fantasy season**: every week through
+the league's last playoff week. That week is worked out from the playoff
+start week, the number of playoff teams and the round format, or is week 17
+if those settings are missing. Weeks without projections yet shorten the
+window, and the report says from which week. Fetching a dozen weeks of
+projections takes longer the first time; they're cached like any other week.
 
 **Waivers.** Free agents are ranked by what they add to your best lineup, not
 by raw projection. The ranking blends roster improvement, rest-of-window
@@ -547,7 +564,7 @@ include the effective configuration and every request.
 | `lib/fm_history.py` | The history database (SQLite), accuracy / recent-form statistics, usage trends and the nflverse usage reader |
 | `fantasy_manager.sh` | macOS/Linux launcher: finds Python and runs `lib/fm_app.py` |
 | `FantasyManager.ps1` / `.cmd` | Windows: the WPF window, `-NoGui` mapped onto `lib/fm_app.py`, and a launcher |
-| `tests/run.sh` | Offline test suite (321 checks, no network) |
+| `tests/run.sh` | Offline test suite (339 checks, no network) |
 | `tests/make_fixtures.py` | Generates the synthetic test leagues in `tests/fixtures/` |
 | `tests/parity.sh` | Runs every fixture through both front ends and compares the reports (needs `pwsh`) |
 | `tests/windows.ps1`, `tests/make_expected.sh`, `tests/compare_reports.py` | Windows checks, including a GUI smoke test |
@@ -580,6 +597,8 @@ The suite covers:
   database across runs, pre-kickoff snapshots, and a missing stats feed.
 - Opportunity: breakouts and declines from the stats feed and from nflverse
   (GSIS ids, names, team codes), and the download kept in the database.
+- Rest of season and the two trade grades, including a bye week and a
+  passed trade deadline.
 - Win probability: checked against the closed-form normal result,
   reproducible, locked players, and the underdog swap.
 
@@ -591,9 +610,10 @@ entry.
 ## Limitations
 
 - Sleeper leagues only (the any-player grader works for any platform).
-- Value beyond the window (this week plus `--horizon`) isn't modelled, and
-  neither are strength of schedule, correlation or game script. What's left
-  out is disclosed in the report rather than guessed.
-- Trades are judged over the window only, and draft picks aren't priced.
+- Value beyond the window isn't modelled (use `--horizon ros` for the rest of
+  the season). Strength of schedule, correlation and game script aren't
+  modelled either. What's left out is disclosed in the report rather than
+  guessed.
+- Draft picks and keeper or dynasty value beyond this season aren't priced.
 - The projection and schedule feeds are unofficial and may change or
   disappear without notice.
