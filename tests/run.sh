@@ -849,6 +849,64 @@ FM_HISTORY=2 "$SCRIPT" --print-config >/dev/null 2>"$WORK/stderr"; STATUS=$?
 assert_status "invalid FM_HISTORY rejected" 2
 
 # --------------------------------------------------------------------------
+section "win probability"
+# --------------------------------------------------------------------------
+run_case ppr_basic --format json
+assert_json "win probability for both lineups" \
+    '.matchup.win_probability | .simulations == 10000 and (.current_lineup_pct | . >= 0 and . <= 100) and (.recommended_lineup_pct | . >= 0 and . <= 100)'
+assert_json "recommended lineup wins more often than the current one" \
+    '.matchup.win_probability | .recommended_lineup_pct > .current_lineup_pct'
+assert_json "ranges are ordered" '.matchup.win_probability | .my_range.p10 < .my_range.p50 and .my_range.p50 < .my_range.p90'
+assert_json "median close to the projection" '(.matchup.win_probability.opponent_range.p50 - .matchup.opponent_projected) | fabs < 2'
+assert_json "typical spreads without history" '.matchup.win_probability.spread_source | test("typical spreads")'
+FIRST_WP="$(jq -c '.matchup.win_probability' <<< "$STDOUT")"
+# Independent check: the sum of independent normal scores (same spreads)
+# gives the win probability in closed form; the simulation must agree.
+WP_EXPECTED="$(python3 - "$FIXTURES/ppr_basic" <<'PY'
+import json, math, os, sys
+d = sys.argv[1]
+players = json.load(open(os.path.join(d, "players.json")))
+proj = {r["player_id"]: r["stats"]["pts_ppr"] for r in json.load(open(os.path.join(d, "projections.json")))}
+spread = {"QB": 6.5, "RB": 6.5, "WR": 6.5, "TE": 5.0, "K": 4.0, "DEF": 5.5}
+ref = {"QB": 18.0, "RB": 12.0, "WR": 12.0, "TE": 9.0, "K": 8.0, "DEF": 7.0}
+def stats(pids):
+    mean = sum(proj[p] for p in pids)
+    var = 0.0
+    for p in pids:
+        pos = players[p]["position"]
+        var += (spread[pos] * min(1.6, max(0.4, math.sqrt(proj[p] / ref[pos])))) ** 2
+    return mean, var
+m = {e["roster_id"]: e for e in json.load(open(os.path.join(d, "matchups.json")))}
+(a, va), (b, vb) = stats(m[1]["starters"]), stats(m[2]["starters"])
+print(round(100 * 0.5 * (1 + math.erf((a - b) / math.sqrt(2 * (va + vb)))), 1))
+PY
+)"
+assert_json "simulated win probability matches the closed form (within 1.5 points)" \
+    "(.matchup.win_probability.current_lineup_pct - $WP_EXPECTED) | fabs < 1.5"
+run_case ppr_basic --format json
+if [ "$(jq -c '.matchup.win_probability' <<< "$STDOUT")" = "$FIRST_WP" ]; then
+    pass "simulation is reproducible"
+else
+    fail "simulation is reproducible"
+fi
+run_case season_history --format json
+assert_json "history spreads used once there are enough games" \
+    '.matchup.win_probability | (.spread_source | test("projection misses for QB, RB, TE, WR")) and .spreads.QB == 3.48 and .spreads.K == 4'
+assert_json "no win-probability moves in a normal week" '.matchup.win_probability.moves == []'
+run_case locked_players --format json
+assert_json "players whose game started count at their points" '.matchup.win_probability.fixed_players >= 1'
+run_case underdog_volatile --format json
+assert_json "heavy underdog: a volatile bench back raises the chance to win" \
+    '.matchup.win_probability.moves[0] | .in.player_id == "rb2" and .out.player_id == "rb5" and .slot == "FLEX" and .win_gain >= 1 and .points_change == -1'
+assert_json "underdog win probability is low" '.matchup.win_probability.recommended_lineup_pct < 15'
+run_case underdog_volatile --format text
+assert_match "text win probability" "$STDOUT" 'Win probability: [0-9.]+% with your current lineup, [0-9.]+% with the recommended one \(10000 simulations\)'
+assert_match "text likely range" "$STDOUT" 'Likely range \(10th-90th percentile\): you [0-9]+-[0-9]+, them [0-9]+-[0-9]+'
+assert_match "text win-probability move" "$STDOUT" 'To raise your chances: start Ryan Bravo over Ryan Echo \(FLEX\): [0-9.]+% \(\+[0-9.]+\), -1 projected points'
+run_case underdog_volatile --format markdown
+assert_match "markdown win probability table" "$STDOUT" '\| Win probability \| Current lineup \| Recommended lineup \|'
+
+# --------------------------------------------------------------------------
 printf '\n%s\n' "------------------------------------------------------------"
 printf 'passed: %d   failed: %d\n' "$PASS" "$FAIL"
 if [ "$FAIL" -gt 0 ]; then
