@@ -1622,7 +1622,11 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         } 'Fetching from Sleeper...' 'Update failed'
     })
 
+    # Trade Analyzer state before any report is loaded.
     $script:OpenPicks = @{ A = @(); B = @() }
+    $script:PlayerPool = @()
+    $script:TradeRosters = @()
+    $script:TradeWeeks = 1
     $ui.FromBox.Add_SelectionChanged({ Update-TradeSides $script:Ui })
     $ui.PartnerBox.Add_SelectionChanged({ Update-TradeGetList $script:Ui })
     $ui.GiveList.Add_SelectionChanged({ Update-TradePickSummary $script:Ui })
