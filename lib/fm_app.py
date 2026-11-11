@@ -32,7 +32,7 @@ import fm_history  # noqa: E402
 import fm_providers  # noqa: E402
 
 TOOL_NAME = "fantasy_manager"
-TOOL_VERSION = "2.12.0"
+TOOL_VERSION = "2.12.1"
 
 # --------------------------------------------------------------------------
 # Defaults (run with no parameters)
@@ -1155,7 +1155,7 @@ def load_second_source(c: Config, f: Fetcher, season: str, week: int, future_wee
                           headers={"X-Fantasy-Filter": fm_providers.espn_filter(season, w)})
         if not ok:
             continue
-        points, matched, unmatched = fm_providers.parse_espn(f.data[key], w, players)
+        points, matched, unmatched = fm_providers.parse_espn(f.data[key], w, players, season)
         if points:
             out["weeks"][str(w)] = points
             out["matched"][str(w)] = matched

@@ -2,6 +2,29 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.12.1
+
+Fixes from the first live run.
+
+### Fixed
+
+- ESPN projections came back without any numbers, so no players were
+  compared.
+  - The request filter now asks for the week's projections by ESPN's period
+    codes, the version that returned them in a live test.
+  - Rows from another season are ignored (ESPN can also return last
+    season's projection for the same week).
+- Recent form counted bye weeks as 0-point games. A week now counts only
+  when the player was projected to play or scored, and team byes from the
+  schedule are skipped.
+- "Losing role" was flagged on a snap-share drop alone, even when targets +
+  carries went up. A snap drop now needs touches that didn't rise.
+
+### Tests
+
+- Regression checks for all three, including a decoy last-season ESPN row
+  in the fixtures (365 checks).
+
 ## 2.12.0
 
 ### Added

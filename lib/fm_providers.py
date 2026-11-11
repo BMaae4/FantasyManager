@@ -35,15 +35,28 @@ def espn_url(season: str, week: int, base: str = ESPN_BASE) -> str:
 
 
 def espn_filter(season: str, week: int, limit: int = 1500) -> str:
+    """X-Fantasy-Filter that returns weekly projections. Checked against the
+    live API: filtering stats by source, split type or external id returns
+    no weekly rows, while the top-scoring-period codes do ("00"/"10" + season
+    = season actual/projected, "11"/"01" + season + week = week
+    projected/actual)."""
     return json.dumps({"players": {
         "filterSlotIds": {"value": ESPN_SLOT_IDS},
-        "filterStatsForSourceIds": {"value": [1]},
-        "filterStatsForSplitTypeIds": {"value": [1]},
-        "filterStatsForExternalIds": {"value": [int(season)]},
-        "filterStatsForTopScoringPeriodIds": {"value": 2, "additionalValue": ["11%s%d" % (season, week)]},
+        "filterStatsForTopScoringPeriodIds": {"value": 2, "additionalValue": [
+            "00%s" % season, "10%s" % season, "11%s%d" % (season, week), "01%s%d" % (season, week)]},
         "limit": limit,
         "sortPercOwned": {"sortPriority": 1, "sortAsc": False},
     }}, separators=(",", ":"))
+
+
+def _same_season(row: dict, season: Optional[str], week: int) -> bool:
+    if season is None:
+        return True
+    if row.get("externalId") is not None:
+        return str(row["externalId"]) == "%s%d" % (season, week)
+    if row.get("seasonId") is not None:
+        return str(row["seasonId"]) == str(season)
+    return True
 
 
 def _norm(name: str) -> str:
@@ -51,12 +64,15 @@ def _norm(name: str) -> str:
     return " ".join(w for w in text.split() if w not in ("jr", "sr", "ii", "iii", "iv", "v"))
 
 
-def parse_espn(payload, week: int, players: Dict[str, dict]) -> Tuple[Dict[str, float], int, List[str]]:
+def parse_espn(payload, week: int, players: Dict[str, dict],
+               season: Optional[str] = None) -> Tuple[Dict[str, float], int, List[str]]:
     """ESPN kona_player_info -> ({sleeper_pid: PPR points}, matched, unmatched names).
 
     Accepts the full response ({"players": [...]}) or the list itself; an
     entry is {"player": {...}} or the player object. Only weekly projections
-    (statSourceId 1, statSplitTypeId 1) for `week` are used."""
+    (statSourceId 1, statSplitTypeId 1) for `week` are used, and with
+    `season` only rows for that season (externalId "<season><week>", or
+    seasonId): ESPN can also return last season's row for the same week."""
     entries = payload.get("players") if isinstance(payload, dict) else payload
     if not isinstance(entries, list):
         return {}, 0, []
@@ -78,7 +94,8 @@ def parse_espn(payload, week: int, players: Dict[str, dict]) -> Tuple[Dict[str, 
         points = None
         for st in player.get("stats") or []:
             if (isinstance(st, dict) and st.get("statSourceId") == 1 and st.get("statSplitTypeId") == 1
-                    and st.get("scoringPeriodId") == week and isinstance(st.get("appliedTotal"), (int, float))):
+                    and st.get("scoringPeriodId") == week and isinstance(st.get("appliedTotal"), (int, float))
+                    and _same_season(st, season, week)):
                 points = float(st["appliedTotal"])
                 break
         if points is None:

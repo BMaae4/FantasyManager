@@ -453,7 +453,10 @@ def espn_payload(data: dict, week: int, points: dict) -> dict:
             "proTeamId": ESPN_TEAM_IDS.get(info["team"], 99),
             "stats": [
                 {"seasonId": 2025, "scoringPeriodId": week, "statSourceId": 1, "statSplitTypeId": 1,
-                 "appliedTotal": value, "stats": {"53": 4.0}},
+                 "externalId": "2025%d" % week, "appliedTotal": value, "stats": {"53": 4.0}},
+                # last season's projection for the same week: must be ignored
+                {"seasonId": 2024, "scoringPeriodId": week, "statSourceId": 1, "statSplitTypeId": 1,
+                 "externalId": "2024%d" % week, "appliedTotal": 77.0, "stats": {}},
                 {"seasonId": 2025, "scoringPeriodId": week - 1, "statSourceId": 0, "statSplitTypeId": 1,
                  "appliedTotal": 99.0, "stats": {}},
             ]}})

@@ -10,6 +10,7 @@
     "stats": [
      {
       "appliedTotal": 5.7,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -17,6 +18,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -39,6 +49,7 @@
     "stats": [
      {
       "appliedTotal": 7.12,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -46,6 +57,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -68,6 +88,7 @@
     "stats": [
      {
       "appliedTotal": 14.7,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -75,6 +96,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -97,6 +127,7 @@
     "stats": [
      {
       "appliedTotal": 8.07,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -104,6 +135,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -126,6 +166,7 @@
     "stats": [
      {
       "appliedTotal": 14.25,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -133,6 +174,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -155,6 +205,7 @@
     "stats": [
      {
       "appliedTotal": 16.8,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -162,6 +213,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -184,6 +244,7 @@
     "stats": [
      {
       "appliedTotal": 10.45,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -191,6 +252,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -213,6 +283,7 @@
     "stats": [
      {
       "appliedTotal": 18.0,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -220,6 +291,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -242,6 +322,7 @@
     "stats": [
      {
       "appliedTotal": 4.75,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -249,6 +330,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -271,6 +361,7 @@
     "stats": [
      {
       "appliedTotal": 9.45,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -278,6 +369,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -300,6 +400,7 @@
     "stats": [
      {
       "appliedTotal": 17.32,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -307,6 +408,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -329,6 +439,7 @@
     "stats": [
      {
       "appliedTotal": 9.5,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -336,6 +447,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -358,6 +478,7 @@
     "stats": [
      {
       "appliedTotal": 6.65,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -365,6 +486,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -387,6 +517,7 @@
     "stats": [
      {
       "appliedTotal": 18.9,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -394,6 +525,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -416,6 +556,7 @@
     "stats": [
      {
       "appliedTotal": 11.4,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -423,6 +564,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -445,6 +595,7 @@
     "stats": [
      {
       "appliedTotal": 15.2,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -452,6 +603,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -474,6 +634,7 @@
     "stats": [
      {
       "appliedTotal": 10.45,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -481,6 +642,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -503,6 +673,7 @@
     "stats": [
      {
       "appliedTotal": 12.35,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -510,6 +681,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -532,6 +712,7 @@
     "stats": [
      {
       "appliedTotal": 4.2,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -539,6 +720,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -561,6 +751,7 @@
     "stats": [
      {
       "appliedTotal": 12.6,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -568,6 +759,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -590,6 +790,7 @@
     "stats": [
      {
       "appliedTotal": 5.7,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -597,6 +798,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -619,6 +829,7 @@
     "stats": [
      {
       "appliedTotal": 7.35,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -626,6 +837,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -648,6 +868,7 @@
     "stats": [
      {
       "appliedTotal": 18.38,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -655,6 +876,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -677,6 +907,7 @@
     "stats": [
      {
       "appliedTotal": 11.03,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -684,6 +915,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -706,6 +946,7 @@
     "stats": [
      {
       "appliedTotal": 15.2,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -713,6 +954,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -735,6 +985,7 @@
     "stats": [
      {
       "appliedTotal": 8.4,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -742,6 +993,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -764,6 +1024,7 @@
     "stats": [
      {
       "appliedTotal": 8.07,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -771,6 +1032,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -793,6 +1063,7 @@
     "stats": [
      {
       "appliedTotal": 9.69,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -800,6 +1071,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -822,6 +1102,7 @@
     "stats": [
      {
       "appliedTotal": 12.6,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -829,6 +1110,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -851,6 +1141,7 @@
     "stats": [
      {
       "appliedTotal": 14.25,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -858,6 +1149,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -880,6 +1180,7 @@
     "stats": [
      {
       "appliedTotal": 13.12,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -887,6 +1188,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -909,6 +1219,7 @@
     "stats": [
      {
       "appliedTotal": 13.02,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -916,6 +1227,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -938,6 +1258,7 @@
     "stats": [
      {
       "appliedTotal": 6.56,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -945,6 +1266,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -967,6 +1297,7 @@
     "stats": [
      {
       "appliedTotal": 6.89,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -974,6 +1305,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -996,6 +1336,7 @@
     "stats": [
      {
       "appliedTotal": 18.64,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1003,6 +1344,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1025,6 +1375,7 @@
     "stats": [
      {
       "appliedTotal": 10.21,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1032,6 +1383,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1054,6 +1414,7 @@
     "stats": [
      {
       "appliedTotal": 17.06,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1061,6 +1422,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1083,6 +1453,7 @@
     "stats": [
      {
       "appliedTotal": 12.59,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1090,6 +1461,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1112,6 +1492,7 @@
     "stats": [
      {
       "appliedTotal": 8.31,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1119,6 +1500,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1141,6 +1531,7 @@
     "stats": [
      {
       "appliedTotal": 9.74,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1148,6 +1539,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1170,6 +1570,7 @@
     "stats": [
      {
       "appliedTotal": 5.46,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1177,6 +1578,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1199,6 +1609,7 @@
     "stats": [
      {
       "appliedTotal": 16.01,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1206,6 +1617,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1228,6 +1648,7 @@
     "stats": [
      {
       "appliedTotal": 12.11,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1235,6 +1656,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1257,6 +1687,7 @@
     "stats": [
      {
       "appliedTotal": 7.84,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1264,6 +1695,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1286,6 +1726,7 @@
     "stats": [
      {
       "appliedTotal": 6.17,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1293,6 +1734,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1315,6 +1765,7 @@
     "stats": [
      {
       "appliedTotal": 7.88,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1322,6 +1773,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1344,6 +1804,7 @@
     "stats": [
      {
       "appliedTotal": 17.1,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1351,6 +1812,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1373,6 +1843,7 @@
     "stats": [
      {
       "appliedTotal": 10.45,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1380,6 +1851,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1402,6 +1882,7 @@
     "stats": [
      {
       "appliedTotal": 15.67,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1409,6 +1890,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1431,6 +1921,7 @@
     "stats": [
      {
       "appliedTotal": 12.82,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1438,6 +1929,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1460,6 +1960,7 @@
     "stats": [
      {
       "appliedTotal": 8.55,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1467,6 +1968,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1489,6 +1999,7 @@
     "stats": [
      {
       "appliedTotal": 9.97,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1496,6 +2007,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1518,6 +2038,7 @@
     "stats": [
      {
       "appliedTotal": 6.3,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1525,6 +2046,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1547,6 +2077,7 @@
     "stats": [
      {
       "appliedTotal": 16.28,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1554,6 +2085,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1576,6 +2116,7 @@
     "stats": [
      {
       "appliedTotal": 12.35,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1583,6 +2124,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1605,6 +2155,7 @@
     "stats": [
      {
       "appliedTotal": 8.93,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1612,6 +2163,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1634,6 +2194,7 @@
     "stats": [
      {
       "appliedTotal": 8.4,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1641,6 +2202,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1663,6 +2233,7 @@
     "stats": [
      {
       "appliedTotal": 6.3,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1670,6 +2241,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1692,6 +2272,7 @@
     "stats": [
      {
       "appliedTotal": 8.0,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1699,6 +2280,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1721,6 +2311,7 @@
     "stats": [
      {
       "appliedTotal": 9.45,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1728,6 +2319,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1750,6 +2350,7 @@
     "stats": [
      {
       "appliedTotal": 13.3,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1757,6 +2358,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
@@ -1779,6 +2389,7 @@
     "stats": [
      {
       "appliedTotal": 3.32,
+      "externalId": "20255",
       "scoringPeriodId": 5,
       "seasonId": 2025,
       "statSourceId": 1,
@@ -1786,6 +2397,15 @@
       "stats": {
        "53": 4.0
       }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20245",
+      "scoringPeriodId": 5,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
      },
      {
       "appliedTotal": 99.0,
