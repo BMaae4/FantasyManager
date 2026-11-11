@@ -10,6 +10,8 @@ Usage: python3 tests/make_fixtures.py [output_dir]
 from __future__ import annotations
 
 import copy
+import csv
+import io
 import json
 import os
 import sys
@@ -407,6 +409,33 @@ def with_history(data: dict, overrides: dict | None = None) -> dict:
     return data
 
 
+def nflverse_csvs(data: dict, team_codes: dict | None = None) -> dict:
+    """nflverse-style weekly player stats and snap counts built from the
+    stats_wN fixtures (GSIS ids where players have one, names otherwise)."""
+    team_codes = team_codes or {}
+    stats_out, snaps_out = io.StringIO(), io.StringIO()
+    sw = csv.writer(stats_out, lineterminator="\n")
+    sw.writerow(["player_id", "player_name", "player_display_name", "position", "season", "week", "season_type",
+                 "team", "carries", "targets", "target_share"])
+    nw = csv.writer(snaps_out, lineterminator="\n")
+    nw.writerow(["game_id", "season", "game_type", "week", "player", "pfr_player_id", "position", "team",
+                 "offense_snaps", "offense_pct"])
+    for week in HISTORY_WEEKS:
+        for record in data.get("stats_w%d" % week) or []:
+            player = data["players"].get(record["player_id"])
+            if player is None or player["position"] in ("K", "DEF"):
+                continue
+            stats = record["stats"]
+            team = team_codes.get(player["team"], player["team"])
+            sw.writerow([player.get("gsis_id") or "", player["full_name"], player["full_name"], player["position"],
+                         2025, week, "REG", team, stats.get("rush_att", 0), stats.get("rec_tgt", 0),
+                         round(stats.get("rec_tgt", 0) / 35.0, 4)])
+            if stats.get("tm_off_snp"):
+                nw.writerow(["2025_%02d" % week, 2025, "REG", week, player["full_name"], "pfr" + record["player_id"],
+                             player["position"], team, stats["off_snp"], round(stats["off_snp"] / stats["tm_off_snp"], 2)])
+    return {"nflverse_stats.csv": stats_out.getvalue(), "nflverse_snaps.csv": snaps_out.getvalue()}
+
+
 def write_case(out_dir: str, name: str, data: dict, raw: dict | None = None) -> None:
     case_dir = os.path.join(out_dir, name)
     os.makedirs(case_dir, exist_ok=True)
@@ -673,8 +702,29 @@ def main() -> int:
     underdog = with_history(underdog, {
         "rb2": {1: (11.0, 0.0, 0.6), 2: (11.0, 30.0, 0.6), 3: (11.0, 0.0, 0.6), 4: (11.0, 30.0, 0.6)},
         "rb5": {1: (12.0, 12.5, 0.8), 2: (12.0, 11.0, 0.8), 3: (12.0, 12.0, 0.8), 4: (12.0, 13.0, 0.8)},
+        # the best free agent's role has just grown (waiver row gets a note)
+        "fa_wr1": {1: (12.0, 10.0, 0.4), 2: (13.0, 12.0, 0.5), 3: (15.0, 17.0, 0.8), 4: (16.0, 18.0, 0.9)},
     })
     write_case(out_dir, "underdog_volatile", underdog)
+
+    # 31. the stats feed is down for every past week: usage comes from
+    #     nflverse (GSIS ids for most players; the breakout back has none and
+    #     plays for the Rams, "LA" in nflverse and "LAR" in Sleeper).
+    nflv = copy.deepcopy(history)
+    for i, pid in enumerate(sorted(nflv["players"])):
+        nflv["players"][pid]["gsis_id"] = "00-00%05d" % i
+    nflv["players"]["fa_rb2"]["gsis_id"] = None
+    nflv["players"]["fa_rb2"]["team"] = "LAR"
+    nflv["stats_w2"] = history_stats_w2 = with_history(copy.deepcopy(base), {
+        "fa_rb2": {2: (4.5, 6.5, 0.35)}, "wr2": {2: (11.0, 9.0, 0.75)}})["stats_w2"]
+    files = nflverse_csvs(nflv, {"LAR": "LA"})
+    raw_status = {}
+    for week in HISTORY_WEEKS:
+        nflv.pop("stats_w%d" % week, None)
+        raw_status["stats_w%d.status" % week] = "404\n"
+    raw_status.update(files)
+    del history_stats_w2
+    write_case(out_dir, "usage_nflverse", nflv, raw=raw_status)
 
     print("fixtures written to %s" % out_dir)
     return 0

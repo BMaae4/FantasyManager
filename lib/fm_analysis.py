@@ -23,7 +23,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fm_history  # noqa: E402
 
-SCHEMA_VERSION = "1.2"
+SCHEMA_VERSION = "1.3"
 
 # Slots that do not start.
 NON_STARTING_SLOTS = {"BN", "BE", "IR", "TAXI", "RESERVE"}
@@ -2176,6 +2176,8 @@ class Analyzer:
         self.history_form: Dict[str, dict] = {}
         self.history_accuracy: Dict[str, dict] = {}
         self.history_player_misses: Dict[str, List[float]] = {}
+        self.history_usage: Dict[Tuple[int, str], dict] = {}
+        self.usage_sources: Dict[int, str] = {}
         hist = self.bundle.get("history")
         if not isinstance(hist, dict):
             return None
@@ -2228,6 +2230,19 @@ class Analyzer:
                     if isinstance(pts, (int, float)) and not isinstance(pts, bool):
                         self.history_updates["actuals"].append([w, str(pid), float(pts), "league", None])
                         act[(w, str(pid))], act_src[(w, str(pid))] = float(pts), "league"
+
+        # Usage from nflverse for weeks the stats feed didn't cover.
+        self.usage_sources: Dict[int, str] = {}
+        for (w, _), u in usage.items():
+            self.usage_sources.setdefault(w, "nflverse" if u.get("nflverse") else "sleeper")
+        for wk, by_pid in sorted((hist.get("usage") or {}).items(), key=lambda kv: int(kv[0])):
+            w = int(wk)
+            for pid, u in (by_pid or {}).items():
+                if fm_history.has_usage(usage.get((w, str(pid)))):
+                    continue
+                usage[(w, str(pid))] = u
+                self.history_updates["actuals"].append([w, str(pid), None, "stats", u])
+                self.usage_sources.setdefault(w, "nflverse")
 
         # This week's projections, recorded before each player's game starts.
         for pid, value in self.projection_points.items():
@@ -2294,6 +2309,86 @@ class Analyzer:
                      "for past weeks are fetched afterwards."),
         }
 
+    # -- opportunity: usage trends and breakout flags ---------------------
+    def analyze_opportunity(self) -> Optional[dict]:
+        """Snap share and targets + carries over recent weeks: free agents
+        whose role is growing (breakouts) and my players losing theirs."""
+        self.opportunity_trends: Dict[str, dict] = {}
+        if not isinstance(self.bundle.get("history"), dict):
+            return None
+        usage = getattr(self, "history_usage", {}) or {}
+        week = int(self.config.get("week") or 0)
+        usage_weeks = sorted({w for (w, pid), u in usage.items() if w < week and fm_history.has_usage(u)})
+        if len(usage_weeks) < 3:
+            return {"available": False, "weeks": usage_weeks, "sources": {}, "breakouts": [], "declining": [],
+                    "players": {},
+                    "reason": ("Usage (snaps, targets, carries) is needed for at least 3 past weeks; "
+                               "found %d." % len(usage_weeks))}
+        # Teams with a game each week (byes are skipped, not counted as no role).
+        teams_by_week: Dict[int, set] = {}
+        for game in self.bundle.get("schedule") or []:
+            if isinstance(game, dict) and str(game.get("week", "")).isdigit():
+                teams_by_week.setdefault(int(game["week"]), set()).update(
+                    str(game.get(k) or "").upper() for k in ("home", "away"))
+        by_pid: Dict[str, Dict[int, Optional[dict]]] = {}
+        for (w, pid), u in usage.items():
+            if w in usage_weeks and fm_history.has_usage(u):
+                by_pid.setdefault(pid, {})[w] = u
+        my_roster = self.roster_by_id(self.my_roster_id) or {}
+        mine = set(self.roster_active_players(my_roster))
+        candidates = set(by_pid) | mine
+        breakouts, declining, players = [], [], {}
+        for pid in sorted(candidates):
+            position = self.primary_position(pid)
+            if position not in ("RB", "WR", "TE", "QB"):
+                continue
+            team = str(self.player(pid).get("team") or "").upper()
+            weeks: Dict[int, Optional[dict]] = {}
+            for w in usage_weeks:
+                if w in by_pid.get(pid, {}):
+                    weeks[w] = by_pid[pid][w]
+                elif teams_by_week.get(w) and team and team not in teams_by_week[w]:
+                    continue  # bye week
+                else:
+                    weeks[w] = None  # no recorded role that week
+            tr = fm_history.trend(weeks)
+            if tr is None or all(weeks[w] is None for w in tr["weeks"]):
+                continue
+            kind = fm_history.classify(tr) if position != "QB" else None
+            entry = {"player_id": pid, "name": self.player_name(pid), "position": position,
+                     "team": self.player(pid).get("team"), "rostered_by": self.team_name(self.rostered[pid])
+                     if pid in self.rostered else None, "flag": kind, "note": fm_history.trend_note(tr)}
+            entry.update(tr)
+            self.opportunity_trends[pid] = entry
+            if pid in mine:
+                players[pid] = entry
+            if kind == "breakout" and pid not in self.rostered and self.availability(pid)[0]:
+                breakouts.append(entry)
+            elif kind == "declining" and pid in mine:
+                declining.append(entry)
+
+        def growth(e: dict) -> Tuple[float, str]:
+            snap = (e["snap_now"] or 0) - (e["snap_then"] or 0)
+            opp = (e["opportunities_now"] or 0) - (e["opportunities_then"] or 0)
+            return (-(snap + 2 * opp), e["player_id"])
+
+        breakouts.sort(key=growth)
+        declining.sort(key=lambda e: (growth(e)[0] * -1, e["player_id"]))
+        sources = {}
+        for w in usage_weeks:
+            src = self.usage_sources.get(w, "sleeper")
+            sources[src] = sources.get(src, 0) + 1
+        return {
+            "available": True, "reason": None, "weeks": usage_weeks,
+            "sources": sources,
+            "breakouts": breakouts[: self.top_n],
+            "declining": declining,
+            "players": players,
+            "note": ("Earlier weeks vs the last two (of the last four with usage). Breakout: snap share up 15+ points "
+                     "to 45%+, or targets + carries up by 4+ and half again. Losing role: snap share down 15+ points "
+                     "from 40%+, or targets + carries down 4+ and by 40%."),
+        }
+
     def player_pool(self) -> List[dict]:
         """Projected players at fantasy positions, for picking any-player trades."""
         rows = []
@@ -2340,6 +2435,7 @@ class Analyzer:
         if my_roster is None:
             raise SystemExit("roster %s not found in league rosters" % self.my_roster_id)
         history = self.analyze_history()
+        opportunity = self.analyze_opportunity()
 
         lineup = self.analyze_lineup(my_roster)
         matchup = self.analyze_matchup()
@@ -2352,6 +2448,9 @@ class Analyzer:
                     form = self.history_form.get(str(row.get("player_id")))
                     if form is not None:
                         row["recent"] = {k: form[k] for k in ("games", "avg_points", "avg_projection", "beat", "compared")}
+                    tr = self.opportunity_trends.get(str(row.get("player_id"))) if opportunity else None
+                    if tr is not None and tr.get("flag") == "breakout":
+                        row.setdefault("notes", []).append("Role growing: " + tr["note"])
         trades = None if self.config.get("skip_trades") else self.analyze_trades(my_roster)
         custom_trades = self.analyze_custom_trades()
         value_trades = self.analyze_value_trades()
@@ -2408,6 +2507,7 @@ class Analyzer:
             "custom_trades": custom_trades,
             "value_trades": value_trades,
             "history": history,
+            "opportunity": opportunity,
             "player_pool": self.player_pool(),
             "rosters": self.roster_summaries(),
             "diagnostics": {

@@ -406,7 +406,7 @@ run_case ppr_basic --format json
 assert_json "json has metadata" '.metadata.league_id == "1400680781302525952"'
 assert_json "json has diagnostics" '(.diagnostics.fetches | length) > 0'
 assert_json "json keys stable" \
-    '[keys[]] == ["custom_trades","diagnostics","history","lineup","matchup","metadata","player_pool","rosters","schema_version","trades","value_trades","waivers","warnings"]'
+    '[keys[]] == ["custom_trades","diagnostics","history","lineup","matchup","metadata","opportunity","player_pool","rosters","schema_version","trades","value_trades","waivers","warnings"]'
 
 run_case ppr_basic --format json --quiet
 assert_status "--quiet exits 0" 0
@@ -905,6 +905,47 @@ assert_match "text likely range" "$STDOUT" 'Likely range \(10th-90th percentile\
 assert_match "text win-probability move" "$STDOUT" 'To raise your chances: start Ryan Bravo over Ryan Echo \(FLEX\): [0-9.]+% \(\+[0-9.]+\), -1 projected points'
 run_case underdog_volatile --format markdown
 assert_match "markdown win probability table" "$STDOUT" '\| Win probability \| Current lineup \| Recommended lineup \|'
+
+# --------------------------------------------------------------------------
+section "opportunity trends"
+# --------------------------------------------------------------------------
+run_case season_history --format json
+assert_json "usage trends from the stats feed (week 2 missing)" \
+    '.opportunity | .available and .weeks == [1,3,4] and .sources == {"sleeper": 3}'
+assert_json "breakout: free agent whose role is growing" \
+    '.opportunity.breakouts | length == 1 and .[0].player_id == "fa_rb2" and .[0].snap_then == 25 and .[0].snap_now == 57 and .[0].opportunities_then == 5 and .[0].opportunities_now == 13'
+assert_json "losing role: my starter's snaps and targets falling" \
+    '.opportunity.declining | length == 1 and .[0].player_id == "wr2" and .[0].snap_then == 89 and .[0].snap_now == 52'
+assert_json "steady players are not flagged" '[.opportunity.players[] | select(.flag != null)] | length == 1'
+assert_json "my roster trends listed" '.opportunity.players | has("qb1") and has("rb1")'
+run_case season_history --format text
+assert_match "text breakout watch" "$STDOUT" 'Free Run Two \(RB/FFF\) +snaps 25% -> 57% +targets\+carries 5 -> 13'
+assert_match "text losing role" "$STDOUT" 'Wes Bravo \(WR/BBB\) +snaps 89% -> 52% +targets\+carries 8 -> 4\.5'
+run_case season_history --format markdown
+assert_match "markdown breakout table" "$STDOUT" '\| Free Run Two \| RB \| FFF \| 25% -> 57% \| 5 -> 13 \|'
+run_case underdog_volatile --format json
+assert_json "waiver row notes a growing role" \
+    '[.waivers.groups[][] | select(.player_id == "fa_wr1") | .notes[] | select(test("Role growing: snaps 45% -> 85%"))] | length == 1'
+run_case ppr_basic --format json
+assert_json "no usage: trends explained" '.opportunity.available == false and (.opportunity.reason | test("at least 3 past weeks"))'
+run_case season_history --format json --no-history
+assert_json "--no-history: no trends" '.opportunity == null'
+
+# The stats feed is down for every week: usage comes from nflverse.
+run_case usage_nflverse --format json
+assert_json "nflverse fills usage for every week" '.opportunity.sources == {"nflverse": 4} and .opportunity.weeks == [1,2,3,4]'
+assert_json "nflverse breakout matched by name and the LA/LAR team code" \
+    '.opportunity.breakouts[0] | .player_id == "fa_rb2" and .team == "LAR" and .snap_now == 57'
+assert_json "nflverse decline matched by GSIS id" '.opportunity.declining[0].player_id == "wr2"'
+assert_json "nflverse downloads in diagnostics" \
+    '[.diagnostics.fetches[] | select(.key | startswith("nflverse")) | .source] == ["fixture","fixture"]'
+UC="$WORK/usage_cache"
+rm -rf "$UC"
+FM_OFFLINE=1 FM_FIXTURES="$FIXTURES/usage_nflverse" "$SCRIPT" --cache-dir "$UC" -q -f json >/dev/null 2>&1
+STDOUT="$(FM_OFFLINE=1 FM_FIXTURES="$FIXTURES/usage_nflverse" "$SCRIPT" --cache-dir "$UC" -q -f json 2>"$WORK/stderr")"
+assert_json "nflverse usage is kept in the history database" \
+    '.opportunity.sources == {"nflverse": 4} and ([.diagnostics.fetches[] | select(.key | startswith("nflverse"))] | length == 0)'
+if [ -f "$UC/nflverse_stats_2025.csv" ]; then pass "nflverse download cached"; else fail "nflverse download cached"; fi
 
 # --------------------------------------------------------------------------
 printf '\n%s\n' "------------------------------------------------------------"

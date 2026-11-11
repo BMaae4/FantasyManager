@@ -224,6 +224,14 @@ league.
   percentile), and any swap that improves your chances.
 - **Trades** list your needs and surplus, then trade ideas that improve
   *both* lineups and are within the fairness tolerance.
+- **Opportunity** tracks each player's role: snap share and targets +
+  carries, comparing the earlier weeks with the last two (Windows: the
+  **Trends** tab).
+  - **Breakout watch:** free agents whose role is growing, often before the
+    points (and the waiver rush) arrive. A breakout that is also a waiver
+    candidate gets a "Role growing" note there.
+  - **Your players losing role:** regulars whose snaps or touches are
+    falling.
 - **History** shows how good the projections have been this season, and how
   your players have done lately (Windows: the **History** tab):
   - **Projection accuracy** by position:
@@ -450,6 +458,23 @@ league's rules, so accuracy and form are in your league's points. Games
 projected under 1 point are left out of the accuracy figures. Deleting the
 database only costs a refetch; `--no-cache` keeps it in memory for that run.
 
+**Opportunity.** Usage per week (snaps, targets, carries) comes from
+Sleeper's weekly stats. For weeks that feed doesn't cover, it comes from
+nflverse's public data:
+- Weekly player stats and snap counts are downloaded from GitHub, about
+  5 MB, cached for 12 hours.
+- Players are matched by GSIS id, or by name and team.
+- Usage is kept in the history database, so it's downloaded once.
+
+Trends use the last four weeks with usage (byes skipped), comparing the
+earlier weeks with the last two.
+- **Breakout:** snap share up 15+ points to at least 45%, or targets +
+  carries up by 4+ a game and half again.
+- **Losing role:** snap share down 15+ points from at least 40%, or targets
+  + carries down by 4+ and 40%.
+
+Quarterbacks get trends but no flags.
+
 **Suggested trades.** Each team is profiled by its best starting points
 (averaged over the window), its bench above replacement, and its needs and
 surplus. 1-for-1 and 2-for-1 ideas are tested by re-optimising *both* lineups.
@@ -467,6 +492,9 @@ when the move clearly improves your lineup.
 - Weekly stats (history only): `https://api.sleeper.app/stats/nfl/<season>/<week>`.
   Undocumented and optional. Without it, history still has every rostered
   player's league points, and the report says which weeks lack stats.
+- Usage fallback: [nflverse](https://github.com/nflverse/nflverse-data)
+  weekly player stats and snap counts (public, GitHub releases), only for
+  weeks Sleeper's stats don't cover.
 - Game schedule: `https://api.sleeper.com/schedule/nfl/<season_type>/<season>`.
   This is also undocumented and optional. If it's unavailable, locks fall back
   to live points, the week isn't advanced automatically, and the report says
@@ -516,10 +544,10 @@ include the effective configuration and every request.
 | --- | --- |
 | `lib/fm_app.py` | The application: command line, configuration, fetching, caching, validation, text/Markdown/JSON output |
 | `lib/fm_analysis.py` | All analysis: scoring, lineup optimisation, waivers, trades, trade grading, history |
-| `lib/fm_history.py` | The history database (SQLite) and the accuracy / recent-form statistics |
+| `lib/fm_history.py` | The history database (SQLite), accuracy / recent-form statistics, usage trends and the nflverse usage reader |
 | `fantasy_manager.sh` | macOS/Linux launcher: finds Python and runs `lib/fm_app.py` |
 | `FantasyManager.ps1` / `.cmd` | Windows: the WPF window, `-NoGui` mapped onto `lib/fm_app.py`, and a launcher |
-| `tests/run.sh` | Offline test suite (304 checks, no network) |
+| `tests/run.sh` | Offline test suite (321 checks, no network) |
 | `tests/make_fixtures.py` | Generates the synthetic test leagues in `tests/fixtures/` |
 | `tests/parity.sh` | Runs every fixture through both front ends and compares the reports (needs `pwsh`) |
 | `tests/windows.ps1`, `tests/make_expected.sh`, `tests/compare_reports.py` | Windows checks, including a GUI smoke test |
@@ -550,6 +578,8 @@ The suite covers:
 - The real HTTP path against a local server (404 not retried, 5xx retried).
 - History: accuracy checked against an independent calculation, the
   database across runs, pre-kickoff snapshots, and a missing stats feed.
+- Opportunity: breakouts and declines from the stats feed and from nflverse
+  (GSIS ids, names, team codes), and the download kept in the database.
 - Win probability: checked against the closed-form normal result,
   reproducible, locked players, and the underdog swap.
 

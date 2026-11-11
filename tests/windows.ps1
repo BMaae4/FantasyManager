@@ -111,7 +111,7 @@ Check 'GUI trade analyzer fills from a report' ($r.Code -eq 0 -and $r.Out -match
 $r = Run-Script @('-ReportFile', "`"$(Join-Path $Expected 'ppr_basic__value.json')`"", '-GuiSmokeTest')
 Check 'GUI any-player mode shows the result and picks players' ($r.Code -eq 0 -and $r.Out -match 'trade grade F, mode open, pool results 40, picked 2') ("$($r.Out) $($r.Err)")
 $r = Run-Script @('-ReportFile', "`"$(Join-Path $Expected 'season_history.json')`"", '-GuiSmokeTest')
-Check 'GUI history tab fills from a report' ($r.Code -eq 0 -and $r.Out -match 'history rows 7, form rows 15') ("$($r.Out) $($r.Err)")
+Check 'GUI history and trends tabs fill from a report' ($r.Code -eq 0 -and $r.Out -match 'history rows 7, form rows 15, breakouts 1, declining 1') ("$($r.Out) $($r.Err)")
 $r = Run-Script @('-ReportFile', "`"$(Join-Path $Expected 'underdog_volatile.json')`"", '-GuiSmokeTest')
 Check 'GUI shows the win probability' ($r.Code -eq 0 -and $r.Out -match 'win \d+(\.\d)?\s*$') ("$($r.Out) $($r.Err)")
 $r = Run-Script @('-GuiSmokeTest')
