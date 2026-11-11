@@ -1384,6 +1384,8 @@ if (-not $NoGui) {
 
 # -NoGui: run fm_app.py. The report goes to a file and is printed from there,
 # so console code pages never touch it. JSON is the default format here.
+# Diagnostics are captured and relayed as UTF-8: Windows PowerShell 5.1 does
+# not pass a redirected stderr on to the Python process.
 $appArgs = ConvertTo-AppArgs $script:BoundParams
 if (-not $script:BoundParams.ContainsKey('Format')) { $appArgs += @('--format', 'json') }
 $tmpReport = $null
@@ -1394,9 +1396,15 @@ if ($OutFile) {
     $appArgs += @('--output', $tmpReport)
 }
 try {
-    $r = Invoke-App $appArgs
+    $r = Invoke-App $appArgs $true
     if ($r) {
         $script:ExitCode = $r.Code
+        if ($r.Err) {
+            $stderr = [Console]::OpenStandardError()
+            $errBytes = $Utf8NoBom.GetBytes($r.Err)
+            $stderr.Write($errBytes, 0, $errBytes.Length)
+            $stderr.Flush()
+        }
         if ($tmpReport -and $r.Code -eq 0 -and (Test-Path -LiteralPath $tmpReport)) {
             $stdout = [Console]::OpenStandardOutput()
             $bytes = [IO.File]::ReadAllBytes($tmpReport)
