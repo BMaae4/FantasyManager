@@ -436,6 +436,50 @@ def nflverse_csvs(data: dict, team_codes: dict | None = None) -> dict:
     return {"nflverse_stats.csv": stats_out.getvalue(), "nflverse_snaps.csv": snaps_out.getvalue()}
 
 
+ESPN_POS = {"QB": 1, "RB": 2, "WR": 3, "TE": 4, "K": 5, "DEF": 16}
+ESPN_TEAM_IDS = {"BUF": 2, "MIA": 15}
+
+
+def espn_payload(data: dict, week: int, points: dict) -> dict:
+    """ESPN kona_player_info-style response: {"players": [{"player": ...}]}.
+    `points` maps Sleeper player id -> ESPN PPR projection."""
+    entries = []
+    for pid, value in sorted(points.items()):
+        info = data["players"][pid]
+        espn_id = info.get("espn_id")
+        entries.append({"id": espn_id or 900000 + len(entries), "player": {
+            "id": espn_id or 900000 + len(entries), "fullName": info["full_name"],
+            "defaultPositionId": ESPN_POS[info["position"]],
+            "proTeamId": ESPN_TEAM_IDS.get(info["team"], 99),
+            "stats": [
+                {"seasonId": 2025, "scoringPeriodId": week, "statSourceId": 1, "statSplitTypeId": 1,
+                 "appliedTotal": value, "stats": {"53": 4.0}},
+                {"seasonId": 2025, "scoringPeriodId": week - 1, "statSourceId": 0, "statSplitTypeId": 1,
+                 "appliedTotal": 99.0, "stats": {}},
+            ]}})
+    return {"players": entries}
+
+
+def espn_files(data: dict, weeks, overrides: dict) -> dict:
+    """espn.json / espn_wN.json: ESPN within 5% of Sleeper, except `overrides`
+    ({player_id: ESPN points}, every week). Players need espn_id set."""
+    data = with_future(data)
+    files = {}
+    for week in weeks:
+        key = "projections" if week == 5 else "projections_w%d" % week
+        values = {}
+        for record in data[key]:
+            pid = record["player_id"]
+            if data["players"].get(pid, {}).get("position") not in ESPN_POS:
+                continue
+            ppr = record["stats"]["pts_ppr"]
+            values[pid] = round(ppr * (1.05 if unit("e%s%d" % (pid, week)) > 0 else 0.95), 2)
+        values.update(overrides)
+        files[("espn" if week == 5 else "espn_w%d" % week) + ".json"] = json.dumps(
+            espn_payload(data, week, values), indent=1, sort_keys=True) + "\n"
+    return files
+
+
 def write_case(out_dir: str, name: str, data: dict, raw: dict | None = None) -> None:
     case_dir = os.path.join(out_dir, name)
     os.makedirs(case_dir, exist_ok=True)
@@ -690,7 +734,11 @@ def main() -> int:
         "wr2": {1: (12.0, 14.0, 0.9), 2: (11.0, 9.0, 0.75), 3: (10.0, 5.0, 0.6), 4: (9.5, 3.0, 0.45)},
     })
     del history["stats_w2"]
-    write_case(out_dir, "season_history", history, raw={"stats_w2.status": "404\n"})
+    for i, pid in enumerate(sorted(history["players"])):
+        history["players"][pid]["espn_id"] = 4000 + i
+    history_raw = {"stats_w2.status": "404\n"}
+    history_raw.update(espn_files(copy.deepcopy(history), (5,), {"wr1": 8.0, "fa_rb1": 18.0}))
+    write_case(out_dir, "season_history", history, raw=history_raw)
 
     # 30. heavy underdog with a boom-or-bust bench back: the steady FLEX
     #     projects a little higher, but the volatile one gives a better
@@ -735,6 +783,18 @@ def main() -> int:
     ros_weeks = tuple(range(6, 18))
     with_future(ros, {week: {"t2_rb1": 15.75} for week in ros_weeks}, weeks=ros_weeks)
     write_case(out_dir, "rest_of_season", ros)
+
+    # 33. a second projection source (ESPN format). ESPN is much lower on my
+    #     starting WR1 and higher on a free-agent back; one player has no
+    #     ESPN id and is matched by name and team; the rest roughly agree.
+    espn = copy.deepcopy(base)
+    for i, pid in enumerate(sorted(espn["players"])):
+        espn["players"][pid]["espn_id"] = 4000 + i
+    espn["players"]["wr3"]["espn_id"] = None
+    espn["players"]["wr3"]["team"] = "BUF"
+    espn = with_future(espn)
+    write_case(out_dir, "espn_compare", espn,
+               raw=espn_files(espn, (5,) + FUTURE_WEEKS, {"wr1": 8.0, "fa_rb1": 18.0}))
 
     print("fixtures written to %s" % out_dir)
     return 0

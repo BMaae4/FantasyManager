@@ -3,7 +3,7 @@
   "diagnostics": {
     "fetches": [
       {
-        "at": "2026-11-11T00:56:05Z",
+        "at": "2026-11-11T20:19:32Z",
         "cache_age_seconds": 0,
         "key": "state",
         "note": "ok",
@@ -12,7 +12,7 @@
         "url": "https://api.sleeper.app/v1/state/nfl"
       },
       {
-        "at": "2026-11-11T00:56:05Z",
+        "at": "2026-11-11T20:19:32Z",
         "cache_age_seconds": 0,
         "key": "schedule",
         "note": "ok",
@@ -21,7 +21,7 @@
         "url": "https://api.sleeper.com/schedule/nfl/regular/2025"
       },
       {
-        "at": "2026-11-11T00:56:05Z",
+        "at": "2026-11-11T20:19:32Z",
         "cache_age_seconds": 0,
         "key": "league",
         "note": "ok",
@@ -30,7 +30,7 @@
         "url": "https://api.sleeper.app/v1/league/1400680781302525952"
       },
       {
-        "at": "2026-11-11T00:56:05Z",
+        "at": "2026-11-11T20:19:32Z",
         "cache_age_seconds": 0,
         "key": "rosters",
         "note": "ok",
@@ -39,7 +39,7 @@
         "url": "https://api.sleeper.app/v1/league/1400680781302525952/rosters"
       },
       {
-        "at": "2026-11-11T00:56:05Z",
+        "at": "2026-11-11T20:19:32Z",
         "cache_age_seconds": 0,
         "key": "users",
         "note": "ok",
@@ -48,7 +48,7 @@
         "url": "https://api.sleeper.app/v1/league/1400680781302525952/users"
       },
       {
-        "at": "2026-11-11T00:56:05Z",
+        "at": "2026-11-11T20:19:32Z",
         "cache_age_seconds": 0,
         "key": "matchups",
         "note": "ok",
@@ -57,7 +57,7 @@
         "url": "https://api.sleeper.app/v1/league/1400680781302525952/matchups/5"
       },
       {
-        "at": "2026-11-11T00:56:05Z",
+        "at": "2026-11-11T20:19:32Z",
         "cache_age_seconds": 0,
         "key": "user",
         "note": "ok",
@@ -66,7 +66,7 @@
         "url": "https://api.sleeper.app/v1/user/MaTrasaMaae"
       },
       {
-        "at": "2026-11-11T00:56:05Z",
+        "at": "2026-11-11T20:19:32Z",
         "cache_age_seconds": 0,
         "key": "players",
         "note": "ok",
@@ -75,7 +75,7 @@
         "url": "https://api.sleeper.app/v1/players/nfl"
       },
       {
-        "at": "2026-11-11T00:56:05Z",
+        "at": "2026-11-11T20:19:32Z",
         "cache_age_seconds": 0,
         "key": "projections",
         "note": "ok",
@@ -84,7 +84,7 @@
         "url": "https://api.sleeper.app/projections/nfl/2025/5?season_type=regular&order_by=pts_ppr"
       },
       {
-        "at": "2026-11-11T00:56:05Z",
+        "at": "2026-11-11T20:19:32Z",
         "cache_age_seconds": 0,
         "key": "projections_w6",
         "note": "ok",
@@ -93,7 +93,7 @@
         "url": "https://api.sleeper.app/projections/nfl/2025/6?season_type=regular&order_by=pts_ppr"
       },
       {
-        "at": "2026-11-11T00:56:05Z",
+        "at": "2026-11-11T20:19:32Z",
         "cache_age_seconds": 0,
         "key": "projections_w7",
         "note": "ok",
@@ -102,7 +102,7 @@
         "url": "https://api.sleeper.app/projections/nfl/2025/7?season_type=regular&order_by=pts_ppr"
       },
       {
-        "at": "2026-11-11T00:56:05Z",
+        "at": "2026-11-11T20:19:32Z",
         "cache_age_seconds": 0,
         "key": "projections_w8",
         "note": "ok",
@@ -111,7 +111,7 @@
         "url": "https://api.sleeper.app/projections/nfl/2025/8?season_type=regular&order_by=pts_ppr"
       },
       {
-        "at": "2026-11-11T00:56:05Z",
+        "at": "2026-11-11T20:19:32Z",
         "cache_age_seconds": 0,
         "key": "trending_add",
         "note": "ok",
@@ -120,13 +120,49 @@
         "url": "https://api.sleeper.app/v1/players/nfl/trending/add?lookback_hours=24&limit=100"
       },
       {
-        "at": "2026-11-11T00:56:05Z",
+        "at": "2026-11-11T20:19:32Z",
         "cache_age_seconds": 0,
         "key": "transactions",
         "note": "ok",
         "records": 1,
         "source": "fixture",
         "url": "https://api.sleeper.app/v1/league/1400680781302525952/transactions/5"
+      },
+      {
+        "at": "2026-11-11T20:19:32Z",
+        "cache_age_seconds": 0,
+        "key": "espn",
+        "note": "ok",
+        "records": 1,
+        "source": "fixture",
+        "url": "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/2025/segments/0/leaguedefaults/3?view=kona_player_info&scoringPeriodId=5"
+      },
+      {
+        "at": "2026-11-11T20:19:32Z",
+        "cache_age_seconds": null,
+        "key": "history",
+        "note": "weeks 1-4; 0 stored, 4 fetched; no stats feed for week 2 (rostered players only)",
+        "records": 4,
+        "source": "fixture",
+        "url": ":memory:"
+      },
+      {
+        "at": "2026-11-11T20:19:32Z",
+        "cache_age_seconds": null,
+        "key": "nflverse_stats",
+        "note": "fetch or validation failed",
+        "records": null,
+        "source": "unavailable",
+        "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2025.csv"
+      },
+      {
+        "at": "2026-11-11T20:19:32Z",
+        "cache_age_seconds": null,
+        "key": "nflverse_snaps",
+        "note": "fetch or validation failed",
+        "records": null,
+        "source": "unavailable",
+        "url": "https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_2025.csv"
       }
     ],
     "lock_source": "game schedule + live points",
@@ -135,6 +171,2097 @@
     "schedule_available": true,
     "transactions_available": true,
     "trending_available": true
+  },
+  "history": {
+    "accuracy": {
+      "by_position": {
+        "DEF": {
+          "bias": -0.2,
+          "mae": 2.52,
+          "n": 19,
+          "rmse": 2.88,
+          "sd": 2.95,
+          "within_5_pct": 100
+        },
+        "K": {
+          "bias": -0.3,
+          "mae": 1.77,
+          "n": 19,
+          "rmse": 2.12,
+          "sd": 2.15,
+          "within_5_pct": 100
+        },
+        "QB": {
+          "bias": 0.91,
+          "mae": 3.09,
+          "n": 35,
+          "rmse": 3.55,
+          "sd": 3.48,
+          "within_5_pct": 86
+        },
+        "RB": {
+          "bias": -0.04,
+          "mae": 3.9,
+          "n": 65,
+          "rmse": 4.43,
+          "sd": 4.46,
+          "within_5_pct": 65
+        },
+        "TE": {
+          "bias": -0.05,
+          "mae": 2.24,
+          "n": 35,
+          "rmse": 2.65,
+          "sd": 2.69,
+          "within_5_pct": 100
+        },
+        "WR": {
+          "bias": -0.31,
+          "mae": 3.37,
+          "n": 64,
+          "rmse": 3.94,
+          "sd": 3.95,
+          "within_5_pct": 73
+        }
+      },
+      "overall": {
+        "bias": -0.01,
+        "mae": 3.11,
+        "n": 237,
+        "rmse": 3.67,
+        "sd": 3.68,
+        "within_5_pct": 81
+      }
+    },
+    "actual_sources": {
+      "league": 204,
+      "stats": 33
+    },
+    "available": true,
+    "min_projection": 1.0,
+    "my_roster": [
+      "qb1",
+      "wr3",
+      "rb1",
+      "qb2",
+      "wr1",
+      "rb3",
+      "rb5",
+      "rb2",
+      "wr2",
+      "te1",
+      "k1",
+      "wr4",
+      "def1",
+      "rb4",
+      "te2"
+    ],
+    "note": "Projected vs actual points in your league's scoring. Projections recorded before kickoff by earlier runs are used when available; otherwise the feed's projections for past weeks are fetched afterwards.",
+    "players": {
+      "def1": {
+        "avg_points": 5.2,
+        "avg_projection": 6.0,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 9.7,
+            "projection": 6.0,
+            "week": 1
+          },
+          {
+            "actual": 3.1,
+            "projection": 5.9,
+            "week": 2
+          },
+          {
+            "actual": 2.0,
+            "projection": 5.9,
+            "week": 3
+          },
+          {
+            "actual": 5.9,
+            "projection": 6.2,
+            "week": 4
+          }
+        ],
+        "name": "Alpha Defense",
+        "position": "DEF",
+        "roster_id": 1,
+        "team": "AAA",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "k1": {
+        "avg_points": 6.7,
+        "avg_projection": 6.8,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 8.2,
+            "projection": 6.8,
+            "week": 1
+          },
+          {
+            "actual": 7.3,
+            "projection": 6.8,
+            "week": 2
+          },
+          {
+            "actual": 6.4,
+            "projection": 6.9,
+            "week": 3
+          },
+          {
+            "actual": 5.1,
+            "projection": 7.0,
+            "week": 4
+          }
+        ],
+        "name": "Kai Alpha",
+        "position": "K",
+        "roster_id": 1,
+        "team": "AAA",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "qb1": {
+        "avg_points": 18.3,
+        "avg_projection": 18.3,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 23.3,
+            "projection": 18.1,
+            "week": 1
+          },
+          {
+            "actual": 15.8,
+            "projection": 18.2,
+            "week": 2
+          },
+          {
+            "actual": 14.5,
+            "projection": 18.4,
+            "week": 3
+          },
+          {
+            "actual": 19.6,
+            "projection": 18.6,
+            "week": 4
+          }
+        ],
+        "name": "Quinn Alpha",
+        "position": "QB",
+        "roster_id": 1,
+        "team": "AAA",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "qb2": {
+        "avg_points": 14.7,
+        "avg_projection": 12.1,
+        "beat": 4,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 12.3,
+            "projection": 11.8,
+            "week": 1
+          },
+          {
+            "actual": 14.1,
+            "projection": 12.2,
+            "week": 2
+          },
+          {
+            "actual": 15.4,
+            "projection": 12.1,
+            "week": 3
+          },
+          {
+            "actual": 17.2,
+            "projection": 12.4,
+            "week": 4
+          }
+        ],
+        "name": "Quinn Bravo",
+        "position": "QB",
+        "roster_id": 1,
+        "team": "BBB",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "rb1": {
+        "avg_points": 15.4,
+        "avg_projection": 16.0,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 12.3,
+            "projection": 15.6,
+            "week": 1
+          },
+          {
+            "actual": 14.4,
+            "projection": 16.1,
+            "week": 2
+          },
+          {
+            "actual": 16.0,
+            "projection": 15.9,
+            "week": 3
+          },
+          {
+            "actual": 18.8,
+            "projection": 16.5,
+            "week": 4
+          }
+        ],
+        "name": "Ryan Alpha",
+        "position": "RB",
+        "roster_id": 1,
+        "team": "AAA",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "rb2": {
+        "avg_points": 9.0,
+        "avg_projection": 11.0,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 5.2,
+            "projection": 11.3,
+            "week": 1
+          },
+          {
+            "actual": 10.3,
+            "projection": 11.4,
+            "week": 2
+          },
+          {
+            "actual": 7.8,
+            "projection": 10.6,
+            "week": 3
+          },
+          {
+            "actual": 12.9,
+            "projection": 10.7,
+            "week": 4
+          }
+        ],
+        "name": "Ryan Bravo",
+        "position": "RB",
+        "roster_id": 1,
+        "team": "BBB",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "rb3": {
+        "avg_points": 12.6,
+        "avg_projection": 13.3,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 17.0,
+            "projection": 13.4,
+            "week": 1
+          },
+          {
+            "actual": 11.8,
+            "projection": 13.3,
+            "week": 2
+          },
+          {
+            "actual": 13.4,
+            "projection": 13.2,
+            "week": 3
+          },
+          {
+            "actual": 8.2,
+            "projection": 13.0,
+            "week": 4
+          }
+        ],
+        "name": "Ryan Charlie",
+        "position": "RB",
+        "roster_id": 1,
+        "team": "CCC",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "rb4": {
+        "avg_points": 4.4,
+        "avg_projection": 4.0,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 0.0,
+            "projection": 3.9,
+            "week": 1
+          },
+          {
+            "actual": 0.0,
+            "projection": 4.1,
+            "week": 2
+          },
+          {
+            "actual": 9.9,
+            "projection": 4.1,
+            "week": 3
+          },
+          {
+            "actual": 7.5,
+            "projection": 4.0,
+            "week": 4
+          }
+        ],
+        "name": "Ryan Delta",
+        "position": "RB",
+        "roster_id": 1,
+        "team": "DDD",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "rb5": {
+        "avg_points": 11.5,
+        "avg_projection": 11.9,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 15.7,
+            "projection": 11.6,
+            "week": 1
+          },
+          {
+            "actual": 17.7,
+            "projection": 11.9,
+            "week": 2
+          },
+          {
+            "actual": 5.3,
+            "projection": 11.8,
+            "week": 3
+          },
+          {
+            "actual": 7.3,
+            "projection": 12.2,
+            "week": 4
+          }
+        ],
+        "name": "Ryan Echo",
+        "position": "RB",
+        "roster_id": 1,
+        "team": "EEE",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t2_def1": {
+        "avg_points": 7.2,
+        "avg_projection": 6.1,
+        "beat": 3,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 9.9,
+            "projection": 5.8,
+            "week": 1
+          },
+          {
+            "actual": 6.8,
+            "projection": 6.2,
+            "week": 2
+          },
+          {
+            "actual": 7.9,
+            "projection": 6.2,
+            "week": 3
+          },
+          {
+            "actual": 4.3,
+            "projection": 6.1,
+            "week": 4
+          }
+        ],
+        "name": "Team2 DEF1",
+        "position": "DEF",
+        "roster_id": 2,
+        "team": "CCC",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t2_k1": {
+        "avg_points": 5.3,
+        "avg_projection": 6.9,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 3.6,
+            "projection": 6.8,
+            "week": 1
+          },
+          {
+            "actual": 4.8,
+            "projection": 7.0,
+            "week": 2
+          },
+          {
+            "actual": 5.7,
+            "projection": 6.9,
+            "week": 3
+          },
+          {
+            "actual": 7.2,
+            "projection": 7.1,
+            "week": 4
+          }
+        ],
+        "name": "Team2 K1",
+        "position": "K",
+        "roster_id": 2,
+        "team": "CCC",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t2_qb1": {
+        "avg_points": 19.4,
+        "avg_projection": 17.8,
+        "beat": 3,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 17.5,
+            "projection": 18.1,
+            "week": 1
+          },
+          {
+            "actual": 18.7,
+            "projection": 17.9,
+            "week": 2
+          },
+          {
+            "actual": 20.0,
+            "projection": 17.8,
+            "week": 3
+          },
+          {
+            "actual": 21.3,
+            "projection": 17.6,
+            "week": 4
+          }
+        ],
+        "name": "Team2 QB1",
+        "position": "QB",
+        "roster_id": 2,
+        "team": "CCC",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t2_qb2": {
+        "avg_points": 11.1,
+        "avg_projection": 10.4,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 7.5,
+            "projection": 10.5,
+            "week": 1
+          },
+          {
+            "actual": 11.4,
+            "projection": 10.2,
+            "week": 2
+          },
+          {
+            "actual": 10.1,
+            "projection": 10.3,
+            "week": 3
+          },
+          {
+            "actual": 15.5,
+            "projection": 10.8,
+            "week": 4
+          }
+        ],
+        "name": "Team2 QB2",
+        "position": "QB",
+        "roster_id": 2,
+        "team": "CCC",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t2_rb1": {
+        "avg_points": 13.9,
+        "avg_projection": 16.1,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 20.7,
+            "projection": 16.5,
+            "week": 1
+          },
+          {
+            "actual": 11.2,
+            "projection": 16.0,
+            "week": 2
+          },
+          {
+            "actual": 9.7,
+            "projection": 16.2,
+            "week": 3
+          },
+          {
+            "actual": 14.2,
+            "projection": 15.7,
+            "week": 4
+          }
+        ],
+        "name": "Team2 RB1",
+        "position": "RB",
+        "roster_id": 2,
+        "team": "CCC",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t2_rb2": {
+        "avg_points": 7.1,
+        "avg_projection": 8.0,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 14.8,
+            "projection": 7.8,
+            "week": 1
+          },
+          {
+            "actual": 2.4,
+            "projection": 7.7,
+            "week": 2
+          },
+          {
+            "actual": 4.6,
+            "projection": 8.3,
+            "week": 3
+          },
+          {
+            "actual": 6.8,
+            "projection": 8.2,
+            "week": 4
+          }
+        ],
+        "name": "Team2 RB2",
+        "position": "RB",
+        "roster_id": 2,
+        "team": "CCC",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t2_rb3": {
+        "avg_points": 7.5,
+        "avg_projection": 8.3,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 2.9,
+            "projection": 8.2,
+            "week": 1
+          },
+          {
+            "actual": 1.3,
+            "projection": 8.3,
+            "week": 2
+          },
+          {
+            "actual": 13.7,
+            "projection": 8.3,
+            "week": 3
+          },
+          {
+            "actual": 12.1,
+            "projection": 8.4,
+            "week": 4
+          }
+        ],
+        "name": "Team2 RB3",
+        "position": "RB",
+        "roster_id": 2,
+        "team": "CCC",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t2_te1": {
+        "avg_points": 11.3,
+        "avg_projection": 10.1,
+        "beat": 3,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 9.4,
+            "projection": 10.0,
+            "week": 1
+          },
+          {
+            "actual": 10.5,
+            "projection": 9.9,
+            "week": 2
+          },
+          {
+            "actual": 11.6,
+            "projection": 9.8,
+            "week": 3
+          },
+          {
+            "actual": 13.9,
+            "projection": 10.5,
+            "week": 4
+          }
+        ],
+        "name": "Team2 TE1",
+        "position": "TE",
+        "roster_id": 2,
+        "team": "CCC",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t2_te2": {
+        "avg_points": 12.2,
+        "avg_projection": 11.9,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 9.5,
+            "projection": 12.2,
+            "week": 1
+          },
+          {
+            "actual": 12.7,
+            "projection": 11.8,
+            "week": 2
+          },
+          {
+            "actual": 11.6,
+            "projection": 11.9,
+            "week": 3
+          },
+          {
+            "actual": 14.8,
+            "projection": 11.5,
+            "week": 4
+          }
+        ],
+        "name": "Team2 TE2",
+        "position": "TE",
+        "roster_id": 2,
+        "team": "CCC",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t2_wr1": {
+        "avg_points": 15.3,
+        "avg_projection": 14.8,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 8.6,
+            "projection": 14.5,
+            "week": 1
+          },
+          {
+            "actual": 18.0,
+            "projection": 14.9,
+            "week": 2
+          },
+          {
+            "actual": 19.6,
+            "projection": 14.8,
+            "week": 3
+          },
+          {
+            "actual": 15.1,
+            "projection": 15.2,
+            "week": 4
+          }
+        ],
+        "name": "Team2 WR1",
+        "position": "WR",
+        "roster_id": 2,
+        "team": "CCC",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t2_wr2": {
+        "avg_points": 11.2,
+        "avg_projection": 12.3,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 10.0,
+            "projection": 12.1,
+            "week": 1
+          },
+          {
+            "actual": 8.5,
+            "projection": 12.2,
+            "week": 2
+          },
+          {
+            "actual": 6.9,
+            "projection": 12.3,
+            "week": 3
+          },
+          {
+            "actual": 19.4,
+            "projection": 12.4,
+            "week": 4
+          }
+        ],
+        "name": "Team2 WR2",
+        "position": "WR",
+        "roster_id": 2,
+        "team": "CCC",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t2_wr3": {
+        "avg_points": 11.3,
+        "avg_projection": 12.4,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 8.3,
+            "projection": 12.1,
+            "week": 1
+          },
+          {
+            "actual": 9.9,
+            "projection": 12.0,
+            "week": 2
+          },
+          {
+            "actual": 12.4,
+            "projection": 12.9,
+            "week": 3
+          },
+          {
+            "actual": 14.6,
+            "projection": 12.7,
+            "week": 4
+          }
+        ],
+        "name": "Team2 WR3",
+        "position": "WR",
+        "roster_id": 2,
+        "team": "CCC",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t3_def1": {
+        "avg_points": 5.2,
+        "avg_projection": 6.2,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 6.7,
+            "projection": 6.0,
+            "week": 1
+          },
+          {
+            "actual": 5.8,
+            "projection": 6.3,
+            "week": 2
+          },
+          {
+            "actual": 4.7,
+            "projection": 6.4,
+            "week": 3
+          },
+          {
+            "actual": 3.3,
+            "projection": 6.2,
+            "week": 4
+          }
+        ],
+        "name": "Team3 DEF1",
+        "position": "DEF",
+        "roster_id": 3,
+        "team": "DDD",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t3_k1": {
+        "avg_points": 7.7,
+        "avg_projection": 7.3,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 11.2,
+            "projection": 7.2,
+            "week": 1
+          },
+          {
+            "actual": 6.1,
+            "projection": 7.2,
+            "week": 2
+          },
+          {
+            "actual": 5.2,
+            "projection": 7.3,
+            "week": 3
+          },
+          {
+            "actual": 8.2,
+            "projection": 7.4,
+            "week": 4
+          }
+        ],
+        "name": "Team3 K1",
+        "position": "K",
+        "roster_id": 3,
+        "team": "DDD",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t3_qb1": {
+        "avg_points": 18.2,
+        "avg_projection": 17.6,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 15.2,
+            "projection": 18.4,
+            "week": 1
+          },
+          {
+            "actual": 12.5,
+            "projection": 17.1,
+            "week": 2
+          },
+          {
+            "actual": 23.2,
+            "projection": 17.3,
+            "week": 3
+          },
+          {
+            "actual": 22.0,
+            "projection": 17.5,
+            "week": 4
+          }
+        ],
+        "name": "Team3 QB1",
+        "position": "QB",
+        "roster_id": 3,
+        "team": "DDD",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t3_qb2": {
+        "avg_points": 12.7,
+        "avg_projection": 10.7,
+        "beat": 3,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 16.7,
+            "projection": 11.1,
+            "week": 1
+          },
+          {
+            "actual": 11.8,
+            "projection": 10.6,
+            "week": 2
+          },
+          {
+            "actual": 13.2,
+            "projection": 10.4,
+            "week": 3
+          },
+          {
+            "actual": 9.2,
+            "projection": 10.8,
+            "week": 4
+          }
+        ],
+        "name": "Team3 QB2",
+        "position": "QB",
+        "roster_id": 3,
+        "team": "DDD",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t3_rb1": {
+        "avg_points": 14.8,
+        "avg_projection": 16.4,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 19.4,
+            "projection": 16.7,
+            "week": 1
+          },
+          {
+            "actual": 14.0,
+            "projection": 16.3,
+            "week": 2
+          },
+          {
+            "actual": 15.5,
+            "projection": 16.1,
+            "week": 3
+          },
+          {
+            "actual": 10.3,
+            "projection": 16.6,
+            "week": 4
+          }
+        ],
+        "name": "Team3 RB1",
+        "position": "RB",
+        "roster_id": 3,
+        "team": "DDD",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t3_rb2": {
+        "avg_points": 14.3,
+        "avg_projection": 13.2,
+        "beat": 3,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 17.3,
+            "projection": 13.5,
+            "week": 1
+          },
+          {
+            "actual": 15.8,
+            "projection": 13.7,
+            "week": 2
+          },
+          {
+            "actual": 13.2,
+            "projection": 12.7,
+            "week": 3
+          },
+          {
+            "actual": 11.0,
+            "projection": 12.9,
+            "week": 4
+          }
+        ],
+        "name": "Team3 RB2",
+        "position": "RB",
+        "roster_id": 3,
+        "team": "DDD",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t3_rb3": {
+        "avg_points": 9.8,
+        "avg_projection": 8.7,
+        "beat": 3,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 10.6,
+            "projection": 8.5,
+            "week": 1
+          },
+          {
+            "actual": 12.2,
+            "projection": 8.4,
+            "week": 2
+          },
+          {
+            "actual": 14.5,
+            "projection": 9.0,
+            "week": 3
+          },
+          {
+            "actual": 2.0,
+            "projection": 8.9,
+            "week": 4
+          }
+        ],
+        "name": "Team3 RB3",
+        "position": "RB",
+        "roster_id": 3,
+        "team": "DDD",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t3_te1": {
+        "avg_points": 11.7,
+        "avg_projection": 10.3,
+        "beat": 3,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 14.5,
+            "projection": 10.4,
+            "week": 1
+          },
+          {
+            "actual": 13.4,
+            "projection": 10.5,
+            "week": 2
+          },
+          {
+            "actual": 8.7,
+            "projection": 10.6,
+            "week": 3
+          },
+          {
+            "actual": 10.0,
+            "projection": 9.9,
+            "week": 4
+          }
+        ],
+        "name": "Team3 TE1",
+        "position": "TE",
+        "roster_id": 3,
+        "team": "DDD",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t3_te2": {
+        "avg_points": 4.7,
+        "avg_projection": 5.7,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 7.6,
+            "projection": 5.5,
+            "week": 1
+          },
+          {
+            "actual": 4.2,
+            "projection": 5.7,
+            "week": 2
+          },
+          {
+            "actual": 5.4,
+            "projection": 5.7,
+            "week": 3
+          },
+          {
+            "actual": 1.5,
+            "projection": 5.8,
+            "week": 4
+          }
+        ],
+        "name": "Team3 TE2",
+        "position": "TE",
+        "roster_id": 3,
+        "team": "DDD",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t3_wr1": {
+        "avg_points": 15.8,
+        "avg_projection": 15.1,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 22.1,
+            "projection": 15.1,
+            "week": 1
+          },
+          {
+            "actual": 12.6,
+            "projection": 14.7,
+            "week": 2
+          },
+          {
+            "actual": 11.1,
+            "projection": 14.8,
+            "week": 3
+          },
+          {
+            "actual": 17.6,
+            "projection": 15.6,
+            "week": 4
+          }
+        ],
+        "name": "Team3 WR1",
+        "position": "WR",
+        "roster_id": 3,
+        "team": "DDD",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t3_wr2": {
+        "avg_points": 10.8,
+        "avg_projection": 12.6,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 8.2,
+            "projection": 12.5,
+            "week": 1
+          },
+          {
+            "actual": 9.8,
+            "projection": 12.4,
+            "week": 2
+          },
+          {
+            "actual": 11.3,
+            "projection": 12.2,
+            "week": 3
+          },
+          {
+            "actual": 13.9,
+            "projection": 13.1,
+            "week": 4
+          }
+        ],
+        "name": "Team3 WR2",
+        "position": "WR",
+        "roster_id": 3,
+        "team": "DDD",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t3_wr3": {
+        "avg_points": 6.4,
+        "avg_projection": 8.1,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 5.5,
+            "projection": 8.0,
+            "week": 1
+          },
+          {
+            "actual": 3.9,
+            "projection": 8.1,
+            "week": 2
+          },
+          {
+            "actual": 2.3,
+            "projection": 8.2,
+            "week": 3
+          },
+          {
+            "actual": 14.0,
+            "projection": 8.3,
+            "week": 4
+          }
+        ],
+        "name": "Team3 WR3",
+        "position": "WR",
+        "roster_id": 3,
+        "team": "DDD",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t4_def1": {
+        "avg_points": 5.6,
+        "avg_projection": 6.5,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 11.4,
+            "projection": 6.8,
+            "week": 1
+          },
+          {
+            "actual": 2.2,
+            "projection": 6.4,
+            "week": 2
+          },
+          {
+            "actual": 3.4,
+            "projection": 6.3,
+            "week": 3
+          },
+          {
+            "actual": 5.2,
+            "projection": 6.6,
+            "week": 4
+          }
+        ],
+        "name": "Team4 DEF1",
+        "position": "DEF",
+        "roster_id": 4,
+        "team": "EEE",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t4_k1": {
+        "avg_points": 7.8,
+        "avg_projection": 7.6,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 3.9,
+            "projection": 7.2,
+            "week": 1
+          },
+          {
+            "actual": 9.6,
+            "projection": 7.8,
+            "week": 2
+          },
+          {
+            "actual": 10.5,
+            "projection": 7.7,
+            "week": 3
+          },
+          {
+            "actual": 7.2,
+            "projection": 7.6,
+            "week": 4
+          }
+        ],
+        "name": "Team4 K1",
+        "position": "K",
+        "roster_id": 4,
+        "team": "EEE",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t4_qb1": {
+        "avg_points": 17.7,
+        "avg_projection": 18.3,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 15.7,
+            "projection": 18.6,
+            "week": 1
+          },
+          {
+            "actual": 23.0,
+            "projection": 18.2,
+            "week": 2
+          },
+          {
+            "actual": 12.2,
+            "projection": 18.0,
+            "week": 3
+          },
+          {
+            "actual": 19.9,
+            "projection": 18.5,
+            "week": 4
+          }
+        ],
+        "name": "Team4 QB1",
+        "position": "QB",
+        "roster_id": 4,
+        "team": "EEE",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t4_qb2": {
+        "avg_points": 13.5,
+        "avg_projection": 11.1,
+        "beat": 3,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 16.0,
+            "projection": 11.3,
+            "week": 1
+          },
+          {
+            "actual": 14.7,
+            "projection": 11.4,
+            "week": 2
+          },
+          {
+            "actual": 12.5,
+            "projection": 10.7,
+            "week": 3
+          },
+          {
+            "actual": 10.6,
+            "projection": 10.8,
+            "week": 4
+          }
+        ],
+        "name": "Team4 QB2",
+        "position": "QB",
+        "roster_id": 4,
+        "team": "EEE",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t4_rb1": {
+        "avg_points": 15.4,
+        "avg_projection": 16.4,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 14.8,
+            "projection": 16.9,
+            "week": 1
+          },
+          {
+            "actual": 13.3,
+            "projection": 17.0,
+            "week": 2
+          },
+          {
+            "actual": 10.5,
+            "projection": 15.9,
+            "week": 3
+          },
+          {
+            "actual": 22.9,
+            "projection": 16.0,
+            "week": 4
+          }
+        ],
+        "name": "Team4 RB1",
+        "position": "RB",
+        "roster_id": 4,
+        "team": "EEE",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t4_rb2": {
+        "avg_points": 13.2,
+        "avg_projection": 13.5,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 10.0,
+            "projection": 13.2,
+            "week": 1
+          },
+          {
+            "actual": 19.4,
+            "projection": 13.5,
+            "week": 2
+          },
+          {
+            "actual": 6.9,
+            "projection": 13.4,
+            "week": 3
+          },
+          {
+            "actual": 16.3,
+            "projection": 13.8,
+            "week": 4
+          }
+        ],
+        "name": "Team4 RB2",
+        "position": "RB",
+        "roster_id": 4,
+        "team": "EEE",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t4_rb3": {
+        "avg_points": 11.5,
+        "avg_projection": 8.9,
+        "beat": 3,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 10.8,
+            "projection": 9.0,
+            "week": 1
+          },
+          {
+            "actual": 15.6,
+            "projection": 8.7,
+            "week": 2
+          },
+          {
+            "actual": 14.0,
+            "projection": 8.8,
+            "week": 3
+          },
+          {
+            "actual": 5.4,
+            "projection": 9.2,
+            "week": 4
+          }
+        ],
+        "name": "Team4 RB3",
+        "position": "RB",
+        "roster_id": 4,
+        "team": "EEE",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t4_te1": {
+        "avg_points": 9.9,
+        "avg_projection": 10.4,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 12.8,
+            "projection": 10.1,
+            "week": 1
+          },
+          {
+            "actual": 9.5,
+            "projection": 10.4,
+            "week": 2
+          },
+          {
+            "actual": 10.6,
+            "projection": 10.3,
+            "week": 3
+          },
+          {
+            "actual": 6.8,
+            "projection": 10.6,
+            "week": 4
+          }
+        ],
+        "name": "Team4 TE1",
+        "position": "TE",
+        "roster_id": 4,
+        "team": "EEE",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t4_te2": {
+        "avg_points": 6.2,
+        "avg_projection": 6.0,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 3.1,
+            "projection": 6.1,
+            "week": 1
+          },
+          {
+            "actual": 2.0,
+            "projection": 6.1,
+            "week": 2
+          },
+          {
+            "actual": 10.9,
+            "projection": 6.2,
+            "week": 3
+          },
+          {
+            "actual": 8.8,
+            "projection": 5.8,
+            "week": 4
+          }
+        ],
+        "name": "Team4 TE2",
+        "position": "TE",
+        "roster_id": 4,
+        "team": "EEE",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t4_wr1": {
+        "avg_points": 14.5,
+        "avg_projection": 15.3,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 11.7,
+            "projection": 15.3,
+            "week": 1
+          },
+          {
+            "actual": 13.2,
+            "projection": 15.1,
+            "week": 2
+          },
+          {
+            "actual": 14.8,
+            "projection": 15.0,
+            "week": 3
+          },
+          {
+            "actual": 18.1,
+            "projection": 16.0,
+            "week": 4
+          }
+        ],
+        "name": "Team4 WR1",
+        "position": "WR",
+        "roster_id": 4,
+        "team": "EEE",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t4_wr2": {
+        "avg_points": 12.1,
+        "avg_projection": 12.9,
+        "beat": 2,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 15.3,
+            "projection": 13.2,
+            "week": 1
+          },
+          {
+            "actual": 5.9,
+            "projection": 12.8,
+            "week": 2
+          },
+          {
+            "actual": 18.4,
+            "projection": 12.9,
+            "week": 3
+          },
+          {
+            "actual": 8.9,
+            "projection": 12.5,
+            "week": 4
+          }
+        ],
+        "name": "Team4 WR2",
+        "position": "WR",
+        "roster_id": 4,
+        "team": "EEE",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "t4_wr3": {
+        "avg_points": 10.3,
+        "avg_projection": 8.5,
+        "beat": 3,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 14.4,
+            "projection": 8.4,
+            "week": 1
+          },
+          {
+            "actual": 9.6,
+            "projection": 8.7,
+            "week": 2
+          },
+          {
+            "actual": 11.2,
+            "projection": 8.6,
+            "week": 3
+          },
+          {
+            "actual": 5.8,
+            "projection": 8.2,
+            "week": 4
+          }
+        ],
+        "name": "Team4 WR3",
+        "position": "WR",
+        "roster_id": 4,
+        "team": "EEE",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "te1": {
+        "avg_points": 7.1,
+        "avg_projection": 7.9,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 3.9,
+            "projection": 7.8,
+            "week": 1
+          },
+          {
+            "actual": 7.5,
+            "projection": 7.8,
+            "week": 2
+          },
+          {
+            "actual": 6.4,
+            "projection": 7.9,
+            "week": 3
+          },
+          {
+            "actual": 10.6,
+            "projection": 8.0,
+            "week": 4
+          }
+        ],
+        "name": "Tom Alpha",
+        "position": "TE",
+        "roster_id": 1,
+        "team": "AAA",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "te2": {
+        "avg_points": 4.2,
+        "avg_projection": 6.0,
+        "beat": 0,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 2.4,
+            "projection": 6.0,
+            "week": 1
+          },
+          {
+            "actual": 3.8,
+            "projection": 6.2,
+            "week": 2
+          },
+          {
+            "actual": 4.9,
+            "projection": 6.1,
+            "week": 3
+          },
+          {
+            "actual": 5.8,
+            "projection": 5.8,
+            "week": 4
+          }
+        ],
+        "name": "Tom Bravo",
+        "position": "TE",
+        "roster_id": 1,
+        "team": "BBB",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "wr1": {
+        "avg_points": 13.3,
+        "avg_projection": 15.0,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 12.3,
+            "projection": 15.1,
+            "week": 1
+          },
+          {
+            "actual": 10.2,
+            "projection": 14.6,
+            "week": 2
+          },
+          {
+            "actual": 8.7,
+            "projection": 14.8,
+            "week": 3
+          },
+          {
+            "actual": 21.8,
+            "projection": 15.5,
+            "week": 4
+          }
+        ],
+        "name": "Wes Alpha",
+        "position": "WR",
+        "roster_id": 1,
+        "team": "AAA",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "wr2": {
+        "avg_points": 7.8,
+        "avg_projection": 10.6,
+        "beat": 1,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 14.0,
+            "projection": 12.0,
+            "week": 1
+          },
+          {
+            "actual": 9.0,
+            "projection": 11.0,
+            "week": 2
+          },
+          {
+            "actual": 5.0,
+            "projection": 10.0,
+            "week": 3
+          },
+          {
+            "actual": 3.0,
+            "projection": 9.5,
+            "week": 4
+          }
+        ],
+        "name": "Wes Bravo",
+        "position": "WR",
+        "roster_id": 1,
+        "team": "BBB",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "wr3": {
+        "avg_points": 16.0,
+        "avg_projection": 13.9,
+        "beat": 3,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 11.6,
+            "projection": 13.7,
+            "week": 1
+          },
+          {
+            "actual": 16.7,
+            "projection": 13.9,
+            "week": 2
+          },
+          {
+            "actual": 15.2,
+            "projection": 14.0,
+            "week": 3
+          },
+          {
+            "actual": 20.3,
+            "projection": 14.1,
+            "week": 4
+          }
+        ],
+        "name": "Wes Charlie",
+        "position": "WR",
+        "roster_id": 1,
+        "team": "CCC",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "wr4": {
+        "avg_points": 6.1,
+        "avg_projection": 3.5,
+        "beat": 3,
+        "compared": 4,
+        "games": 4,
+        "last": [
+          {
+            "actual": 6.6,
+            "projection": 3.6,
+            "week": 1
+          },
+          {
+            "actual": 8.1,
+            "projection": 3.4,
+            "week": 2
+          },
+          {
+            "actual": 9.7,
+            "projection": 3.4,
+            "week": 3
+          },
+          {
+            "actual": 0.0,
+            "projection": 3.5,
+            "week": 4
+          }
+        ],
+        "name": "Wes Delta",
+        "position": "WR",
+        "roster_id": 1,
+        "team": "DDD",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    "projection_sources": {
+      "backfill": 237,
+      "snapshot": 0
+    },
+    "reason": null,
+    "stats_missing_weeks": [
+      2
+    ],
+    "weeks": [
+      1,
+      2,
+      3,
+      4
+    ]
   },
   "lineup": {
     "actions": [
@@ -552,25 +2679,54 @@
     "opponent_projected": 100.7,
     "opponent_projected_final": 100.7,
     "opponent_roster_id": 2,
-    "opponent_team": "Team 2"
+    "opponent_team": "Team 2",
+    "win_probability": {
+      "current_lineup_pct": 38.2,
+      "fixed_players": 0,
+      "moves": [],
+      "my_range": {
+        "p10": 93.51,
+        "p50": 109.33,
+        "p90": 125.13
+      },
+      "note": "Each starter scores around their projection with a spread by position (normal, floored at 0, wider for bigger projections); players whose game has started count at their current points. Players are treated as independent: same-game correlation is not modelled.",
+      "opponent_range": {
+        "p10": 85.73,
+        "p50": 101.06,
+        "p90": 116.49
+      },
+      "recommended_lineup_pct": 69.2,
+      "simulations": 10000,
+      "spread_source": "this season's projection misses for QB, RB, TE, WR; typical spreads for the rest",
+      "spreads": {
+        "DEF": 5.5,
+        "K": 4.0,
+        "QB": 3.48,
+        "RB": 4.46,
+        "TE": 2.69,
+        "WR": 3.95
+      }
+    }
   },
   "metadata": {
     "churn_threshold": 0.5,
     "fairness": 0.1,
-    "generated_at": "2026-11-11T00:56:05Z",
+    "generated_at": "2026-11-11T20:19:32Z",
+    "horizon_mode": "weeks",
     "league_id": "1400680781302525952",
     "league_name": "Test League",
     "offline": true,
     "players_source": "fixture",
     "projections": {
       "cache_age_seconds": 0,
-      "fetched_at": "2026-11-11T00:56:05Z",
+      "fetched_at": "2026-11-11T20:19:32Z",
       "note": "Projection feed is not part of Sleeper's documented read-only API and is treated as an unstable dependency.",
       "record_count": 62,
       "source": "fixture",
       "stale": false,
       "url": "https://api.sleeper.app/projections/nfl/2025/5?season_type=regular&order_by=pts_ppr"
     },
+    "projections_mode": "sleeper",
     "read_only": true,
     "roster_id": 1,
     "roster_positions": [
@@ -612,17 +2768,337 @@
       "DEF"
     ],
     "team_name": "Trasa Titans",
-    "tool_version": "2.5.1",
+    "tool_version": "2.12.0",
     "top_n": 10,
     "user_id": "u1",
     "username": "MaTrasaMaae",
     "week": 5,
     "week_rolled_from": null,
+    "window_label": "weeks 5, 6, 7, 8",
     "window_weeks": [
       5,
       6,
       7,
       8
+    ]
+  },
+  "opportunity": {
+    "available": true,
+    "breakouts": [
+      {
+        "carries_now": 10.5,
+        "flag": "breakout",
+        "name": "Free Run Two",
+        "note": "snaps 25% -> 57%, targets+carries 5 -> 13 a game",
+        "opportunities_now": 13.0,
+        "opportunities_then": 5.0,
+        "player_id": "fa_rb2",
+        "position": "RB",
+        "rostered_by": null,
+        "snap_now": 57,
+        "snap_then": 25,
+        "targets_now": 2.5,
+        "team": "FFF",
+        "weeks": [
+          1,
+          3,
+          4
+        ]
+      }
+    ],
+    "declining": [
+      {
+        "carries_now": 0.0,
+        "flag": "declining",
+        "name": "Wes Bravo",
+        "note": "snaps 89% -> 52%, targets+carries 8 -> 4.5 a game",
+        "opportunities_now": 4.5,
+        "opportunities_then": 8.0,
+        "player_id": "wr2",
+        "position": "WR",
+        "rostered_by": "Trasa Titans",
+        "snap_now": 52,
+        "snap_then": 89,
+        "targets_now": 4.5,
+        "team": "BBB",
+        "weeks": [
+          1,
+          3,
+          4
+        ]
+      }
+    ],
+    "note": "Earlier weeks vs the last two (of the last four with usage). Breakout: snap share up 15+ points to 45%+, or targets + carries up by 4+ and half again. Losing role: snap share down 15+ points from 40%+, or targets + carries down 4+ and by 40%.",
+    "players": {
+      "qb1": {
+        "carries_now": 3.0,
+        "flag": null,
+        "name": "Quinn Alpha",
+        "note": "snaps 85% -> 85%, targets+carries 3 -> 3 a game",
+        "opportunities_now": 3.0,
+        "opportunities_then": 3.0,
+        "player_id": "qb1",
+        "position": "QB",
+        "rostered_by": "Trasa Titans",
+        "snap_now": 85,
+        "snap_then": 85,
+        "targets_now": 0.0,
+        "team": "AAA",
+        "weeks": [
+          1,
+          3,
+          4
+        ]
+      },
+      "qb2": {
+        "carries_now": 3.0,
+        "flag": null,
+        "name": "Quinn Bravo",
+        "note": "snaps 85% -> 85%, targets+carries 3 -> 3 a game",
+        "opportunities_now": 3.0,
+        "opportunities_then": 3.0,
+        "player_id": "qb2",
+        "position": "QB",
+        "rostered_by": "Trasa Titans",
+        "snap_now": 85,
+        "snap_then": 85,
+        "targets_now": 0.0,
+        "team": "BBB",
+        "weeks": [
+          1,
+          3,
+          4
+        ]
+      },
+      "rb1": {
+        "carries_now": 15.0,
+        "flag": null,
+        "name": "Ryan Alpha",
+        "note": "snaps 85% -> 85%, targets+carries 18 -> 18 a game",
+        "opportunities_now": 18.0,
+        "opportunities_then": 18.0,
+        "player_id": "rb1",
+        "position": "RB",
+        "rostered_by": "Trasa Titans",
+        "snap_now": 85,
+        "snap_then": 85,
+        "targets_now": 3.0,
+        "team": "AAA",
+        "weeks": [
+          1,
+          3,
+          4
+        ]
+      },
+      "rb2": {
+        "carries_now": 15.0,
+        "flag": null,
+        "name": "Ryan Bravo",
+        "note": "snaps 85% -> 85%, targets+carries 18 -> 18 a game",
+        "opportunities_now": 18.0,
+        "opportunities_then": 18.0,
+        "player_id": "rb2",
+        "position": "RB",
+        "rostered_by": "Trasa Titans",
+        "snap_now": 85,
+        "snap_then": 85,
+        "targets_now": 3.0,
+        "team": "BBB",
+        "weeks": [
+          1,
+          3,
+          4
+        ]
+      },
+      "rb3": {
+        "carries_now": 15.0,
+        "flag": null,
+        "name": "Ryan Charlie",
+        "note": "snaps 85% -> 85%, targets+carries 18 -> 18 a game",
+        "opportunities_now": 18.0,
+        "opportunities_then": 18.0,
+        "player_id": "rb3",
+        "position": "RB",
+        "rostered_by": "Trasa Titans",
+        "snap_now": 85,
+        "snap_then": 85,
+        "targets_now": 3.0,
+        "team": "CCC",
+        "weeks": [
+          1,
+          3,
+          4
+        ]
+      },
+      "rb4": {
+        "carries_now": 15.0,
+        "flag": null,
+        "name": "Ryan Delta",
+        "note": "snaps 85% -> 85%, targets+carries 18 -> 18 a game",
+        "opportunities_now": 18.0,
+        "opportunities_then": 18.0,
+        "player_id": "rb4",
+        "position": "RB",
+        "rostered_by": "Trasa Titans",
+        "snap_now": 85,
+        "snap_then": 85,
+        "targets_now": 3.0,
+        "team": "DDD",
+        "weeks": [
+          1,
+          3,
+          4
+        ]
+      },
+      "rb5": {
+        "carries_now": 15.0,
+        "flag": null,
+        "name": "Ryan Echo",
+        "note": "snaps 85% -> 85%, targets+carries 18 -> 18 a game",
+        "opportunities_now": 18.0,
+        "opportunities_then": 18.0,
+        "player_id": "rb5",
+        "position": "RB",
+        "rostered_by": "Trasa Titans",
+        "snap_now": 85,
+        "snap_then": 85,
+        "targets_now": 3.0,
+        "team": "EEE",
+        "weeks": [
+          1,
+          3,
+          4
+        ]
+      },
+      "te1": {
+        "carries_now": 0.0,
+        "flag": null,
+        "name": "Tom Alpha",
+        "note": "snaps 85% -> 85%, targets+carries 5 -> 5 a game",
+        "opportunities_now": 5.0,
+        "opportunities_then": 5.0,
+        "player_id": "te1",
+        "position": "TE",
+        "rostered_by": "Trasa Titans",
+        "snap_now": 85,
+        "snap_then": 85,
+        "targets_now": 5.0,
+        "team": "AAA",
+        "weeks": [
+          1,
+          3,
+          4
+        ]
+      },
+      "te2": {
+        "carries_now": 0.0,
+        "flag": null,
+        "name": "Tom Bravo",
+        "note": "snaps 85% -> 85%, targets+carries 5 -> 5 a game",
+        "opportunities_now": 5.0,
+        "opportunities_then": 5.0,
+        "player_id": "te2",
+        "position": "TE",
+        "rostered_by": "Trasa Titans",
+        "snap_now": 85,
+        "snap_then": 85,
+        "targets_now": 5.0,
+        "team": "BBB",
+        "weeks": [
+          1,
+          3,
+          4
+        ]
+      },
+      "wr1": {
+        "carries_now": 0.0,
+        "flag": null,
+        "name": "Wes Alpha",
+        "note": "snaps 85% -> 85%, targets+carries 8 -> 8 a game",
+        "opportunities_now": 8.0,
+        "opportunities_then": 8.0,
+        "player_id": "wr1",
+        "position": "WR",
+        "rostered_by": "Trasa Titans",
+        "snap_now": 85,
+        "snap_then": 85,
+        "targets_now": 8.0,
+        "team": "AAA",
+        "weeks": [
+          1,
+          3,
+          4
+        ]
+      },
+      "wr2": {
+        "carries_now": 0.0,
+        "flag": "declining",
+        "name": "Wes Bravo",
+        "note": "snaps 89% -> 52%, targets+carries 8 -> 4.5 a game",
+        "opportunities_now": 4.5,
+        "opportunities_then": 8.0,
+        "player_id": "wr2",
+        "position": "WR",
+        "rostered_by": "Trasa Titans",
+        "snap_now": 52,
+        "snap_then": 89,
+        "targets_now": 4.5,
+        "team": "BBB",
+        "weeks": [
+          1,
+          3,
+          4
+        ]
+      },
+      "wr3": {
+        "carries_now": 0.0,
+        "flag": null,
+        "name": "Wes Charlie",
+        "note": "snaps 85% -> 85%, targets+carries 8 -> 8 a game",
+        "opportunities_now": 8.0,
+        "opportunities_then": 8.0,
+        "player_id": "wr3",
+        "position": "WR",
+        "rostered_by": "Trasa Titans",
+        "snap_now": 85,
+        "snap_then": 85,
+        "targets_now": 8.0,
+        "team": "CCC",
+        "weeks": [
+          1,
+          3,
+          4
+        ]
+      },
+      "wr4": {
+        "carries_now": 0.0,
+        "flag": null,
+        "name": "Wes Delta",
+        "note": "snaps 85% -> 85%, targets+carries 8 -> 8 a game",
+        "opportunities_now": 8.0,
+        "opportunities_then": 8.0,
+        "player_id": "wr4",
+        "position": "WR",
+        "rostered_by": "Trasa Titans",
+        "snap_now": 85,
+        "snap_then": 85,
+        "targets_now": 8.0,
+        "team": "DDD",
+        "weeks": [
+          1,
+          3,
+          4
+        ]
+      }
+    },
+    "reason": null,
+    "sources": {
+      "sleeper": 3
+    },
+    "weeks": [
+      1,
+      3,
+      4
     ]
   },
   "player_pool": [
@@ -1433,6 +3909,41 @@
       }
     }
   ],
+  "projection_sources": {
+    "available": true,
+    "blended_weeks": [],
+    "compared": 55,
+    "disagreements": [
+      {
+        "difference": -7.0,
+        "espn_ppr": 8.0,
+        "name": "Wes Alpha",
+        "player_id": "wr1",
+        "position": "WR",
+        "sleeper_ppr": 15.0,
+        "team": "AAA",
+        "where": "your starter"
+      },
+      {
+        "difference": 6.0,
+        "espn_ppr": 18.0,
+        "name": "Free Run One",
+        "player_id": "fa_rb1",
+        "position": "RB",
+        "sleeper_ppr": 12.0,
+        "team": "EEE",
+        "where": "free agent"
+      }
+    ],
+    "matched": 57,
+    "mean_abs_diff": 0.8,
+    "mode": "sleeper",
+    "note": "PPR points from each source (league scoring can't be applied to ESPN's totals). Disagreement: 4+ points and 30%+ apart. Your roster, plus free agents projected 8+ by either source.",
+    "provider": "espn",
+    "reason": null,
+    "unmatched": 5,
+    "week": 5
+  },
   "rosters": [
     {
       "is_me": true,
@@ -1922,7 +4433,7 @@
       "team": "Team 4"
     }
   ],
-  "schema_version": "1.0",
+  "schema_version": "1.5",
   "trades": {
     "fairness_tolerance": 0.1,
     "league_average_depth": {
@@ -2125,6 +4636,13 @@
           "player_id": "fa_inactive1",
           "position": "RB",
           "projection": 14.0,
+          "recent": {
+            "avg_points": 16.2,
+            "avg_projection": 13.8,
+            "beat": 2,
+            "compared": 3,
+            "games": 3
+          },
           "replacement_advantage": 2.0,
           "replacement_level": 12.0,
           "rest_of_season_value": 0.0,
@@ -2165,6 +4683,13 @@
           "player_id": "fa_out1",
           "position": "WR",
           "projection": 15.0,
+          "recent": {
+            "avg_points": 15.1,
+            "avg_projection": 15.2,
+            "beat": 2,
+            "compared": 3,
+            "games": 3
+          },
           "replacement_advantage": 2.25,
           "replacement_level": 12.75,
           "rest_of_season_value": 9.0,
@@ -2203,6 +4728,13 @@
           "player_id": "fa_wr1",
           "position": "WR",
           "projection": 16.5,
+          "recent": {
+            "avg_points": 14.6,
+            "avg_projection": 16.6,
+            "beat": 1,
+            "compared": 3,
+            "games": 3
+          },
           "replacement_advantage": 3.75,
           "replacement_level": 12.75,
           "rest_of_season_value": 18.0,
@@ -2239,6 +4771,13 @@
           "player_id": "fa_k1",
           "position": "K",
           "projection": 8.5,
+          "recent": {
+            "avg_points": 8.0,
+            "avg_projection": 8.5,
+            "beat": 1,
+            "compared": 3,
+            "games": 3
+          },
           "replacement_advantage": 1.5,
           "replacement_level": 7.0,
           "rest_of_season_value": 6.0,
@@ -2275,6 +4814,13 @@
           "player_id": "fa_def1",
           "position": "DEF",
           "projection": 7.5,
+          "recent": {
+            "avg_points": 8.6,
+            "avg_projection": 7.5,
+            "beat": 2,
+            "compared": 3,
+            "games": 3
+          },
           "replacement_advantage": 1.5,
           "replacement_level": 6.0,
           "rest_of_season_value": 6.0,
@@ -2311,6 +4857,13 @@
           "player_id": "fa_te1",
           "position": "TE",
           "projection": 9.0,
+          "recent": {
+            "avg_points": 9.6,
+            "avg_projection": 8.9,
+            "beat": 2,
+            "compared": 3,
+            "games": 3
+          },
           "replacement_advantage": 0.0,
           "replacement_level": 9.0,
           "rest_of_season_value": 4.0,

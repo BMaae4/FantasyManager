@@ -3,6 +3,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "DEF",
+  "espn_id": 4000,
   "fantasy_positions": [
    "DEF"
   ],
@@ -23,6 +24,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "DEF",
+  "espn_id": 4001,
   "fantasy_positions": [
    "DEF"
   ],
@@ -43,6 +45,7 @@
   "active": false,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4002,
   "fantasy_positions": [
    "RB"
   ],
@@ -63,6 +66,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "K",
+  "espn_id": 4003,
   "fantasy_positions": [
    "K"
   ],
@@ -83,6 +87,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4004,
   "fantasy_positions": [
    "WR"
   ],
@@ -103,6 +108,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "QB",
+  "espn_id": 4005,
   "fantasy_positions": [
    "QB"
   ],
@@ -123,6 +129,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4006,
   "fantasy_positions": [
    "WR"
   ],
@@ -143,6 +150,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4007,
   "fantasy_positions": [
    "RB"
   ],
@@ -163,6 +171,7 @@
   "active": true,
   "depth_chart_order": 3,
   "depth_chart_position": "RB",
+  "espn_id": 4008,
   "fantasy_positions": [
    "RB"
   ],
@@ -183,6 +192,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "TE",
+  "espn_id": 4009,
   "fantasy_positions": [
    "TE"
   ],
@@ -203,6 +213,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4010,
   "fantasy_positions": [
    "WR"
   ],
@@ -223,6 +234,7 @@
   "active": true,
   "depth_chart_order": 2,
   "depth_chart_position": "WR",
+  "espn_id": 4011,
   "fantasy_positions": [
    "WR"
   ],
@@ -243,6 +255,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "K",
+  "espn_id": 4012,
   "fantasy_positions": [
    "K"
   ],
@@ -263,6 +276,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "QB",
+  "espn_id": 4013,
   "fantasy_positions": [
    "QB"
   ],
@@ -283,6 +297,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "QB",
+  "espn_id": 4014,
   "fantasy_positions": [
    "QB"
   ],
@@ -303,6 +318,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4015,
   "fantasy_positions": [
    "RB"
   ],
@@ -323,6 +339,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4016,
   "fantasy_positions": [
    "RB"
   ],
@@ -343,6 +360,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4017,
   "fantasy_positions": [
    "RB"
   ],
@@ -363,6 +381,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4018,
   "fantasy_positions": [
    "RB"
   ],
@@ -383,6 +402,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4019,
   "fantasy_positions": [
    "RB"
   ],
@@ -403,6 +423,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "DEF",
+  "espn_id": 4020,
   "fantasy_positions": [
    "DEF"
   ],
@@ -423,6 +444,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "K",
+  "espn_id": 4021,
   "fantasy_positions": [
    "K"
   ],
@@ -443,6 +465,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "QB",
+  "espn_id": 4022,
   "fantasy_positions": [
    "QB"
   ],
@@ -463,6 +486,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "QB",
+  "espn_id": 4023,
   "fantasy_positions": [
    "QB"
   ],
@@ -483,6 +507,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4024,
   "fantasy_positions": [
    "RB"
   ],
@@ -503,6 +528,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4025,
   "fantasy_positions": [
    "RB"
   ],
@@ -523,6 +549,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4026,
   "fantasy_positions": [
    "RB"
   ],
@@ -543,6 +570,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "TE",
+  "espn_id": 4027,
   "fantasy_positions": [
    "TE"
   ],
@@ -563,6 +591,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "TE",
+  "espn_id": 4028,
   "fantasy_positions": [
    "TE"
   ],
@@ -583,6 +612,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4029,
   "fantasy_positions": [
    "WR"
   ],
@@ -603,6 +633,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4030,
   "fantasy_positions": [
    "WR"
   ],
@@ -623,6 +654,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4031,
   "fantasy_positions": [
    "WR"
   ],
@@ -643,6 +675,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "DEF",
+  "espn_id": 4032,
   "fantasy_positions": [
    "DEF"
   ],
@@ -663,6 +696,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "K",
+  "espn_id": 4033,
   "fantasy_positions": [
    "K"
   ],
@@ -683,6 +717,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "QB",
+  "espn_id": 4034,
   "fantasy_positions": [
    "QB"
   ],
@@ -703,6 +738,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "QB",
+  "espn_id": 4035,
   "fantasy_positions": [
    "QB"
   ],
@@ -723,6 +759,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4036,
   "fantasy_positions": [
    "RB"
   ],
@@ -743,6 +780,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4037,
   "fantasy_positions": [
    "RB"
   ],
@@ -763,6 +801,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4038,
   "fantasy_positions": [
    "RB"
   ],
@@ -783,6 +822,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "TE",
+  "espn_id": 4039,
   "fantasy_positions": [
    "TE"
   ],
@@ -803,6 +843,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "TE",
+  "espn_id": 4040,
   "fantasy_positions": [
    "TE"
   ],
@@ -823,6 +864,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4041,
   "fantasy_positions": [
    "WR"
   ],
@@ -843,6 +885,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4042,
   "fantasy_positions": [
    "WR"
   ],
@@ -863,6 +906,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4043,
   "fantasy_positions": [
    "WR"
   ],
@@ -883,6 +927,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "DEF",
+  "espn_id": 4044,
   "fantasy_positions": [
    "DEF"
   ],
@@ -903,6 +948,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "K",
+  "espn_id": 4045,
   "fantasy_positions": [
    "K"
   ],
@@ -923,6 +969,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "QB",
+  "espn_id": 4046,
   "fantasy_positions": [
    "QB"
   ],
@@ -943,6 +990,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "QB",
+  "espn_id": 4047,
   "fantasy_positions": [
    "QB"
   ],
@@ -963,6 +1011,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4048,
   "fantasy_positions": [
    "RB"
   ],
@@ -983,6 +1032,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4049,
   "fantasy_positions": [
    "RB"
   ],
@@ -1003,6 +1053,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "RB",
+  "espn_id": 4050,
   "fantasy_positions": [
    "RB"
   ],
@@ -1023,6 +1074,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "TE",
+  "espn_id": 4051,
   "fantasy_positions": [
    "TE"
   ],
@@ -1043,6 +1095,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "TE",
+  "espn_id": 4052,
   "fantasy_positions": [
    "TE"
   ],
@@ -1063,6 +1116,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4053,
   "fantasy_positions": [
    "WR"
   ],
@@ -1083,6 +1137,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4054,
   "fantasy_positions": [
    "WR"
   ],
@@ -1103,6 +1158,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4055,
   "fantasy_positions": [
    "WR"
   ],
@@ -1123,6 +1179,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "TE",
+  "espn_id": 4056,
   "fantasy_positions": [
    "TE"
   ],
@@ -1143,6 +1200,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "TE",
+  "espn_id": 4057,
   "fantasy_positions": [
    "TE"
   ],
@@ -1163,6 +1221,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4058,
   "fantasy_positions": [
    "WR"
   ],
@@ -1183,6 +1242,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4059,
   "fantasy_positions": [
    "WR"
   ],
@@ -1203,6 +1263,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4060,
   "fantasy_positions": [
    "WR"
   ],
@@ -1223,6 +1284,7 @@
   "active": true,
   "depth_chart_order": 1,
   "depth_chart_position": "WR",
+  "espn_id": 4061,
   "fantasy_positions": [
    "WR"
   ],

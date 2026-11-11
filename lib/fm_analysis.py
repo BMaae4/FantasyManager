@@ -22,8 +22,9 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fm_history  # noqa: E402
+import fm_providers  # noqa: E402
 
-SCHEMA_VERSION = "1.4"
+SCHEMA_VERSION = "1.5"
 
 # Slots that do not start.
 NON_STARTING_SLOTS = {"BN", "BE", "IR", "TAXI", "RESERVE"}
@@ -2437,6 +2438,80 @@ class Analyzer:
                      "from 40%+, or targets + carries down 4+ and by 40%."),
         }
 
+    # -- second projection source: compare and blend ----------------------
+    def sleeper_ppr(self, pid: str, w: int = 0) -> Optional[float]:
+        stats = self.week_stats[w].get(pid) if w < len(self.week_stats) else None
+        value = stats.get("pts_ppr") if isinstance(stats, dict) else None
+        return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+    def apply_blend(self) -> List[int]:
+        """--projections blend: move each league-scored Sleeper projection
+        halfway toward the second source (as a ratio of the PPR totals)."""
+        self.blend_counts: Dict[int, int] = {}
+        prov = self.bundle.get("providers")
+        if self.config.get("projections_mode") != "blend" or not isinstance(prov, dict):
+            return []
+        blended = []
+        for wi, week in enumerate(self.window_weeks):
+            other = (prov.get("weeks") or {}).get(str(week))
+            if not other:
+                continue
+            count = 0
+            for pid, value in list(self.week_points[wi].items()):
+                factor = fm_providers.blend_factor(self.sleeper_ppr(pid, wi), other.get(pid))
+                if factor is not None:
+                    self.week_points[wi][pid] = value * factor
+                    count += 1
+            if count:
+                blended.append(week)
+                self.blend_counts[week] = count
+        self._optimize_cache.clear()
+        return blended
+
+    def compare_sources(self, blended: List[int], lineup: dict, waivers: Optional[dict]) -> Optional[dict]:
+        prov = self.bundle.get("providers")
+        if not isinstance(prov, dict):
+            return None
+        week = self.window_weeks[0] if self.window_weeks else int(self.config.get("week") or 0)
+        other = (prov.get("weeks") or {}).get(str(week)) or {}
+        base = {"provider": prov.get("provider") or "espn", "week": week,
+                "mode": self.config.get("projections_mode") or "sleeper", "blended_weeks": blended,
+                "matched": (prov.get("matched") or {}).get(str(week), 0),
+                "unmatched": (prov.get("unmatched") or {}).get(str(week), 0)}
+        if not other:
+            base.update({"available": False, "disagreements": [], "mean_abs_diff": None, "compared": 0,
+                         "reason": "ESPN projections for week %d could not be loaded (see diagnostics)." % week})
+            return base
+        my_roster = self.roster_by_id(self.my_roster_id) or {}
+        mine = set(self.roster_active_players(my_roster))
+        starters = {s["recommended"]["player_id"] for s in lineup["slots"] if s.get("recommended")}
+        waiver_ids = [str(r["player_id"]) for rows in ((waivers or {}).get("groups") or {}).values() for r in rows]
+        diffs, rows = [], []
+        for pid, espn in other.items():
+            sleeper = self.sleeper_ppr(pid)
+            if sleeper is None:
+                continue
+            if max(sleeper, espn) >= 5.0:
+                diffs.append(abs(sleeper - espn))
+            free_agent = pid not in self.rostered and (pid in waiver_ids or max(sleeper, espn) >= 8.0)
+            if (pid in mine or free_agent) and fm_providers.disagrees(sleeper, espn):
+                rows.append({"player_id": pid, "name": self.player_name(pid), "position": self.primary_position(pid),
+                             "team": self.player(pid).get("team"),
+                             "where": "your starter" if pid in starters else ("your bench" if pid in mine else "free agent"),
+                             "sleeper_ppr": r2(sleeper), "espn_ppr": r2(espn), "difference": r2(espn - sleeper)})
+        order = {"your starter": 0, "your bench": 1, "free agent": 2}
+        rows.sort(key=lambda r: (order[r["where"]], -abs(r["difference"] or 0), r["name"]))
+        mine_rows = [r for r in rows if r["where"] != "free agent"]
+        rows = mine_rows + [r for r in rows if r["where"] == "free agent"][: self.top_n]
+        base.update({
+            "available": True, "reason": None, "compared": len(diffs),
+            "mean_abs_diff": r2(sum(diffs) / len(diffs)) if diffs else None,
+            "disagreements": rows,
+            "note": ("PPR points from each source (league scoring can't be applied to ESPN's totals). Disagreement: "
+                     "4+ points and 30%+ apart. Your roster, plus free agents projected 8+ by either source."),
+        })
+        return base
+
     def player_pool(self) -> List[dict]:
         """Projected players at fantasy positions, for picking any-player trades."""
         rows = []
@@ -2483,6 +2558,7 @@ class Analyzer:
         if my_roster is None:
             raise SystemExit("roster %s not found in league rosters" % self.my_roster_id)
         history = self.analyze_history()
+        blended = self.apply_blend()
         opportunity = self.analyze_opportunity()
 
         lineup = self.analyze_lineup(my_roster)
@@ -2521,6 +2597,7 @@ class Analyzer:
                 "week_rolled_from": self.config.get("week_rolled_from"),
                 "window_weeks": self.window_weeks,
                 "horizon_mode": self.config.get("horizon_mode") or "weeks",
+                "projections_mode": self.config.get("projections_mode") or "sleeper",
                 "window_label": self.window_label(),
                 "offline": bool(self.config.get("offline")),
                 "top_n": self.config.get("top_n"),
@@ -2558,6 +2635,7 @@ class Analyzer:
             "value_trades": value_trades,
             "history": history,
             "opportunity": opportunity,
+            "projection_sources": self.compare_sources(blended, lineup, waivers),
             "player_pool": self.player_pool(),
             "rosters": self.roster_summaries(),
             "diagnostics": {

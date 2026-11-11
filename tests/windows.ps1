@@ -117,6 +117,10 @@ $r = Run-Script @('-ReportFile', "`"$(Join-Path $Expected 'season_history.json')
 Check 'GUI history and trends tabs fill from a report' ($r.Code -eq 0 -and $r.Out -match 'history rows 7, form rows 15, breakouts 1, declining 1') ("$($r.Out) $($r.Err)")
 $r = Run-Script @('-ReportFile', "`"$(Join-Path $Expected 'underdog_volatile.json')`"", '-GuiSmokeTest')
 Check 'GUI shows the win probability' ($r.Code -eq 0 -and $r.Out -match 'win \d+(\.\d)?\s*$') ("$($r.Out) $($r.Err)")
+$espnReport = Join-Path $work 'espn.json'
+$null = Run-Script @('-NoGui', '-Offline', '-Fixtures', "`"$(Join-Path $fixtures 'espn_compare')`"", '-NoCache', '-Quiet', '-Projections', 'blend', '-OutFile', "`"$espnReport`"")
+$r = Run-Script @('-ReportFile', "`"$espnReport`"", '-GuiSmokeTest')
+Check 'GUI sources tab lists disagreements (blend run)' ($r.Code -eq 0 -and $r.Out -match 'sources 2,') ("$($r.Out) $($r.Err)")
 $r = Run-Script @('-GuiSmokeTest')
 Check 'GUI builds with no report' ($r.Code -eq 0 -and $r.Out -match 'GUI smoke test ok.*remember True') ("$($r.Out) $($r.Err)")
 

@@ -29,9 +29,10 @@ from typing import Any, Dict, List, Optional, Tuple
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fm_analysis  # noqa: E402
 import fm_history  # noqa: E402
+import fm_providers  # noqa: E402
 
 TOOL_NAME = "fantasy_manager"
-TOOL_VERSION = "2.11.0"
+TOOL_VERSION = "2.12.0"
 
 # --------------------------------------------------------------------------
 # Defaults (run with no parameters)
@@ -112,6 +113,10 @@ Analysis options:
                            started; they are never moved (added to auto-detection)
       --skip-waivers       Skip waiver analysis
       --skip-trades        Skip trade analysis
+      --compare SOURCE     Second projection source to compare with Sleeper's:
+                           espn or none (default: espn)
+      --projections MODE   sleeper (default) or blend: a 50/50 Sleeper + ESPN
+                           consensus, in your league's scoring
       --no-history         Don't record or report past weeks (projection accuracy,
                            recent form)
       --history-db PATH    History database (default: history.sqlite in the cache
@@ -275,7 +280,7 @@ VALUE_OPTIONS = {
     "--season-type": "season_type", "-n": "top_n", "--top": "top_n",
     "--threshold": "threshold", "--fairness": "fairness", "--locked": "locked",
     "--trade": "trade", "--value-trade": "value_trade", "--scoring": "scoring",
-    "--teams": "teams", "--horizon": "horizon", "-f": "format", "--format": "format",
+    "--teams": "teams", "--horizon": "horizon", "--compare": "compare", "--projections": "projections_mode", "-f": "format", "--format": "format",
     "-o": "output", "--output": "output", "--log-file": "log_file",
     "--cache-dir": "cache_dir", "--cache-ttl": "projections_ttl",
     "--fixtures": "fixtures", "--config": "config_file", "--history-db": "history_db",
@@ -451,6 +456,9 @@ def load_configuration(cli: Dict[str, str]) -> Config:
     c.history_db = resolve("history_db", "FM_HISTORY_DB", "")
     c.stats_base = resolve("stats_base", "FM_STATS_BASE", DEFAULT_STATS_BASE)
     c.nflverse_base = resolve("nflverse_base", "FM_NFLVERSE_BASE", DEFAULT_NFLVERSE_BASE)
+    c.compare = resolve("compare", "FM_COMPARE", "espn").lower()
+    c.projections_mode = resolve("projections_mode", "FM_PROJECTIONS_MODE", "sleeper").lower()
+    c.espn_base = resolve("espn_base", "FM_ESPN_BASE", fm_providers.ESPN_BASE)
 
     # Offline fixture data must never land in (or be read from) the real
     # cache, or the next live run would serve synthetic players/projections.
@@ -504,6 +512,12 @@ def validate_config(c: Config) -> None:
         die(EX_USAGE, "Cache TTL must be a non-negative integer (got '%s')." % c.projections_ttl)
     if c.format not in ("text", "json", "markdown"):
         die(EX_USAGE, "Format must be text, json or markdown (got '%s')." % c.format)
+    if c.compare not in ("espn", "none"):
+        die(EX_USAGE, "Compare must be espn or none (got '%s')." % c.compare)
+    if c.projections_mode not in ("sleeper", "blend"):
+        die(EX_USAGE, "Projections must be sleeper or blend (got '%s')." % c.projections_mode)
+    if c.projections_mode == "blend" and c.compare == "none":
+        die(EX_USAGE, "--projections blend needs a second source; drop --compare none.")
     if c.history not in ("0", "1"):
         die(EX_USAGE, "History must be 0 or 1 (got '%s')." % c.history)
     if LOG.level not in ("QUIET", "ERROR", "WARN", "INFO", "DEBUG"):
@@ -607,14 +621,15 @@ class Fetcher:
         with open(src, "rb") as fh:
             return fh.read()
 
-    def fetch_url(self, url: str) -> Optional[bytes]:
+    def fetch_url(self, url: str, headers: Optional[Dict[str, str]] = None) -> Optional[bytes]:
         """Retries only transient failures (connection errors, 408, 429, 5xx);
         a 404 or other 4xx fails immediately."""
         delay = self.retry_delay
         attempts = 4
         for attempt in range(1, attempts + 1):
-            request = urllib.request.Request(url, headers={
-                "Accept": "application/json", "User-Agent": "%s/%s" % (TOOL_NAME, TOOL_VERSION)})
+            all_headers = {"Accept": "application/json", "User-Agent": "%s/%s" % (TOOL_NAME, TOOL_VERSION)}
+            all_headers.update(headers or {})
+            request = urllib.request.Request(url, headers=all_headers)
             try:
                 with urllib.request.urlopen(request, timeout=45) as resp:
                     body = resp.read()
@@ -696,7 +711,8 @@ class Fetcher:
         self.record(key, url, "unavailable", None, None, "fetch or validation failed")
         return None
 
-    def fetch_json(self, key: str, url: str, want: str, cache_name: str, ttl: int, allow_stale: bool) -> bool:
+    def fetch_json(self, key: str, url: str, want: Any, cache_name: str, ttl: int, allow_stale: bool,
+                   headers: Optional[Dict[str, str]] = None) -> bool:
         """Leaves validated JSON in self.data[key]; sets self.source / self.age."""
         self.source, self.age = "", None
         cfile = None
@@ -721,7 +737,7 @@ class Fetcher:
             raw = self.fetch_offline(key)
         else:
             LOG.info("Fetching %s from %s" % (key, url))
-            raw = self.fetch_url(url)
+            raw = self.fetch_url(url, headers)
         if raw is not None:
             ok, value = self.parse(raw, want, key)
             if ok:
@@ -797,6 +813,7 @@ def slim_players(players: Dict[str, Any]) -> Dict[str, Any]:
             "depth_chart_order": v.get("depth_chart_order"),
             "news_updated": v.get("news_updated"),
             "gsis_id": v.get("gsis_id"),
+            "espn_id": v.get("espn_id"),
         }
     return out
 
@@ -953,6 +970,8 @@ def run_pipeline(c: Config) -> dict:
         f.data["transactions"] = []
         LOG.debug("No transactions for week %d" % week)
 
+    providers = load_second_source(c, f, season, week, future_weeks, players)
+
     store = open_history(c, f)
     history, week_flags = load_history(c, f, store, season, week, players)
 
@@ -969,6 +988,7 @@ def run_pipeline(c: Config) -> dict:
             "week_rolled_from": rolled_from,
             "horizon": horizon_n,
             "horizon_mode": "ros" if c.horizon == "ros" else "weeks",
+            "projections_mode": c.projections_mode,
             "last_week": last_week,
             "custom_trades": c.trade or None,
             "value_trades": c.value_trade or None,
@@ -990,6 +1010,7 @@ def run_pipeline(c: Config) -> dict:
         "schedule": f.data["schedule"],
         "future_projections": future,
         "history": history,
+        "providers": providers,
         "diagnostics": f.diagnostics,
     }
 
@@ -1116,6 +1137,33 @@ def load_nflverse_usage(c: Config, f: Fetcher, season: str, weeks: List[int],
         return {}
     LOG.info("nflverse usage: %d player-weeks for week(s) %s" % (matched, ", ".join(str(w) for w in sorted(by_week))))
     return {str(w): v for w, v in by_week.items()}
+
+
+def load_second_source(c: Config, f: Fetcher, season: str, week: int, future_weeks: List[int],
+                       players: Dict[str, Any]) -> Optional[dict]:
+    """ESPN weekly projections (PPR) per Sleeper player id: this week for the
+    comparison, and every window week when blending."""
+    if c.compare == "none":
+        return None
+    weeks = [week] + (list(future_weeks) if c.projections_mode == "blend" else [])
+    out: Dict[str, Any] = {"provider": "espn", "weeks": {}, "matched": {}, "unmatched": {},
+                           "url": fm_providers.espn_url(season, week, c.espn_base)}
+    for i, w in enumerate(weeks):
+        key = "espn" if i == 0 else "espn_w%d" % w
+        ok = f.fetch_json(key, fm_providers.espn_url(season, w, c.espn_base), ("object", "array"),
+                          "espn_%s_%d" % (season, w), int(c.projections_ttl), True,
+                          headers={"X-Fantasy-Filter": fm_providers.espn_filter(season, w)})
+        if not ok:
+            continue
+        points, matched, unmatched = fm_providers.parse_espn(f.data[key], w, players)
+        if points:
+            out["weeks"][str(w)] = points
+            out["matched"][str(w)] = matched
+            out["unmatched"][str(w)] = len(unmatched)
+        LOG.info("ESPN week %d: %d players matched, %d not matched" % (w, matched, len(unmatched)))
+    if c.projections_mode == "blend" and str(week) not in out["weeks"]:
+        f.add_warning("ESPN projections unavailable for week %d; --projections blend uses Sleeper only." % week)
+    return out
 
 
 def fantasy_last_week(league: dict) -> int:
@@ -1280,6 +1328,7 @@ def render_text(r: dict) -> str:
                 + n1(mu.get("opponent_projected_final")) + "  (" + n1(mu.get("final_differential")) + ")"]
         out += win_probability_text(mu.get("win_probability"))
         out += ["  Note: " + mu["note"], ""]
+    out += sources_text(r.get("projection_sources"))
 
     wv = r.get("waivers")
     if wv is None:
@@ -1466,6 +1515,7 @@ def render_markdown(r: dict) -> str:
                 + n1(mu.get("opponent_projected_final")), ""]
         out += win_probability_markdown(mu.get("win_probability"))
         out += ["> " + mu["note"], ""]
+    out += sources_markdown(r.get("projection_sources"))
 
     wv = r.get("waivers")
     if wv is not None:
@@ -1579,6 +1629,50 @@ def render_markdown(r: dict) -> str:
             "> Read-only tool: it cannot submit lineups, waiver claims or trades.",
             "> Projections are advisory and do not model correlation or game script."]
     return "\n".join(out) + "\n"
+
+
+def sources_using(p: dict) -> str:
+    if p.get("mode") == "blend" and p.get("blended_weeks"):
+        return "a 50/50 Sleeper + ESPN blend for " + weeks_label(p["blended_weeks"]) + ", in your league's scoring"
+    if p.get("mode") == "blend":
+        return "Sleeper only (no ESPN projections to blend)"
+    return "Sleeper's projections (--projections blend for a 50/50 consensus)"
+
+
+def sources_text(p: Optional[dict]) -> List[str]:
+    if p is None:
+        return []
+    if not p["available"]:
+        return ["PROJECTION SOURCES: ESPN unavailable - " + s(p.get("reason")), ""]
+    out = ["PROJECTION SOURCES - Sleeper vs ESPN, week " + ts(p["week"]) + " (PPR points)", LINE,
+           "  Using: " + sources_using(p),
+           "  Matched " + ts(p["matched"]) + " players (" + ts(p["unmatched"]) + " not matched); typical gap "
+           + n1(p.get("mean_abs_diff")) + " points.",
+           "  Where they disagree (4+ points and 30%+ apart):"]
+    rows = p["disagreements"]
+    out += ["    " + pad(s(d.get("name")) + " (" + alt(d.get("position"), "?") + "/" + alt(d.get("team"), "FA") + ")", 30)
+            + pad(d["where"], 15) + pad("Sleeper " + n1(d.get("sleeper_ppr")), 14) + pad("ESPN " + n1(d.get("espn_ppr")), 11)
+            + "(" + signed(d.get("difference")) + ")" for d in rows] or ["    (none)"]
+    return out + [""]
+
+
+def sources_markdown(p: Optional[dict]) -> List[str]:
+    if p is None:
+        return []
+    if not p["available"]:
+        return ["## Projection sources", "", "ESPN unavailable: " + s(p.get("reason")), ""]
+    out = ["## Projection sources", "",
+           "Sleeper vs ESPN, week " + ts(p["week"]) + " (PPR points). Using " + sources_using(p) + ". Matched "
+           + ts(p["matched"]) + " players (" + ts(p["unmatched"]) + " not matched); typical gap "
+           + n1(p.get("mean_abs_diff")) + " points.", ""]
+    if not p["disagreements"]:
+        return out + ["No disagreements of 4+ points and 30%+.", ""]
+    out += ["| Player | Pos | Team | Where | Sleeper | ESPN | Difference |", "| --- | --- | --- | --- | ---: | ---: | ---: |"]
+    for d in p["disagreements"]:
+        out.append("| " + s(d.get("name")) + " | " + alt(d.get("position"), "?") + " | " + alt(d.get("team"), "FA") + " | "
+                   + d["where"] + " | " + n1(d.get("sleeper_ppr")) + " | " + n1(d.get("espn_ppr")) + " | "
+                   + signed(d.get("difference")) + " |")
+    return out + [""]
 
 
 def pct(v: Any) -> str:
