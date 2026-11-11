@@ -81,8 +81,10 @@ from your username in a browser:
 4. Type your **league ID** and **username** in the toolbar and press
    **Refresh**.
 
-That's it. To avoid retyping them every time, do
-[step 3](#3-save-your-league-as-the-default).
+That's it. With **Remember** ticked (the default), a successful refresh saves
+your league, username and horizon, so next time the app opens straight to
+your league. Nothing is saved if the refresh fails, so a typo is never
+remembered.
 
 Nothing else needs installing: Windows PowerShell 5.1 is built in, and
 PowerShell 7 works too. You don't need bash, jq or curl on Windows.
@@ -90,8 +92,9 @@ PowerShell 7 works too. You don't need bash, jq or curl on Windows.
 **The window**
 
 - **Toolbar:** league, user, week (leave blank for automatic), horizon (how
-  many future weeks count; 3 is a good default), **Bypass cache**,
-  **Refresh**, and **Open/Save report**.
+  many future weeks count; 3 is a good default), **Remember** (save these as
+  your defaults after a successful refresh), **Bypass cache**, **Refresh**,
+  and **Open/Save report**.
 - **Header:** live score and projected final for your matchup, plus a
   warnings panel when something needs your attention.
 - **Tabs:**
@@ -149,8 +152,9 @@ give other formats, and `--output report.md` writes the report to a file.
 
 ### 3. Save your league as the default
 
-Create a small config file so plain `./fantasy_manager.sh`, or a double-click
-on Windows, always loads your league:
+On Windows the app's **Remember** box does this for you. On macOS and Linux,
+or to set more options, create a small config file so plain
+`./fantasy_manager.sh` always loads your league:
 
 ```ini
 # config.env
@@ -166,7 +170,9 @@ username=yourname
 The file holds `key=value` lines, and lines starting with `#` are comments.
 Spaces around `=`, quotes and Windows line endings are all fine. Any setting
 in [the table below](#settings) can go here, for example `horizon=2` or
-`top_n=15`.
+`top_n=15`. **Remember** updates only `league_id`, `username` and `horizon`,
+and leaves anything else you've added in place. The Windows app and the
+command line share the same file.
 
 ---
 

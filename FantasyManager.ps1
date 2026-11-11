@@ -78,7 +78,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'   # Invoke-WebRequest is very slow with progress on 5.1
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '2.5.1'
+$ToolVersion = '2.6.0'
 
 # --------------------------------------------------------------------------
 # Defaults (kept in step with fantasy_manager.sh)
@@ -183,6 +183,40 @@ function Read-ConfigFile([string]$path) {
         $script:FileValues[$key] = $value
     }
     Write-Log 'DEBUG' ("Loaded config file {0} ({1} keys)" -f $path, $script:FileValues.Count)
+}
+
+function Save-Defaults([string]$path, $values) {
+    # Writes key=value settings into a config file, keeping everything else
+    # in it (comments, other keys). Existing lines for the same key, with or
+    # without the FM_ prefix, are replaced; duplicates are dropped; new keys
+    # are appended. Written atomically as UTF-8 without a BOM.
+    $full = [IO.Path]::GetFullPath($path)
+    $dir = Split-Path -Parent $full
+    if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    $existing = @()
+    if (Test-Path -LiteralPath $full -PathType Leaf) { $existing = @([IO.File]::ReadAllLines($full)) }
+    $written = @{}
+    $out = New-Object System.Collections.ArrayList
+    foreach ($line in $existing) {
+        $idx = $line.IndexOf('=')
+        if ($idx -gt 0 -and -not $line.TrimStart().StartsWith('#')) {
+            $key = ($line.Substring(0, $idx) -replace '\s', '').ToLowerInvariant()
+            if ($key.StartsWith('fm_')) { $key = $key.Substring(3) }
+            if ($values.Contains($key)) {
+                if (-not $written.ContainsKey($key)) { [void]$out.Add("$key=$($values[$key])"); $written[$key] = $true }
+                continue
+            }
+        }
+        [void]$out.Add($line)
+    }
+    if ($existing.Count -eq 0) { [void]$out.Add('# Saved by FantasyManager (Remember). Any setting from the README can go here.') }
+    foreach ($key in $values.Keys) {
+        if (-not $written.ContainsKey($key)) { [void]$out.Add("$key=$($values[$key])") }
+    }
+    $tmp = "$full.tmp.$PID"
+    [IO.File]::WriteAllText($tmp, (($out -join [Environment]::NewLine) + [Environment]::NewLine), (New-Object System.Text.UTF8Encoding $false))
+    Move-Item -LiteralPath $tmp -Destination $full -Force
+    return $full
 }
 
 function Resolve-Setting([string]$key, [string]$envName, $cliValue, [bool]$cliSet, [string]$default) {
@@ -791,6 +825,8 @@ $script:WindowXaml = @'
             <ComboBoxItem Content="0"/><ComboBoxItem Content="1"/><ComboBoxItem Content="2"/>
             <ComboBoxItem Content="3"/><ComboBoxItem Content="4"/><ComboBoxItem Content="5"/><ComboBoxItem Content="6"/>
           </ComboBox>
+          <CheckBox x:Name="RememberBox" Content="Remember" VerticalAlignment="Center" Margin="14,0,0,0" IsChecked="True"
+                    ToolTip="After a successful refresh, save the league, user and horizon as your defaults (config.env)"/>
           <CheckBox x:Name="FreshBox" Content="Bypass cache" VerticalAlignment="Center" Margin="14,0,0,0"/>
           <Button x:Name="RefreshButton" Content="Refresh" Margin="14,0,0,0" Padding="16,4"
                   Background="{StaticResource Accent}" Foreground="White" BorderThickness="0" FontWeight="SemiBold"/>
@@ -1510,7 +1546,7 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
     [xml]$xaml = $script:WindowXaml
     $window = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
     $ui = @{ Window = $window }
-    foreach ($name in @('LeagueBox', 'UserBox', 'WeekBox', 'HorizonBox', 'FreshBox', 'RefreshButton', 'OpenButton', 'SaveButton',
+    foreach ($name in @('LeagueBox', 'UserBox', 'WeekBox', 'HorizonBox', 'FreshBox', 'RememberBox', 'RefreshButton', 'OpenButton', 'SaveButton',
             'Busy', 'StatusText', 'TitleText', 'SubtitleText', 'NoticeText', 'MyTeamText', 'MyScoreText', 'MyProjText',
             'OppTeamText', 'OppScoreText', 'OppProjText', 'WarningsExpander', 'WarningsHeader', 'WarningsList',
             'LineupSummary', 'LineupGrid', 'RiskGrid', 'WaiverSummary', 'WaiverGrid', 'TradeSummary', 'TradeGrid',
@@ -1528,11 +1564,14 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
     try {
         $script:LogLevel = 'ERROR'
         $cfg = Initialize-Configuration
+        $script:ConfigPath = $cfg.config_file
         $ui.LeagueBox.Text = $cfg.league_id
         $ui.UserBox.Text = $cfg.username
         $ui.WeekBox.Text = $cfg.week
         $ui.HorizonBox.SelectedIndex = [int]$cfg.horizon
     } catch {
+        $script:ConfigPath = Join-Path (Get-DefaultDir 'config') 'config.env'
+        if ($script:BoundParams.ContainsKey('Config')) { $script:ConfigPath = [string]$script:BoundParams['Config'] }
         $ui.LeagueBox.Text = $Defaults.league_id
         $ui.UserBox.Text = $Defaults.username
         $ui.HorizonBox.SelectedIndex = [int]$Defaults.horizon
@@ -1616,10 +1655,28 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         if ($ui.WeekBox.Text.Trim()) { $extra += @('-Week', $ui.WeekBox.Text.Trim()) }
         if ($ui.HorizonBox.SelectedIndex -ge 0) { $extra += @('-Horizon', [string]$ui.HorizonBox.SelectedIndex) }
         if ($ui.FreshBox.IsChecked) { $extra += '-Refresh' }
+        # Saved only after the refresh succeeds, so a typo is never remembered.
+        $script:PendingDefaults = $null
+        if ($ui.RememberBox.IsChecked) {
+            $script:PendingDefaults = [ordered]@{
+                league_id = $ui.LeagueBox.Text.Trim(); username = $ui.UserBox.Text.Trim()
+                horizon = [string]([Math]::Max(0, $ui.HorizonBox.SelectedIndex))
+            }
+        }
         & $script:StartJob $extra {
             param($path)
             & $script:LoadReport $path
-            $script:Ui.StatusText.Text = 'Updated ' + (Get-Date).ToString('h:mm tt')
+            $status = 'Updated ' + (Get-Date).ToString('h:mm tt')
+            if ($script:PendingDefaults) {
+                try {
+                    [void](Save-Defaults $script:ConfigPath $script:PendingDefaults)
+                    $status += ' - saved as default'
+                } catch {
+                    $status += ' - could not save defaults'
+                    [Windows.MessageBox]::Show("Could not save your defaults to $($script:ConfigPath): $($_.Exception.Message)", 'Fantasy Manager', 'OK', 'Warning') | Out-Null
+                }
+            }
+            $script:Ui.StatusText.Text = $status
         } 'Fetching from Sleeper...' 'Update failed'
     })
 
@@ -1744,7 +1801,8 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         [Console]::Out.WriteLine(('GUI smoke test ok: lineup rows {0}, waiver rows {1}, trade rows {2}, warnings {3}, give list {4}, get list {5}, trade grade {6}, mode {7}, pool results {8}, picked {9}' -f
             @($ui.LineupGrid.ItemsSource).Count, @($ui.WaiverGrid.ItemsSource).Count, @($ui.TradeGrid.ItemsSource).Count,
             @($ui.WarningsList.ItemsSource).Count, @($ui.GiveList.ItemsSource).Count, @($ui.GetList.ItemsSource).Count, $ui.YouGrade.Text,
-            $(if (Test-OpenMode $ui) { 'open' } else { 'league' }), @($ui.ResultsA.ItemsSource).Count, $pickedCount))
+            $(if (Test-OpenMode $ui) { 'open' } else { 'league' }), @($ui.ResultsA.ItemsSource).Count, $pickedCount) +
+            (', remember {0}' -f [bool]$ui.RememberBox.IsChecked))
         $window.Close()
         return
     }
