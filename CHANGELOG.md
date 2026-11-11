@@ -2,6 +2,48 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.8.0
+
+### Added
+
+- Season history and projection accuracy.
+  - Each run saves this week's projections to `history.sqlite` in the cache
+    folder before each player's game starts.
+  - The first run of a season fills in the past weeks once:
+    - the projections for each week
+    - the league's own points for every rostered player (from the weekly
+      matchups)
+    - Sleeper's weekly stats, which add free agents and usage
+  - Later runs fetch only new weeks.
+  - Parts that failed are retried at most once a day; `--refresh` retries
+    them now and refetches last week's results for stat corrections.
+- New report section **History** (text, Markdown, JSON `history`, and a
+  **History** tab in the Windows app):
+  - projection accuracy by position: average miss, bias, spread, and the
+    share of games within 5 points
+  - recent form for your roster: last four games, average points, average
+    projection, games above projection, and weekly scores
+- Projections saved before kickoff are preferred over ones fetched
+  afterwards, and the report says how many of each were compared.
+- Waiver rows show recent form (`form` column, JSON `recent`).
+- `--no-history` (`-NoHistory`, `history=0`) and `--history-db PATH`
+  (`-HistoryDb`). The database is in memory with `--no-cache` and for
+  offline test runs.
+- `lib/fm_history.py`: the database and the statistics, standard library
+  only.
+- JSON schema version 1.1 (adds `history`).
+
+### Tests
+
+- New fixture `season_history` with four past weeks, including a failed
+  stats feed for week 2. 32 new checks (288 total):
+  - accuracy against an independent calculation
+  - league points winning over the stats feed
+  - the database across runs, snapshots and `--history-db`
+  - `--no-history` and `--no-cache`
+  - text and Markdown output
+  - the Windows History tab
+
 ## 2.7.0
 
 ### Changed

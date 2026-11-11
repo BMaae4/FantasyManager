@@ -216,9 +216,19 @@ league.
     suggested drop.
   - **win:** the gain over the whole window (this week plus the horizon).
   - **score:** the ranking.
+  - **form:** average points over the last few weeks / average projection
+    for those weeks (once there are past weeks).
   - **drop:** who to let go.
 - **Trades** list your needs and surplus, then trade ideas that improve
   *both* lineups and are within the fairness tolerance.
+- **History** shows how good the projections have been this season, and how
+  your players have done lately (Windows: the **History** tab):
+  - **Projection accuracy** by position:
+    - **avg miss:** the average gap between projected and actual points.
+    - **bias:** above 0 means players beat their projections on average.
+    - **within 5:** the share of games that landed within 5 points.
+  - **Recent form** for your roster: games played, average points, average
+    projection, how often each player beat it, and the weekly scores.
 - **Diagnostics** show where each piece of data came from (network, cache or
   stale cache) and how old it is.
 
@@ -318,7 +328,7 @@ Run `./fantasy_manager.sh --help` for the full list. The most useful options:
 -n, --top N            -f, --format text|json|markdown           -o, --output PATH
     --horizon N            --threshold X      --fairness X           --locked LIST
     --trade TEXT           --value-trade TEXT --scoring FMT          --teams N
-    --skip-waivers         --skip-trades
+    --skip-waivers         --skip-trades      --no-history           --history-db PATH
     --cache-dir DIR        --cache-ttl SEC    --no-cache             --refresh
     --offline              --fixtures DIR     --config PATH
 -q, --quiet            -v, --verbose          --debug                --log-file PATH
@@ -342,6 +352,8 @@ default.**
 | Ignore lineup moves smaller than | `--threshold` | `-Threshold` | `threshold` / `FM_THRESHOLD` | `0.5` points |
 | Trade fairness tolerance | `--fairness` | `-Fairness` | `fairness` / `FM_FAIRNESS` | `0.10` |
 | Treat as locked | `--locked "A, B"` | `-Locked` | `locked` / `FM_LOCKED` | none |
+| Record and report past weeks | `--no-history` turns off | `-NoHistory` | `history` / `FM_HISTORY` (`0`/`1`) | on |
+| History database | `--history-db` | `-HistoryDb` | `history_db` / `FM_HISTORY_DB` | `history.sqlite` in the cache folder |
 | Grade league trades | `--trade` | `-Trade` | `trade` / `FM_TRADE` | none |
 | Grade any-player trades | `--value-trade` | `-ValueTrade` | `value_trade` / `FM_VALUE_TRADE` | none |
 | Any-player scoring | `--scoring` | `-Scoring` | `scoring` / `FM_SCORING` | `ppr` |
@@ -405,6 +417,21 @@ report lists what was left out. A free agent whose game this week has already
 started is judged on next week, since that is when a claim pays off. FAAB
 leagues get a suggested bid; other leagues get waiver-priority advice.
 
+**History.** Each run saves this week's projections to a small database
+(`history.sqlite` in the cache folder) before each player's game kicks off.
+On the first run of a season it also fills in every past week once:
+- the projections for that week
+- your league's own points for every rostered player (from the weekly
+  matchups)
+- Sleeper's weekly stats, which add free agents and usage (snaps, targets,
+  carries)
+
+Later runs only fetch weeks that are new. Projections saved before kickoff
+are preferred over ones fetched afterwards. Everything is scored with your
+league's rules, so accuracy and form are in your league's points. Games
+projected under 1 point are left out of the accuracy figures. Deleting the
+database only costs a refetch; `--no-cache` keeps it in memory for that run.
+
 **Suggested trades.** Each team is profiled by its best starting points
 (averaged over the window), its bench above replacement, and its needs and
 surplus. 1-for-1 and 2-for-1 ideas are tested by re-optimising *both* lineups.
@@ -419,6 +446,9 @@ when the move clearly improves your lineup.
 - Sleeper's read-only API: `https://api.sleeper.app/v1`
 - Projections: `https://api.sleeper.app/projections/nfl/<season>/<week>`. This
   is **not** part of Sleeper's documented API and could change without notice.
+- Weekly stats (history only): `https://api.sleeper.app/stats/nfl/<season>/<week>`.
+  Undocumented and optional. Without it, history still has every rostered
+  player's league points, and the report says which weeks lack stats.
 - Game schedule: `https://api.sleeper.com/schedule/nfl/<season_type>/<season>`.
   This is also undocumented and optional. If it's unavailable, locks fall back
   to live points, the week isn't advanced automatically, and the report says
@@ -467,10 +497,11 @@ include the effective configuration and every request.
 | Path | Purpose |
 | --- | --- |
 | `lib/fm_app.py` | The application: command line, configuration, fetching, caching, validation, text/Markdown/JSON output |
-| `lib/fm_analysis.py` | All analysis: scoring, lineup optimisation, waivers, trades, trade grading |
+| `lib/fm_analysis.py` | All analysis: scoring, lineup optimisation, waivers, trades, trade grading, history |
+| `lib/fm_history.py` | The history database (SQLite) and the accuracy / recent-form statistics |
 | `fantasy_manager.sh` | macOS/Linux launcher: finds Python and runs `lib/fm_app.py` |
 | `FantasyManager.ps1` / `.cmd` | Windows: the WPF window, `-NoGui` mapped onto `lib/fm_app.py`, and a launcher |
-| `tests/run.sh` | Offline test suite (256 checks, no network) |
+| `tests/run.sh` | Offline test suite (288 checks, no network) |
 | `tests/make_fixtures.py` | Generates the synthetic test leagues in `tests/fixtures/` |
 | `tests/parity.sh` | Runs every fixture through both front ends and compares the reports (needs `pwsh`) |
 | `tests/windows.ps1`, `tests/make_expected.sh`, `tests/compare_reports.py` | Windows checks, including a GUI smoke test |
@@ -499,6 +530,8 @@ The suite covers:
 - Every trade-analyzer mode and error case.
 - All output formats, config precedence and config-file parsing.
 - The real HTTP path against a local server (404 not retried, 5xx retried).
+- History: accuracy checked against an independent calculation, the
+  database across runs, pre-kickoff snapshots, and a missing stats feed.
 
 Both front ends run the same Python code (standard library only), so there is
 one place to change behaviour. When you do, update the version in

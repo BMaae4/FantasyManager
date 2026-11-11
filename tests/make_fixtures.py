@@ -346,6 +346,67 @@ def with_future(data: dict, overrides: dict | None = None) -> dict:
     return data
 
 
+HISTORY_WEEKS = (1, 2, 3, 4)
+HISTORY_SPREAD = {"QB": 6.0, "RB": 7.0, "WR": 7.0, "TE": 5.0, "K": 4.0, "DEF": 5.0}
+
+
+def unit(seed: str) -> float:
+    """Deterministic value in [-1, 1) from a string."""
+    h = 2166136261
+    for ch in seed:
+        h = ((h ^ ord(ch)) * 16777619) & 0xFFFFFFFF
+    return (h % 20000) / 10000.0 - 1.0
+
+
+def with_history(data: dict, overrides: dict | None = None) -> dict:
+    """Add weeks 1-4: projections_wN, stats_wN (actual stat lines with usage)
+    and matchups_wN (league points per rostered player).
+    `overrides` maps player_id -> {week: (projection, actual, snap_share)}."""
+    overrides = overrides or {}
+    rostered = {}
+    for roster in data["rosters"]:
+        for pid in roster.get("players") or []:
+            rostered[pid] = roster["roster_id"]
+    base = {r["player_id"]: r["stats"]["pts_ppr"] for r in data["projections"]}
+    for week in HISTORY_WEEKS:
+        proj_records, stat_records = [], []
+        points_by_roster: dict = {}
+        for pid, points in sorted(base.items()):
+            player = data["players"].get(pid)
+            if player is None:
+                continue
+            position = player["position"]
+            proj = round(points * (1 + 0.04 * unit("p%s%d" % (pid, week))), 2)
+            actual = round(max(0.0, proj + HISTORY_SPREAD.get(position, 5.0) * unit("a%s%d" % (pid, week))), 2)
+            share = 0.85 if (player.get("depth_chart_order") or 1) == 1 else 0.45
+            if pid in overrides and week in overrides[pid]:
+                proj, actual, share = overrides[pid][week]
+            stats = stat_line(position, proj)
+            stats["pts_ppr"] = proj
+            proj_records.append({"player_id": pid, "week": week, "season": "2025", "season_type": "regular",
+                                 "company": "synthetic", "stats": stats})
+            line = stat_line(position, actual)
+            line["pts_ppr"] = actual
+            if position not in ("K", "DEF"):
+                line["off_snp"] = round(65 * share)
+                line["tm_off_snp"] = 65
+            if position in ("WR", "TE", "RB"):
+                line["rec_tgt"] = round(share * (9 if position == "WR" else 6 if position == "TE" else 4))
+            if position in ("RB", "QB"):
+                line["rush_att"] = round(share * (18 if position == "RB" else 4))
+            stat_records.append({"player_id": pid, "week": week, "season": "2025", "season_type": "regular",
+                                 "stats": line})
+            if pid in rostered:
+                points_by_roster.setdefault(rostered[pid], {})[pid] = actual
+        data["projections_w%d" % week] = proj_records
+        data["stats_w%d" % week] = stat_records
+        data["matchups_w%d" % week] = [
+            {"roster_id": rid, "matchup_id": (rid + 1) // 2, "points": round(sum(pp.values()), 2),
+             "players_points": pp} for rid, pp in sorted(points_by_roster.items())
+        ]
+    return data
+
+
 def write_case(out_dir: str, name: str, data: dict, raw: dict | None = None) -> None:
     case_dir = os.path.join(out_dir, name)
     os.makedirs(case_dir, exist_ok=True)
@@ -591,6 +652,16 @@ def main() -> int:
     bye_qb["projections"] = [p for p in bye_qb["projections"] if p["player_id"] not in ("t3_qb1", "t3_qb2")]
     with_future(bye_qb, {week: {"t3_qb1": 17.75, "t3_qb2": 10.75} for week in FUTURE_WEEKS})
     write_case(out_dir, "bye_qb_partner", bye_qb)
+
+    # 29. four past weeks of projections and results: projection accuracy,
+    #     recent form; the stats feed failed for week 2 (league points only).
+    #     A free agent's role grows every week, one of my starters fades.
+    history = with_history(copy.deepcopy(base), {
+        "fa_rb2": {1: (4.0, 3.0, 0.25), 2: (4.5, 6.5, 0.35), 3: (5.0, 11.0, 0.5), 4: (6.0, 15.5, 0.65)},
+        "wr2": {1: (12.0, 14.0, 0.9), 2: (11.0, 9.0, 0.75), 3: (10.0, 5.0, 0.6), 4: (9.5, 3.0, 0.45)},
+    })
+    del history["stats_w2"]
+    write_case(out_dir, "season_history", history, raw={"stats_w2.status": "404\n"})
 
     print("fixtures written to %s" % out_dir)
     return 0

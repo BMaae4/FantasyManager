@@ -1,0 +1,883 @@
+[
+ {
+  "player_id": "def1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "def_td": 0,
+   "pts_ppr": 5.86,
+   "sack": 5.86
+  },
+  "week": 4
+ },
+ {
+  "player_id": "fa_def1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "def_td": 0,
+   "pts_ppr": 10.27,
+   "sack": 10.27
+  },
+  "week": 4
+ },
+ {
+  "player_id": "fa_inactive1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 20.24,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": 112.4,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "fa_k1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "fgm": 1,
+   "pts_ppr": 8.29,
+   "xpm": 5.29
+  },
+  "week": 4
+ },
+ {
+  "player_id": "fa_out1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 15.07,
+   "rec": 5,
+   "rec_tgt": 8,
+   "rec_yd": 100.7,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "fa_qb1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pass_int": 0,
+   "pass_td": 2,
+   "pass_yd": 85.25,
+   "pts_ppr": 11.41,
+   "rush_att": 3,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "fa_quest1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 11.5,
+   "rec": 5,
+   "rec_tgt": 8,
+   "rec_yd": 65.0,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "fa_rb1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 15.74,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": 67.4,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "fa_rb2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 42,
+   "pts_ppr": 15.5,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 12,
+   "rush_td": 1,
+   "rush_yd": 65.0,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "fa_te1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 11.48,
+   "rec": 4,
+   "rec_tgt": 5,
+   "rec_yd": 74.8,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "fa_wr1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 10.22,
+   "rec": 5,
+   "rec_tgt": 8,
+   "rec_yd": 52.2,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "fa_wr2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 29,
+   "pts_ppr": 12.15,
+   "rec": 5,
+   "rec_tgt": 4,
+   "rec_yd": 71.5,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "k1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "fgm": 1,
+   "pts_ppr": 5.14,
+   "xpm": 2.14
+  },
+  "week": 4
+ },
+ {
+  "player_id": "qb1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pass_int": 0,
+   "pass_td": 2,
+   "pass_yd": 290.75,
+   "pts_ppr": 19.63,
+   "rush_att": 3,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "qb2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pass_int": 0,
+   "pass_td": 2,
+   "pass_yd": 229.0,
+   "pts_ppr": 17.16,
+   "rush_att": 3,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "rb1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 18.82,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": 98.2,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "rb2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 12.93,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": 39.3,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "rb3",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 8.21,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": -7.9,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "rb4",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 7.49,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": -15.1,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "rb5",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 7.28,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": -17.2,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t2_def1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "def_td": 0,
+   "pts_ppr": 4.26,
+   "sack": 4.26
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t2_k1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "fgm": 1,
+   "pts_ppr": 7.22,
+   "xpm": 4.22
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t2_qb1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pass_int": 0,
+   "pass_td": 2,
+   "pass_yd": 331.75,
+   "pts_ppr": 21.27,
+   "rush_att": 3,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t2_qb2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pass_int": 0,
+   "pass_td": 2,
+   "pass_yd": 188.0,
+   "pts_ppr": 15.52,
+   "rush_att": 3,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t2_rb1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 14.17,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": 51.7,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t2_rb2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 6.81,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": -21.9,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t2_rb3",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 12.1,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": 31.0,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t2_te1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 13.91,
+   "rec": 4,
+   "rec_tgt": 5,
+   "rec_yd": 99.1,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t2_te2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 14.82,
+   "rec": 4,
+   "rec_tgt": 5,
+   "rec_yd": 108.2,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t2_wr1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 15.05,
+   "rec": 5,
+   "rec_tgt": 8,
+   "rec_yd": 100.5,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t2_wr2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 19.36,
+   "rec": 5,
+   "rec_tgt": 8,
+   "rec_yd": 143.6,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t2_wr3",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 14.58,
+   "rec": 5,
+   "rec_tgt": 8,
+   "rec_yd": 95.8,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t3_def1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "def_td": 0,
+   "pts_ppr": 3.34,
+   "sack": 3.34
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t3_k1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "fgm": 1,
+   "pts_ppr": 8.16,
+   "xpm": 5.16
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t3_qb1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pass_int": 0,
+   "pass_td": 2,
+   "pass_yd": 349.5,
+   "pts_ppr": 21.98,
+   "rush_att": 3,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t3_qb2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pass_int": 0,
+   "pass_td": 2,
+   "pass_yd": 30.75,
+   "pts_ppr": 9.23,
+   "rush_att": 3,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t3_rb1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 10.29,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": 12.9,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t3_rb2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 11.04,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": 20.4,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t3_rb3",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 2.04,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": -69.6,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t3_te1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 9.99,
+   "rec": 4,
+   "rec_tgt": 5,
+   "rec_yd": 59.9,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t3_te2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 1.48,
+   "rec": 4,
+   "rec_tgt": 5,
+   "rec_yd": -25.2,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t3_wr1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 17.55,
+   "rec": 5,
+   "rec_tgt": 8,
+   "rec_yd": 125.5,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t3_wr2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 13.89,
+   "rec": 5,
+   "rec_tgt": 8,
+   "rec_yd": 88.9,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t3_wr3",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 14.04,
+   "rec": 5,
+   "rec_tgt": 8,
+   "rec_yd": 90.4,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t4_def1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "def_td": 0,
+   "pts_ppr": 5.24,
+   "sack": 5.24
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t4_k1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "fgm": 1,
+   "pts_ppr": 7.16,
+   "xpm": 4.16
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t4_qb1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pass_int": 0,
+   "pass_td": 2,
+   "pass_yd": 297.75,
+   "pts_ppr": 19.91,
+   "rush_att": 3,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t4_qb2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pass_int": 0,
+   "pass_td": 2,
+   "pass_yd": 66.0,
+   "pts_ppr": 10.64,
+   "rush_att": 3,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t4_rb1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 22.95,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": 139.5,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t4_rb2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 16.34,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": 73.4,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t4_rb3",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 5.43,
+   "rec": 3,
+   "rec_tgt": 3,
+   "rush_att": 15,
+   "rush_td": 1,
+   "rush_yd": -35.7,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t4_te1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 6.84,
+   "rec": 4,
+   "rec_tgt": 5,
+   "rec_yd": 28.4,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t4_te2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 8.82,
+   "rec": 4,
+   "rec_tgt": 5,
+   "rec_yd": 48.2,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t4_wr1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 18.14,
+   "rec": 5,
+   "rec_tgt": 8,
+   "rec_yd": 131.4,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t4_wr2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 8.95,
+   "rec": 5,
+   "rec_tgt": 8,
+   "rec_yd": 39.5,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "t4_wr3",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 5.81,
+   "rec": 5,
+   "rec_tgt": 8,
+   "rec_yd": 8.1,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "te1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 10.56,
+   "rec": 4,
+   "rec_tgt": 5,
+   "rec_yd": 65.6,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "te2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 5.82,
+   "rec": 4,
+   "rec_tgt": 5,
+   "rec_yd": 18.2,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "wr1",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 21.75,
+   "rec": 5,
+   "rec_tgt": 8,
+   "rec_yd": 167.5,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "wr2",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 29,
+   "pts_ppr": 3.0,
+   "rec": 5,
+   "rec_tgt": 4,
+   "rec_yd": -20.0,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "wr3",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 20.34,
+   "rec": 5,
+   "rec_tgt": 8,
+   "rec_yd": 153.4,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ },
+ {
+  "player_id": "wr4",
+  "season": "2025",
+  "season_type": "regular",
+  "stats": {
+   "off_snp": 55,
+   "pts_ppr": 0.0,
+   "rec": 5,
+   "rec_tgt": 8,
+   "rec_yd": -50.0,
+   "tm_off_snp": 65
+  },
+  "week": 4
+ }
+]

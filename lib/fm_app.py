@@ -26,9 +26,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fm_analysis  # noqa: E402
+import fm_history  # noqa: E402
 
 TOOL_NAME = "fantasy_manager"
-TOOL_VERSION = "2.7.0"
+TOOL_VERSION = "2.8.0"
 
 # --------------------------------------------------------------------------
 # Defaults (run with no parameters)
@@ -39,6 +40,8 @@ DEFAULT_API = "https://api.sleeper.app/v1"
 DEFAULT_PROJECTIONS_BASE = "https://api.sleeper.app/projections/nfl"
 # Unofficial game schedule (status per game); optional, used for locks and week rollover.
 DEFAULT_SCHEDULE_BASE = "https://api.sleeper.com/schedule/nfl"
+# Unofficial weekly stats (actual results); optional, adds free agents and usage to history.
+DEFAULT_STATS_BASE = "https://api.sleeper.app/stats/nfl"
 DEFAULT_SEASON_TYPE = "regular"
 DEFAULT_TOP_N = "10"
 DEFAULT_HORIZON = "3"             # future weeks valued alongside this one
@@ -102,6 +105,10 @@ Analysis options:
                            started; they are never moved (added to auto-detection)
       --skip-waivers       Skip waiver analysis
       --skip-trades        Skip trade analysis
+      --no-history         Don't record or report past weeks (projection accuracy,
+                           recent form)
+      --history-db PATH    History database (default: history.sqlite in the cache
+                           directory; in memory with --no-cache)
 
 Output options:
   -f, --format FORMAT      text|json|markdown (default: text)
@@ -264,7 +271,7 @@ VALUE_OPTIONS = {
     "--teams": "teams", "--horizon": "horizon", "-f": "format", "--format": "format",
     "-o": "output", "--output": "output", "--log-file": "log_file",
     "--cache-dir": "cache_dir", "--cache-ttl": "projections_ttl",
-    "--fixtures": "fixtures", "--config": "config_file",
+    "--fixtures": "fixtures", "--config": "config_file", "--history-db": "history_db",
 }
 FLAG_OPTIONS = {
     "--skip-waivers": ("skip_waivers", "1"), "--skip-trades": ("skip_trades", "1"),
@@ -274,6 +281,7 @@ FLAG_OPTIONS = {
     "--refresh": ("refresh", "1"), "--offline": ("offline", "1"),
     # Hidden: print the effective configuration as JSON (used by the Windows window).
     "--print-config": ("print_config", "1"),
+    "--no-history": ("history", "0"),
 }
 
 
@@ -432,6 +440,9 @@ def load_configuration(cli: Dict[str, str]) -> Config:
     c.offline = resolve("offline", "FM_OFFLINE", "0")
     c.fixtures = resolve("fixtures", "FM_FIXTURES", "")
     c.print_config = cli.get("print_config") == "1"
+    c.history = resolve("history", "FM_HISTORY", "1")
+    c.history_db = resolve("history_db", "FM_HISTORY_DB", "")
+    c.stats_base = resolve("stats_base", "FM_STATS_BASE", DEFAULT_STATS_BASE)
 
     # Offline fixture data must never land in (or be read from) the real
     # cache, or the next live run would serve synthetic players/projections.
@@ -452,6 +463,7 @@ def load_configuration(cli: Dict[str, str]) -> Config:
     LOG.debug("  offline=%s fixtures=%s config_file=%s" % (c.offline, c.fixtures or "none", c.config_file))
     LOG.debug("  skip_waivers=%s skip_trades=%s locked=%s" % (c.skip_waivers, c.skip_trades, c.locked or "none"))
     LOG.debug("  schedule_base=%s schedule_ttl=%s" % (c.schedule_base, c.schedule_ttl))
+    LOG.debug("  history=%s history_db=%s stats_base=%s" % (c.history, c.history_db or "default", c.stats_base))
     return c
 
 
@@ -482,6 +494,8 @@ def validate_config(c: Config) -> None:
         die(EX_USAGE, "Cache TTL must be a non-negative integer (got '%s')." % c.projections_ttl)
     if c.format not in ("text", "json", "markdown"):
         die(EX_USAGE, "Format must be text, json or markdown (got '%s')." % c.format)
+    if c.history not in ("0", "1"):
+        die(EX_USAGE, "History must be 0 or 1 (got '%s')." % c.history)
     if LOG.level not in ("QUIET", "ERROR", "WARN", "INFO", "DEBUG"):
         die(EX_USAGE, "Log level must be QUIET, ERROR, WARN, INFO or DEBUG (got '%s')." % LOG.level)
     if c.offline == "1":
@@ -531,7 +545,7 @@ class Fetcher:
             return False, None
         actual = "object" if isinstance(value, dict) else "array" if isinstance(value, list) else (
             "string" if isinstance(value, str) else "boolean" if isinstance(value, bool) else "number")
-        if actual != want:
+        if actual not in (want if isinstance(want, tuple) else (want,)):
             LOG.debug("%s: expected JSON %s, got %s" % (label, want, actual))
             return False, None
         if len(value) == 0:
@@ -616,6 +630,19 @@ class Fetcher:
                 time.sleep(delay)
                 delay *= 2
         return None
+
+    def fetch_quiet(self, key: str, url: str, want: Any) -> Optional[Any]:
+        """One uncached request for history backfill (no per-fetch diagnostic;
+        the history database is the cache)."""
+        if self.c.offline == "1":
+            raw = self.fetch_offline(key)
+        else:
+            LOG.info("Fetching %s from %s" % (key, url))
+            raw = self.fetch_url(url)
+        if raw is None:
+            return None
+        ok, value = self.parse(raw, want, key)
+        return value if ok else None
 
     def fetch_json(self, key: str, url: str, want: str, cache_name: str, ttl: int, allow_stale: bool) -> bool:
         """Leaves validated JSON in self.data[key]; sets self.source / self.age."""
@@ -869,6 +896,9 @@ def run_pipeline(c: Config) -> dict:
         f.data["transactions"] = []
         LOG.debug("No transactions for week %d" % week)
 
+    store = open_history(c, f)
+    history, week_flags = load_history(c, f, store, season, week)
+
     bundle = {
         "config": {
             "tool_version": TOOL_VERSION, "generated_at": now_iso(),
@@ -900,17 +930,115 @@ def run_pipeline(c: Config) -> dict:
         "trending_add": f.data["trending_add"], "transactions": f.data["transactions"],
         "schedule": f.data["schedule"],
         "future_projections": future,
+        "history": history,
         "diagnostics": f.diagnostics,
     }
-    return run_analysis(bundle)
+
+    def persist(analyzer: Any) -> None:
+        if store is None:
+            return
+        updates = dict(getattr(analyzer, "history_updates", None) or {})
+        updates["weeks"] = week_flags
+        try:
+            store.save(c.league_id, season, updates)
+        except Exception as exc:  # noqa: BLE001
+            LOG.warn("Could not save history: %s" % exc)
+        finally:
+            store.close()
+
+    return run_analysis(bundle, persist)
 
 
-def run_analysis(bundle: dict) -> dict:
+# --------------------------------------------------------------------------
+# History (past weeks: projections vs actual points)
+# --------------------------------------------------------------------------
+def open_history(c: Config, f: Fetcher) -> Optional[fm_history.HistoryStore]:
+    if c.history != "1":
+        return None
+    path = c.history_db or (":memory:" if c.no_cache == "1" else os.path.join(c.cache_dir, "history.sqlite"))
     try:
-        report = fm_analysis.Analyzer(bundle).run()
+        if path != ":memory:":
+            os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        return fm_history.HistoryStore(path)
+    except Exception as exc:  # noqa: BLE001
+        f.add_warning("History database '%s' unavailable (%s); past weeks are not saved this run." % (path, exc))
+        return fm_history.HistoryStore(":memory:")
+
+
+def load_history(c: Config, f: Fetcher, store: Optional[fm_history.HistoryStore], season: str,
+                 week: int) -> Tuple[Optional[dict], Dict[int, dict]]:
+    """Stored rows plus raw data for past weeks not yet in the database.
+    Each past week is fetched once; parts that failed are retried at most
+    once a day (--refresh retries now and refetches last week's results)."""
+    if store is None:
+        return None, {}
+    status = store.week_status(c.league_id, season)
+    now = time.time()
+    raw: Dict[str, dict] = {}
+    flags: Dict[int, dict] = {}
+    stored = fetched = 0
+    stats_missing: List[int] = []
+    weeks = list(range(1, week)) if c.season_type == "regular" else []
+    for w in weeks:
+        st = status.get(w) or {}
+        retry = not st or c.refresh == "1" or now - (st.get("attempted_at") or 0) >= 86400
+        latest = c.refresh == "1" and w == week - 1
+        need_proj = retry and not st.get("projections_ok")
+        need_act = (retry and not st.get("actuals_ok")) or latest
+        need_stats = (retry and not st.get("stats_ok")) or latest
+        if not (need_proj or need_act or need_stats):
+            stored += 1
+            if not st.get("stats_ok"):
+                stats_missing.append(w)
+            continue
+        entry: Dict[str, Any] = {}
+        week_flag = {}
+        if need_proj:
+            url = "%s/%s/%d?season_type=%s&order_by=pts_ppr" % (c.projections_base, season, w, c.season_type)
+            value = f.fetch_quiet("projections_w%d" % w, url, "array")
+            if value is not None and has_projection_records(value):
+                entry["projections"] = value
+                week_flag["projections_ok"] = True
+        if need_act:
+            value = f.fetch_quiet("matchups_w%d" % w, "%s/league/%s/matchups/%d" % (c.api, c.league_id, w), "array")
+            if value is not None and any(isinstance(m, dict) and isinstance(m.get("players_points"), dict)
+                                         for m in value):
+                entry["matchups"] = value
+                week_flag["actuals_ok"] = True
+        if need_stats:
+            url = "%s/%s/%d?season_type=%s" % (c.stats_base, season, w, c.season_type)
+            value = f.fetch_quiet("stats_w%d" % w, url, ("array", "object"))
+            if value is not None:
+                entry["stats"] = value
+                week_flag["stats_ok"] = True
+            elif not st.get("stats_ok"):
+                stats_missing.append(w)
+        flags[w] = week_flag
+        if entry:
+            raw[str(w)] = entry
+            fetched += 1
+    data = store.load(c.league_id, season)
+    note = "%s; %d stored, %d fetched" % (
+        "weeks 1-%d" % (week - 1) if week > 2 else ("week 1" if week == 2 else "no past weeks"), stored, fetched)
+    if stats_missing:
+        note += "; no stats feed for week %s (rostered players only)" % ", ".join(str(w) for w in stats_missing)
+    source = ("fixture" if c.offline == "1" else "network") if fetched else ("database" if stored else "unavailable")
+    if weeks and not fetched and not stored:
+        note = "weeks 1-%d: no past results available" % (week - 1) if week > 2 else "week 1: no results available"
+    f.record("history", store.path, source, None, len(weeks), note)
+    return {"weeks": weeks, "stored": data, "raw": raw, "stats_missing": stats_missing,
+            "database": store.path}, flags
+
+
+def run_analysis(bundle: dict, persist: Any = None) -> dict:
+    try:
+        analyzer = fm_analysis.Analyzer(bundle)
+        report = analyzer.run()
     except Exception:  # noqa: BLE001
         LOG.error("Analysis failed: %s" % traceback.format_exc()[-1000:])
         raise Exit(EX_DATA)
+    if persist is not None:
+        persist(analyzer)
     if not isinstance(report, dict) or "lineup" not in report:
         die(EX_DATA, "Analysis produced an invalid report.")
     # Same key order and number forms the report has always been rendered from.
@@ -1053,6 +1181,8 @@ def render_text(r: dict) -> str:
                            + "net " + pad(n1(row.get("net_gain")), 7)
                            + ("" if row.get("window_gain") is None else "win " + pad(n1(row.get("window_gain")), 7))
                            + "score " + pad(n1(row.get("score")), 7)
+                           + ("" if row.get("recent") is None
+                              else "form " + n1(row["recent"].get("avg_points")) + "/" + n1(row["recent"].get("avg_projection")) + " ")
                            + ("" if row.get("suggested_bid") is None
                               else "bid $" + ts(row["suggested_bid"]) + " (" + ts(row.get("suggested_bid_pct")) + "% est) ")
                            + ("" if row.get("drop_candidate") is None else "drop " + s(row["drop_candidate"].get("name")))
@@ -1135,6 +1265,7 @@ def render_text(r: dict) -> str:
             ]
             out += ["    - " + x for x in t["notes"]] + ["    ! " + x for x in t["flags"]] + [""]
 
+    out += history_text(r.get("history"))
     out += ["DIAGNOSTICS", LINE]
     for d in r["diagnostics"]["fetches"]:
         out.append("  " + pad(d["key"], 16) + pad(d["source"], 14)
@@ -1304,6 +1435,7 @@ def render_markdown(r: dict) -> str:
                     + n1(g.get("window_points")) + " | " + n1(g.get("value_over_replacement")) + " |" for g in t["get"]]
             out += [""] + ["- " + x for x in t["notes"]] + ["- **" + x + "**" for x in t["flags"]] + [""]
 
+    out += history_markdown(r.get("history"))
     out += ["## Diagnostics", "", "| Source | Origin | Cache age | Records | Note |", "| --- | --- | --- | ---: | --- |"]
     for d in r["diagnostics"]["fetches"]:
         out.append("| " + d["key"] + " | " + d["source"] + " | "
@@ -1313,6 +1445,90 @@ def render_markdown(r: dict) -> str:
             "> Read-only tool: it cannot submit lineups, waiver claims or trades.",
             "> Projections are advisory and do not model correlation or game script."]
     return "\n".join(out) + "\n"
+
+
+def signed(v: Any) -> str:
+    """One decimal with a sign: +0.9, -1.2, 0."""
+    if v is None:
+        return "n/a"
+    text = n1(v)
+    if text in ("0", "-0"):
+        return "0"
+    return text if text.startswith("-") else "+" + text
+
+
+def weeks_label(weeks: List[Any]) -> str:
+    if not weeks:
+        return "no weeks"
+    if len(weeks) > 1 and weeks == list(range(weeks[0], weeks[-1] + 1)):
+        return "weeks %s-%s" % (ts(weeks[0]), ts(weeks[-1]))
+    return ("week " if len(weeks) == 1 else "weeks ") + ", ".join(ts(w) for w in weeks)
+
+
+def history_rows(h: dict) -> List[Tuple[str, dict]]:
+    acc = h["accuracy"]
+    rows = [(pos, s) for pos, s in acc["by_position"].items() if s is not None]
+    if acc.get("overall") is not None:
+        rows.append(("ALL", acc["overall"]))
+    return rows
+
+
+def history_text(h: Optional[dict]) -> List[str]:
+    if h is None:
+        return []
+    if not h["available"]:
+        return ["HISTORY: unavailable - " + s(h.get("reason")), ""]
+    out = ["HISTORY - " + weeks_label(h["weeks"]) + " (projected vs actual, league scoring)", LINE,
+           "  Projection accuracy (player-weeks projected " + n1(h.get("min_projection")) + "+ points):",
+           "    " + pad("POS", 6) + pad("N", 6) + pad("AVG MISS", 10) + pad("BIAS", 7) + "WITHIN 5"]
+    for pos, st in history_rows(h):
+        out.append("    " + pad(pos, 6) + pad(st["n"], 6) + pad(n1(st.get("mae")), 10) + pad(signed(st.get("bias")), 7)
+                   + ts(st.get("within_5_pct")) + "%")
+    src = h["projection_sources"]
+    out.append("  Projections compared: " + ts(src.get("snapshot", 0)) + " recorded before kickoff, "
+               + ts(src.get("backfill", 0)) + " fetched afterwards. Bias > 0: players beat projections.")
+    if h.get("stats_missing_weeks"):
+        out.append("  ! No stats feed for " + weeks_label(h["stats_missing_weeks"])
+                   + ": only rostered players have results there.")
+    if h.get("my_roster"):
+        out += ["", "  YOUR ROSTER - recent form (last 4 weeks played)",
+                "    " + pad("PLAYER", 30) + pad("GP", 4) + pad("AVG", 7) + pad("PROJ", 7) + pad("BEAT", 6) + "WEEKLY (actual)"]
+        for pid in h["my_roster"]:
+            p = h["players"][pid]
+            out.append("    " + pad(s(p.get("name")) + " (" + alt(p.get("position"), "?") + "/" + alt(p.get("team"), "FA") + ")", 30)
+                       + pad(p["games"], 4) + pad(n1(p.get("avg_points")), 7) + pad(n1(p.get("avg_projection")), 7)
+                       + pad(ts(p.get("beat")) + "/" + ts(p.get("compared")), 6)
+                       + " ".join(n1(x.get("actual")) for x in p["last"]))
+    return out + [""]
+
+
+def history_markdown(h: Optional[dict]) -> List[str]:
+    if h is None:
+        return []
+    if not h["available"]:
+        return ["## History", "", "Unavailable: " + s(h.get("reason")), ""]
+    src = h["projection_sources"]
+    out = ["## History", "",
+           "Projected vs actual points, " + weeks_label(h["weeks"]) + ", league scoring. "
+           + ts(src.get("snapshot", 0)) + " projections recorded before kickoff, " + ts(src.get("backfill", 0))
+           + " fetched afterwards.", "",
+           "| Position | Player-weeks | Avg miss | Bias | Within 5 |", "| --- | ---: | ---: | ---: | ---: |"]
+    for pos, st in history_rows(h):
+        out.append("| " + pos + " | " + ts(st["n"]) + " | " + n1(st.get("mae")) + " | " + signed(st.get("bias"))
+                   + " | " + ts(st.get("within_5_pct")) + "% |")
+    out.append("")
+    if h.get("stats_missing_weeks"):
+        out += ["> No stats feed for " + weeks_label(h["stats_missing_weeks"]) + ": only rostered players have results there.", ""]
+    if h.get("my_roster"):
+        out += ["### Your roster: recent form", "",
+                "| Player | Pos | GP | Avg | Proj | Beat | Weekly (actual) |", "| --- | --- | ---: | ---: | ---: | ---: | --- |"]
+        for pid in h["my_roster"]:
+            p = h["players"][pid]
+            out.append("| " + s(p.get("name")) + " | " + alt(p.get("position"), "?") + " | " + ts(p["games"]) + " | "
+                       + n1(p.get("avg_points")) + " | " + n1(p.get("avg_projection")) + " | " + ts(p.get("beat")) + "/"
+                       + ts(p.get("compared")) + " | " + " / ".join(n1(x.get("actual")) for x in p["last"]) + " |")
+        out.append("")
+    return out
 
 
 def render_json(r: dict) -> str:
