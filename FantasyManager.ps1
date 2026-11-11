@@ -82,7 +82,7 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '2.12.0'
+$ToolVersion = '2.12.1'
 
 # --------------------------------------------------------------------------
 # Shared application: lib/fm_app.py does configuration, fetching, caching,

@@ -1057,7 +1057,9 @@ payload = {"players": [
     {"player": {"id": 77, "fullName": "Renamed", "defaultPositionId": 2, "proTeamId": 15, "stats": week_rows(9, 11.0)}},
     {"player": {"id": 5, "fullName": "Nobody", "defaultPositionId": 3, "proTeamId": 3, "stats": week_rows(9, 9.0)}},
     {"player": {"id": 6, "fullName": "Wrong Week", "defaultPositionId": 3, "proTeamId": 2, "stats": week_rows(8, 9.0)}}]}
-points, matched, unmatched = p.parse_espn(payload, 9, players)
+payload["players"][0]["player"]["stats"].insert(0, {"statSourceId": 1, "statSplitTypeId": 1, "scoringPeriodId": 9,
+                                                   "externalId": "20259", "appliedTotal": 88.0})
+points, matched, unmatched = p.parse_espn(payload, 9, players, "2026")
 print(sorted(points.items()), matched, unmatched)
 print(p.parse_espn(payload["players"], 9, players)[1], p.parse_espn({"oops": 1}, 9, players)[1])
 print(p.blend_factor(10, 30), p.blend_factor(0.2, 5), p.disagrees(3, 6), p.disagrees(20, 25))
@@ -1066,6 +1068,9 @@ PY
 assert_match "parser: id, name (suffix-insensitive) and D/ST matches" "$PARSED" "\[\('BUF', 7\.0\), \('buf_wr', 14\.2\), \('e1', 11\.0\)\] 3 \['Nobody'\]"
 assert_match "parser: plain list accepted, bad shape ignored" "$PARSED" $'\n3 0\n'
 assert_match "parser: blend limits and disagreement rule" "$PARSED" '1\.5 None False False'
+FILTER="$(python3 -c "import sys; sys.path.insert(0, '$ROOT/lib'); import fm_providers as p; print(p.espn_filter('2026', 10))")"
+assert_match "ESPN filter asks for the week's projections by period code" "$FILTER" '"additionalValue":\["002026","102026","11202610","01202610"\]'
+assert_no_match "ESPN filter has no stat filters that drop weekly rows" "$FILTER" 'filterStatsForSourceIds|filterStatsForSplitTypeIds|filterStatsForExternalIds'
 
 # --------------------------------------------------------------------------
 printf '\n%s\n' "------------------------------------------------------------"
