@@ -23,7 +23,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fm_history  # noqa: E402
 
-SCHEMA_VERSION = "1.3"
+SCHEMA_VERSION = "1.4"
 
 # Slots that do not start.
 NON_STARTING_SLOTS = {"BN", "BE", "IR", "TAXI", "RESERVE"}
@@ -1636,6 +1636,37 @@ class Analyzer:
     )
     NAME_SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v"}
 
+    def window_label(self) -> str:
+        weeks = self.window_weeks
+        if self.config.get("horizon_mode") == "ros" and len(weeks) > 1:
+            last = self.config.get("last_week")
+            if isinstance(last, int) and weeks[-1] < last:
+                return "rest of season, weeks %d-%d (no projections after week %d yet)" % (weeks[0], weeks[-1], weeks[-1])
+            return "rest of season (weeks %d-%d)" % (weeks[0], weeks[-1])
+        if len(weeks) == 1:
+            return "week %d only" % weeks[0]
+        return "weeks " + ", ".join(str(w) for w in weeks)
+
+    def two_grades(self, a_this: float, b_this: float, a_pw: float, b_pw: float) -> dict:
+        """Immediate impact (this week) and value over the window, graded
+        separately on the same per-week scale."""
+        return {
+            "this_week": {"week": self.window_weeks[0] if self.window_weeks else None,
+                          "my_grade": self.grade_for(a_this), "their_grade": self.grade_for(b_this),
+                          "my_gain": r2(a_this), "their_gain": r2(b_this)},
+            "window": {"weeks": self.window_weeks, "label": self.window_label(),
+                       "rest_of_season": self.config.get("horizon_mode") == "ros",
+                       "my_grade": self.grade_for(a_pw), "their_grade": self.grade_for(b_pw),
+                       "my_gain_per_week": r2(a_pw), "their_gain_per_week": r2(b_pw)},
+        }
+
+    def trade_deadline_flag(self) -> Optional[str]:
+        deadline = (self.league.get("settings") or {}).get("trade_deadline")
+        week = int(self.config.get("week") or 0)
+        if isinstance(deadline, int) and not isinstance(deadline, bool) and 0 < deadline < 99 and week > deadline:
+            return "The league's trade deadline (week %d) has passed." % deadline
+        return None
+
     @classmethod
     def grade_for(cls, per_week: float) -> str:
         for floor, letter in cls.GRADE_SCALE:
@@ -1931,6 +1962,15 @@ class Analyzer:
                 flags.extend(self.trade_flags(pid, "You get" if is_me else a_name + " gets"))
             for pid in give:
                 flags.extend(self.trade_flags(pid, "You give" if is_me else a_name + " gives"))
+            deadline = self.trade_deadline_flag()
+            if deadline:
+                flags.append(deadline)
+            my_this = my_weeks[0] - my_base_weeks[0] if my_weeks and my_base_weeks else 0.0
+            their_this = their_weeks[0] - their_base_weeks[0] if their_weeks and their_base_weeks else 0.0
+            if n > 1 and self.grade_for(my_this) != my_grade:
+                notes.append("This week and the longer view disagree for %s: %+.1f points this week (%s), "
+                             "%+.1f a week over %s (%s)."
+                             % (you, my_this, self.grade_for(my_this), my_pw, self.window_label(), my_grade))
 
             result.update({
                 "window_weeks": self.window_weeks,
@@ -1944,6 +1984,7 @@ class Analyzer:
                 "value_received": r2(value_received),
                 "my_grade": my_grade,
                 "their_grade": their_grade,
+                "grades": self.two_grades(my_this, their_this, my_pw, their_pw),
                 "acceptance": acceptance,
                 "verdict": verdict,
                 "my_drops": [self.player_ref(p) for p in my_drops],
@@ -2096,6 +2137,12 @@ class Analyzer:
             a_gain = value_received - value_given
             a_pw, b_pw = a_gain / n, -a_gain / n
 
+            def this_week_vor(pid: str) -> float:
+                value = self.open_points(pid, 0, scoring)
+                return 0.0 if value is None else max(0.0, value - levels[0].get(self.primary_position(pid), 0.0))
+
+            a_this = sum(this_week_vor(p) for p in get) - sum(this_week_vor(p) for p in give)
+
             notes = ["Values each player by projected points above a replacement-level starter in a "
                      "%d-team league (%s) over weeks %s; team needs, depth and roster spots are not known."
                      % (teams, self.SCORING_LABELS[scoring], ", ".join(str(w) for w in self.window_weeks))]
@@ -2139,6 +2186,7 @@ class Analyzer:
                 "their_gain_per_week": r2(b_pw),
                 "my_grade": self.grade_for(a_pw),
                 "their_grade": self.grade_for(b_pw),
+                "grades": self.two_grades(a_this, -a_this, a_pw, b_pw),
                 "acceptance": self.acceptance_for(b_pw),
                 "verdict": self.neutral_verdict(a_pw, b_pw, "Side A", "Side B"),
                 "replacement_levels": {
@@ -2472,6 +2520,8 @@ class Analyzer:
                 "week": self.config.get("week"),
                 "week_rolled_from": self.config.get("week_rolled_from"),
                 "window_weeks": self.window_weeks,
+                "horizon_mode": self.config.get("horizon_mode") or "weeks",
+                "window_label": self.window_label(),
                 "offline": bool(self.config.get("offline")),
                 "top_n": self.config.get("top_n"),
                 "churn_threshold": self.config.get("churn_threshold"),

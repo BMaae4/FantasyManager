@@ -80,7 +80,7 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '2.10.0'
+$ToolVersion = '2.11.0'
 
 # --------------------------------------------------------------------------
 # Shared application: lib/fm_app.py does configuration, fetching, caching,
@@ -370,9 +370,10 @@ $script:WindowXaml = @'
           <TextBlock Text="Week" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="14,0,6,0"/>
           <TextBox x:Name="WeekBox" Width="44" Padding="4,3" ToolTip="Blank = current week (next week once every game is final)"/>
           <TextBlock Text="Horizon" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="14,0,6,0"/>
-          <ComboBox x:Name="HorizonBox" Width="56" ToolTip="Future weeks valued for waivers, drops and trades">
+          <ComboBox x:Name="HorizonBox" Width="64" ToolTip="Future weeks valued for waivers, drops and trades (ROS = rest of the fantasy season)">
             <ComboBoxItem Content="0"/><ComboBoxItem Content="1"/><ComboBoxItem Content="2"/>
             <ComboBoxItem Content="3"/><ComboBoxItem Content="4"/><ComboBoxItem Content="5"/><ComboBoxItem Content="6"/>
+            <ComboBoxItem Content="ROS"/>
           </ComboBox>
           <CheckBox x:Name="RememberBox" Content="Remember" VerticalAlignment="Center" Margin="14,0,0,0" IsChecked="True"
                     ToolTip="After a successful refresh, save the league, user and horizon as your defaults (config.env)"/>
@@ -918,6 +919,19 @@ function Update-TrendsView($ui, $o) {
     $ui.DecliningGrid.ItemsSource = @(ConvertTo-TrendRows $o.declining)
 }
 
+function ConvertTo-HorizonIndex($horizon) {
+    # Horizon box: items 0-6, then ROS (rest of season).
+    if ([string]$horizon -eq 'ros') { return 7 }
+    $n = 0
+    if ([int]::TryParse([string]$horizon, [ref]$n) -and $n -ge 0 -and $n -le 6) { return $n }
+    return 3
+}
+
+function ConvertFrom-HorizonIndex([int]$index) {
+    if ($index -eq 7) { return 'ros' }
+    return [string]$index
+}
+
 function Format-Signed($value) {
     if ($null -eq $value) { return 'n/a' }
     $text = Format-Points $value
@@ -1199,6 +1213,13 @@ function Show-TradeResult($ui, $t) {
     $ui.VerdictText.Text = $t.verdict
     $weeks = @($t.window_weeks)
     $lines = @()
+    $grades = Get-Prop $t 'grades'
+    if ($grades -and $weeks.Count -gt 1) {
+        $tw = $grades.this_week; $win = $grades.window
+        $lines += ('This week (week {0}):  {1} {2},  {3} {4}      {5}:  {1} {6},  {3} {7}' -f $tw.week, $aName, $tw.my_grade,
+            $bName, $tw.their_grade, $win.label, $win.my_grade, $win.their_grade)
+        $lines += ''
+    }
     if ($open) {
         $scoringLabel = @{ ppr = 'PPR'; half = 'half-PPR'; std = 'standard'; league = "your league's scoring" }[[string]$t.scoring]
         $lines += ('{0}, {1}-team league, weeks {2}' -f $scoringLabel, $t.teams, ($weeks -join ', '))
@@ -1272,7 +1293,7 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         $ui.LeagueBox.Text = $cfg.league_id
         $ui.UserBox.Text = $cfg.username
         $ui.WeekBox.Text = $cfg.week
-        $ui.HorizonBox.SelectedIndex = [int]$cfg.horizon
+        $ui.HorizonBox.SelectedIndex = ConvertTo-HorizonIndex $cfg.horizon
     } else {
         $script:ConfigPath = Join-Path (Get-DefaultDir 'config') 'config.env'
         if ($script:BoundParams.ContainsKey('Config')) { $script:ConfigPath = [string]$script:BoundParams['Config'] }
@@ -1357,14 +1378,14 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         $ui = $script:Ui
         $extra = @('-LeagueId', $ui.LeagueBox.Text.Trim(), '-Username', $ui.UserBox.Text.Trim())
         if ($ui.WeekBox.Text.Trim()) { $extra += @('-Week', $ui.WeekBox.Text.Trim()) }
-        if ($ui.HorizonBox.SelectedIndex -ge 0) { $extra += @('-Horizon', [string]$ui.HorizonBox.SelectedIndex) }
+        if ($ui.HorizonBox.SelectedIndex -ge 0) { $extra += @('-Horizon', (ConvertFrom-HorizonIndex $ui.HorizonBox.SelectedIndex)) }
         if ($ui.FreshBox.IsChecked) { $extra += '-Refresh' }
         # Saved only after the refresh succeeds, so a typo is never remembered.
         $script:PendingDefaults = $null
         if ($ui.RememberBox.IsChecked) {
             $script:PendingDefaults = [ordered]@{
                 league_id = $ui.LeagueBox.Text.Trim(); username = $ui.UserBox.Text.Trim()
-                horizon = [string]([Math]::Max(0, $ui.HorizonBox.SelectedIndex))
+                horizon = ConvertFrom-HorizonIndex ([Math]::Max(0, $ui.HorizonBox.SelectedIndex))
             }
         }
         & $script:StartJob $extra {
@@ -1428,8 +1449,9 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         if (-not $text) { $ui.VerdictText.Text = 'Pick at least one player on each side.'; return }
         # Grade against the same league, week and window as the loaded report.
         $meta = $report.metadata
+        $gradeHorizon = $(if ((Get-Prop $meta 'horizon_mode') -eq 'ros') { 'ros' } else { [string]([Math]::Max(0, [Math]::Min(6, @($meta.window_weeks).Count - 1))) })
         $extra = @('-LeagueId', [string]$meta.league_id, '-Username', [string]$meta.username, '-Week', [string]$meta.week,
-            '-Horizon', [string]([Math]::Max(0, @($meta.window_weeks).Count - 1)), '-SkipWaivers', '-SkipTrades')
+            '-Horizon', $gradeHorizon, '-SkipWaivers', '-SkipTrades')
         if (Test-OpenMode $ui) {
             $teams = $ui.TeamsBox.Text.Trim()
             if ($teams -notmatch '^\d+$' -or [int]$teams -lt 4 -or [int]$teams -gt 32) { $ui.VerdictText.Text = 'League size must be 4 to 32.'; return }

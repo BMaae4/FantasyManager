@@ -31,7 +31,7 @@ import fm_analysis  # noqa: E402
 import fm_history  # noqa: E402
 
 TOOL_NAME = "fantasy_manager"
-TOOL_VERSION = "2.10.0"
+TOOL_VERSION = "2.11.0"
 
 # --------------------------------------------------------------------------
 # Defaults (run with no parameters)
@@ -95,8 +95,10 @@ Data options:
 Analysis options:
       --threshold X        Suppress lineup churn below X projected points (default: 0.5)
       --fairness X         Trade fairness tolerance as a fraction (default: 0.10)
-      --horizon N          Future weeks valued for waivers, drops and trades, 0-6
-                           (default: 3; 0 = this week only)
+      --horizon N|ros      Future weeks valued for waivers, drops and trades, 0-6,
+                           or "ros" for the rest of the fantasy season (through
+                           the league's last playoff week). Default: 3; 0 = this
+                           week only
       --trade TEXT         Grade trade(s) in your league: "Give A, Give B for Get C".
                            Any two teams; names or Sleeper ids; ";" between trades
       --value-trade TEXT   Grade any players for any players, no league or rosters
@@ -490,8 +492,10 @@ def validate_config(c: Config) -> None:
         die(EX_USAGE, "Scoring must be ppr, half, std or league (got '%s')." % c.scoring)
     if not is_uint(c.teams) or int(c.teams) < 4 or int(c.teams) > 32:
         die(EX_USAGE, "Teams must be an integer between 4 and 32 (got '%s')." % c.teams)
-    if not is_uint(c.horizon) or int(c.horizon) > 6:
-        die(EX_USAGE, "Horizon must be an integer between 0 and 6 (got '%s')." % c.horizon)
+    if c.horizon.lower() == "ros":
+        c.horizon = "ros"
+    elif not is_uint(c.horizon) or int(c.horizon) > 6:
+        die(EX_USAGE, "Horizon must be an integer between 0 and 6, or ros (got '%s')." % c.horizon)
     if not is_number(c.threshold):
         die(EX_USAGE, "Threshold must be numeric (got '%s')." % c.threshold)
     if not is_number(c.fairness):
@@ -911,10 +915,14 @@ def run_pipeline(c: Config) -> dict:
     LOG.info("Projections: %d records (source %s)" % (count, proj_source))
 
     # future weeks: each optional; a missing week shortens the window
+    last_week = fantasy_last_week(league) if c.horizon == "ros" else None
+    horizon_n = max(0, last_week - week) if last_week is not None else int(c.horizon)
+    if last_week is not None:
+        LOG.info("Rest of season: weeks %d-%d (league's last fantasy week %d)" % (week, max(week, last_week), last_week))
     future: Dict[str, Any] = {}
     future_weeks: List[int] = []
     missing: List[int] = []
-    for i in range(1, int(c.horizon) + 1):
+    for i in range(1, horizon_n + 1):
         w = week + i
         if w > 18:
             break
@@ -959,7 +967,9 @@ def run_pipeline(c: Config) -> dict:
             "offline": c.offline == "1",
             "locked": [p.strip(" ") for p in c.locked.split(",") if p.strip(" ")],
             "week_rolled_from": rolled_from,
-            "horizon": int(c.horizon),
+            "horizon": horizon_n,
+            "horizon_mode": "ros" if c.horizon == "ros" else "weeks",
+            "last_week": last_week,
             "custom_trades": c.trade or None,
             "value_trades": c.value_trade or None,
             "value_scoring": c.scoring,
@@ -1108,6 +1118,21 @@ def load_nflverse_usage(c: Config, f: Fetcher, season: str, weeks: List[int],
     return {str(w): v for w, v in by_week.items()}
 
 
+def fantasy_last_week(league: dict) -> int:
+    """The league's last fantasy week: the end of its playoffs (Sleeper
+    settings playoff_week_start / playoff_teams / playoff_round_type), else 17."""
+    settings = league.get("settings") or {}
+    start = settings.get("playoff_week_start")
+    if not isinstance(start, int) or isinstance(start, bool) or start <= 0:
+        return 17
+    teams = settings.get("playoff_teams")
+    teams = teams if isinstance(teams, int) and not isinstance(teams, bool) and teams > 1 else 6
+    rounds = max(1, int(math.ceil(math.log(teams, 2) - 1e-9)))
+    round_type = settings.get("playoff_round_type") or 0
+    length = rounds * 2 if round_type == 2 else rounds + (1 if round_type == 1 else 0)
+    return max(1, min(18, start + length - 1))
+
+
 def run_analysis(bundle: dict, persist: Any = None) -> dict:
     try:
         analyzer = fm_analysis.Analyzer(bundle)
@@ -1167,6 +1192,29 @@ def side_labels(t: dict) -> Tuple[bool, str, str]:
 def join_status(row: dict) -> str:
     return ", ".join(ts(x) for x in (row.get("status"), row.get("injury_status"), row.get("practice_participation"))
                      if x is not None)
+
+
+def grades_text(t: dict, a: str, b: str) -> List[str]:
+    """The two grades (this week; the window) under the overall grade line."""
+    g = t.get("grades")
+    if not g or len(g["window"]["weeks"]) < 2:
+        return []
+    tw, win = g["this_week"], g["window"]
+    return ["    this week (week " + ts(tw["week"]) + "): " + a + " " + tw["my_grade"] + ", " + b + " " + tw["their_grade"]
+            + " (" + signed(tw.get("my_gain")) + " / " + signed(tw.get("their_gain")) + ")   "
+            + win["label"] + ": " + a + " " + win["my_grade"] + ", " + b + " " + win["their_grade"]]
+
+
+def grades_markdown(t: dict, a: str, b: str) -> List[str]:
+    g = t.get("grades")
+    if not g or len(g["window"]["weeks"]) < 2:
+        return []
+    tw, win = g["this_week"], g["window"]
+    return ["| Grade | " + a + " | " + b + " |", "| --- | --- | --- |",
+            "| This week (week " + ts(tw["week"]) + ") | " + tw["my_grade"] + " (" + signed(tw.get("my_gain")) + ") | "
+            + tw["their_grade"] + " (" + signed(tw.get("their_gain")) + ") |",
+            "| " + win["label"][0].upper() + win["label"][1:] + " | " + win["my_grade"] + " (" + signed(win.get("my_gain_per_week"))
+            + "/wk) | " + win["their_grade"] + " (" + signed(win.get("their_gain_per_week")) + "/wk) |", ""]
 
 
 def render_text(r: dict) -> str:
@@ -1313,6 +1361,7 @@ def render_text(r: dict) -> str:
                                              if is_me else a + " <-> " + b) + ")",
                 "    GRADE  " + a + " " + pad(t["my_grade"], 4) + b + " " + pad(t["their_grade"], 4)
                 + "acceptance: " + t["acceptance"],
+            ] + grades_text(t, a, b) + [
                 "    " + t["verdict"],
                 "    gain per week: " + a + " " + n1(t.get("my_gain_per_week")) + ", " + b + " " + n1(t.get("their_gain_per_week"))
                 + "   over weeks " + ", ".join(ts(w) for w in t["window_weeks"]) + ": " + a + " " + n1(t.get("my_gain"))
@@ -1335,6 +1384,7 @@ def render_text(r: dict) -> str:
                 "  " + t["input"] + "  (" + alt(SCORING_NAMES.get(t["scoring"]), t["scoring"]) + ", " + ts(t["teams"])
                 + " teams, weeks " + ", ".join(ts(w) for w in t["window_weeks"]) + ")",
                 "    GRADE  side A " + pad(t["my_grade"], 4) + "side B " + pad(t["their_grade"], 4) + "acceptance (B): " + t["acceptance"],
+            ] + grades_text(t, "side A", "side B") + [
                 "    " + t["verdict"],
                 "    value over replacement per week: side A " + n1(t.get("my_gain_per_week")) + ", side B " + n1(t.get("their_gain_per_week")),
                 "    side A gives: " + ", ".join(s(g.get("name")) + " (" + alt(g.get("position"), "?") + "/" + alt(g.get("team"), "FA")
@@ -1488,7 +1538,9 @@ def render_markdown(r: dict) -> str:
                 head = (a_name + " <-> " + b_name + ". **" + a_name + ": " + t["my_grade"] + "**, **" + b_name + ": "
                         + t["their_grade"] + "**, acceptance: " + t["acceptance"] + ".")
                 table_head = "| | " + a_name + " | " + b_name + " |"
-            out += ["### " + t["input"], "", head, "", t["verdict"], "", table_head, "| --- | ---: | ---: |",
+            out += ["### " + t["input"], "", head, ""] + grades_markdown(t, "you" if is_me else alt(side_a.get("team"), "Side A"),
+                                                                     "them" if is_me else alt(partner.get("team"), "Side B")) + [
+                    t["verdict"], "", table_head, "| --- | ---: | ---: |",
                     "| Gain per week | " + n1(t.get("my_gain_per_week")) + " | " + n1(t.get("their_gain_per_week")) + " |",
                     "| Gain over weeks " + ", ".join(ts(w) for w in t["window_weeks"]) + " | " + n1(t.get("my_gain"))
                     + " | " + n1(t.get("their_gain")) + " |",
@@ -1506,7 +1558,7 @@ def render_markdown(r: dict) -> str:
             out += ["### " + t["input"], "",
                     "**Side A: " + t["my_grade"] + "**, **Side B: " + t["their_grade"] + "**, acceptance (side B): " + t["acceptance"]
                     + ". " + alt(SCORING_NAMES.get(t["scoring"]), t["scoring"]) + ", " + ts(t["teams"]) + " teams, weeks "
-                    + ", ".join(ts(w) for w in t["window_weeks"]) + ".", "",
+                    + ", ".join(ts(w) for w in t["window_weeks"]) + ".", ""] + grades_markdown(t, "side A", "side B") + [
                     t["verdict"], "",
                     "| Side A gives | Pos | Team | Points | Above repl. |", "| --- | --- | --- | ---: | ---: |"]
             out += ["| " + s(g.get("name")) + " | " + alt(g.get("position"), "?") + " | " + alt(g.get("team"), "FA") + " | "

@@ -2,6 +2,40 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.11.0
+
+### Added
+
+- `--horizon ros` (PowerShell `-Horizon ros`, `horizon=ros`, **ROS** in the
+  Windows horizon box) values the rest of the fantasy season.
+  - The window runs through the league's last playoff week, worked out from
+    `playoff_week_start`, `playoff_teams` and `playoff_round_type` (week 17
+    if they're missing).
+  - Weeks without projections yet shorten the window, and the label says
+    from which week.
+- Two trade grades: **this week** (the immediate lineup effect) and **the
+  window** (per week over the horizon, or the rest of the season with
+  `ros`).
+  - The overall grade stays the window grade.
+  - A note explains when the two disagree.
+  - Shown in text, Markdown, JSON `grades` on league and any-player trades,
+    and the Windows Trade Analyzer.
+- A trade after the league's `trade_deadline` is flagged.
+- JSON `metadata.horizon_mode` and `metadata.window_label`; schema version
+  1.4.
+
+### Changed
+
+- The Windows Trade Analyzer grades with the report's own horizon,
+  including `ros`.
+
+### Tests
+
+- New fixture `rest_of_season` with projections through week 17, a partner
+  back on bye this week only, and a passed trade deadline. 18 new checks
+  (339 total).
+- Windows check for `-Horizon ros`.
+
 ## 2.10.0
 
 ### Added

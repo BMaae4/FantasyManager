@@ -318,14 +318,14 @@ def schedule_for(status_by_week_team: dict) -> list:
 FUTURE_WEEKS = (6, 7, 8)
 
 
-def with_future(data: dict, overrides: dict | None = None) -> dict:
+def with_future(data: dict, overrides: dict | None = None, weeks=FUTURE_WEEKS) -> dict:
     """Add projections_w6..w8 (copies of week 5 unless already present).
     `overrides` maps week -> {player_id: points or None (no projection)}."""
     overrides = overrides or {}
     base = data.get("projections")
     if not isinstance(base, list):
         return data
-    for week in FUTURE_WEEKS:
+    for week in weeks:
         key = "projections_w%d" % week
         if key in data:
             continue
@@ -725,6 +725,16 @@ def main() -> int:
     raw_status.update(files)
     del history_stats_w2
     write_case(out_dir, "usage_nflverse", nflv, raw=raw_status)
+
+    # 32. rest of season: projections through week 17 (the league's last
+    #     playoff week), a partner back on bye this week only, and a trade
+    #     deadline that has passed.
+    ros = copy.deepcopy(base)
+    ros["league"]["settings"].update({"playoff_teams": 4, "playoff_round_type": 1, "trade_deadline": 4})
+    ros["projections"] = [p for p in ros["projections"] if p["player_id"] != "t2_rb1"]
+    ros_weeks = tuple(range(6, 18))
+    with_future(ros, {week: {"t2_rb1": 15.75} for week in ros_weeks}, weeks=ros_weeks)
+    write_case(out_dir, "rest_of_season", ros)
 
     print("fixtures written to %s" % out_dir)
     return 0
