@@ -848,6 +848,23 @@ if [ -n "$FIRST_MAE" ]; then pass "history accuracy readable after reruns"; else
 FM_HISTORY=2 "$SCRIPT" --print-config >/dev/null 2>"$WORK/stderr"; STATUS=$?
 assert_status "invalid FM_HISTORY rejected" 2
 
+# Regressions from the first live run: byes are not games, and fewer snaps
+# with more touches is not a lost role.
+UNIT="$(python3 - "$ROOT/lib" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import fm_history as h
+form = h.player_form({6: (18.0, 18.3), 7: (None, 0.0), 8: (19.0, 27.6), 9: (18.0, 13.9), 5: (17.0, 20.0)})
+print(form["weeks"], form["avg_points"])
+print(h.player_form({7: (0.5, 0.0)}))
+print(h.classify({"snap_then": 81, "snap_now": 60, "opportunities_then": 19.5, "opportunities_now": 20.5}),
+      h.classify({"snap_then": 81, "snap_now": 60, "opportunities_then": 19.5, "opportunities_now": 15.0}))
+PY
+)"
+assert_match "recent form skips a bye (no projection, 0 points)" "$UNIT" '^\[5, 6, 8, 9\] 19\.9'
+assert_match "no game at all gives no form" "$UNIT" $'\nNone\n'
+assert_match "fewer snaps but more touches is not a lost role" "$UNIT" 'None declining$'
+
 # --------------------------------------------------------------------------
 section "win probability"
 # --------------------------------------------------------------------------

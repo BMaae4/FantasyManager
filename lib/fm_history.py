@@ -253,8 +253,8 @@ def classify(t: dict) -> Optional[str]:
     if st is not None and sn is not None:
         if sn >= 45 and sn - st >= 15:
             return "breakout"
-        if st >= 40 and st - sn >= 15:
-            return "declining"
+        if st >= 40 and st - sn >= 15 and on <= ot:
+            return "declining"  # fewer snaps only matters if touches didn't rise
     if on >= 8 and on - ot >= 4 and on >= 1.5 * ot:
         return "breakout"
     if ot >= 6 and ot - on >= 4 and on <= 0.6 * ot:
@@ -315,7 +315,10 @@ def accuracy(pairs: Iterable[Tuple[str, float, float]], min_projection: float = 
 def player_form(weeks: Dict[int, Tuple[Optional[float], Optional[float]]], last_n: int = 4) -> Optional[dict]:
     """weeks: week -> (projected, actual). Uses the last `last_n` weeks with
     an actual score."""
-    played = sorted(w for w, (_, a) in weeks.items() if a is not None)[-last_n:]
+    # A week counts as a game when the player was projected to play (1+
+    # points) or scored; byes and weeks without a role are left out.
+    played = sorted(w for w, (p, a) in weeks.items()
+                    if a is not None and ((p is not None and p >= 1.0) or a > 0))[-last_n:]
     if not played:
         return None
     actuals = [weeks[w][1] for w in played]

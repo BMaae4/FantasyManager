@@ -2298,12 +2298,23 @@ class Analyzer:
             if not self.is_locked(pid):
                 self.history_updates["projections"].append([week, pid, round(value, 3), "snapshot"])
 
+        # Bye weeks (from the schedule) are not games.
+        teams_by_week: Dict[int, set] = {}
+        for game in self.bundle.get("schedule") or []:
+            if isinstance(game, dict) and str(game.get("week", "")).isdigit():
+                teams_by_week.setdefault(int(game["week"]), set()).update(
+                    str(game.get(k) or "").upper() for k in ("home", "away"))
+
+        def on_bye(pid: str, w: int) -> bool:
+            team = str(self.player(pid).get("team") or "").upper()
+            return bool(teams_by_week.get(w)) and bool(team) and team not in teams_by_week[w]
+
         per_pid: Dict[str, Dict[int, Tuple[Optional[float], Optional[float]]]] = {}
         for (w, pid), p in proj.items():
-            if w < week:
+            if w < week and not on_bye(pid, w):
                 per_pid.setdefault(pid, {})[w] = (p, act.get((w, pid)))
         for (w, pid), a in act.items():
-            if w < week and (w, pid) not in proj:
+            if w < week and (w, pid) not in proj and not on_bye(pid, w):
                 per_pid.setdefault(pid, {})[w] = (None, a)
         self.history_usage = usage
         self.history_player_misses = {
@@ -2435,7 +2446,7 @@ class Analyzer:
             "players": players,
             "note": ("Earlier weeks vs the last two (of the last four with usage). Breakout: snap share up 15+ points "
                      "to 45%+, or targets + carries up by 4+ and half again. Losing role: snap share down 15+ points "
-                     "from 40%+, or targets + carries down 4+ and by 40%."),
+                     "from 40%+ (with touches not rising), or targets + carries down 4+ and by 40%."),
         }
 
     # -- second projection source: compare and blend ----------------------
