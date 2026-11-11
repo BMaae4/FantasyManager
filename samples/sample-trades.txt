@@ -1,0 +1,34 @@
+TRADE ANALYZER
+------------------------------------------------------------------------
+  Wes Delta, Ryan Echo for Team2 RB1  (with Team 2)
+    GRADE  you A+  them F   acceptance: unlikely
+    Lopsided in your favour; unlikely to be accepted as is.
+    gain per week: you 4, them -4   over weeks 5, 6, 7, 8: you 16, them -16
+    weekly (you): 4 / 4 / 4 / 4
+    give: Wes Delta (WR, starts 0/4 wks now), Ryan Echo (RB, starts 4/4 wks now)
+    get:  Team2 RB1 (RB, would start 4/4)
+    - Opens 1 roster spot(s) for a waiver pickup (not included in the grade).
+
+  Team2 RB1 for Team3 RB2, Team3 WR3  (Team 2 <-> Team 3)
+    GRADE  Team 2 F   Team 3 A-  acceptance: likely
+    Lopsided: Team 3 wins this clearly; Team 2 should ask for more.
+    gain per week: Team 2 -2.8, Team 3 2.8   over weeks 5, 6, 7, 8: Team 2 -11, Team 3 11
+    weekly (Team 2): -2.8 / -2.8 / -2.8 / -2.8
+    give: Team2 RB1 (RB, starts 4/4 wks now)
+    get:  Team3 RB2 (RB, would start 4/4), Team3 WR3 (WR, would start 0/4)
+    - Team 3 consolidates: Team 2 gets more total points, Team 3 upgrades a starter.
+    - Team3 WR3 would not start for Team 2 in any window week.
+
+ANY-PLAYER TRADES
+------------------------------------------------------------------------
+  Team2 RB1 for Team3 RB2, Team4 WR3  (half-PPR, 4 teams, weeks 5, 6, 7, 8)
+    GRADE  side A F   side B A-  acceptance (B): likely
+    Lopsided: Side B wins this clearly; Side A should ask for more.
+    value over replacement per week: side A -2.8, side B 2.8
+    side A gives: Team2 RB1 (RB/CCC, 16 above repl.)
+    side B gives: Team3 RB2 (RB/DDD, 5 above repl.), Team4 WR3 (WR/EEE, 0 above repl.)
+    - Values each player by projected points above a replacement-level starter in a 4-team league (half-PPR) over weeks 5, 6, 7, 8; team needs, depth and roster spots are not known.
+    - Side B gets the best player in the deal (Team2 RB1); with a thin bench or in a deep league that is worth more than these totals show.
+    - Side A receives 1 more player(s) and would need to drop someone.
+    - Team4 WR3 projects at or below replacement level, so adds no value here.
+

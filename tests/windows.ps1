@@ -73,6 +73,14 @@ $r = Run-Script $args2
 $c2 = Get-Content -Raw (Join-Path $work 'c2.json') | ConvertFrom-Json
 Check 'second run uses cache' ($r.Code -eq 0 -and @($c2.diagnostics.fetches | Where-Object { $_.key -eq 'projections' -and $_.source -eq 'cache' }).Count -eq 1)
 
+# Hand-written config file: spaces around "=", quotes, CRLF.
+$cfgPath = Join-Path $work 'config.env'
+[IO.File]::WriteAllText($cfgPath, "# saved from Notepad`r`nleague_id = 1400680781302525952`r`n  top_n = 6 `r`nusername = `"MaTrasaMaae`"`r`n")
+$r = Run-Script @('-NoGui', '-Offline', '-Fixtures', "`"$(Join-Path $fixtures 'ppr_basic')`"", '-NoCache', '-Quiet', '-Config', "`"$cfgPath`"", '-OutFile', "`"$(Join-Path $work 'cfg.json')`"")
+$cfgReport = $null
+if ($r.Code -eq 0) { $cfgReport = Get-Content -Raw (Join-Path $work 'cfg.json') | ConvertFrom-Json }
+Check 'config file with spaces and CRLF is read' ($r.Code -eq 0 -and $cfgReport.metadata.top_n -eq 6) ("$($r.Err)")
+
 # GUI: builds, lays out and fills from a report without being shown.
 $r = Run-Script @('-ReportFile', "`"$(Join-Path $Expected 'locked_players.json')`"", '-GuiSmokeTest')
 Check 'GUI builds and loads a report' ($r.Code -eq 0 -and $r.Out -match 'GUI smoke test ok: lineup rows 9') ("$($r.Out) $($r.Err)")

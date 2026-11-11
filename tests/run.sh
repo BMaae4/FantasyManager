@@ -186,6 +186,14 @@ STDOUT="$(FM_OFFLINE=1 FM_FIXTURES="$FIXTURES/ppr_basic" FM_TOP_N=9 \
 STATUS=$?
 assert_json "cli overrides environment" '.metadata.top_n == 4'
 
+# Hand-written config files: spaces around "=", quotes, Windows line endings.
+printf '# saved from Notepad\r\nleague_id = 1400680781302525952\r\n  top_n = 6 \r\nusername = "MaTrasaMaae"\r\nformat=json\r\n' > "$WORK/config_crlf"
+STDOUT="$(FM_OFFLINE=1 FM_FIXTURES="$FIXTURES/ppr_basic" \
+    "$SCRIPT" --cache-dir "$WORK/c4" --config "$WORK/config_crlf" 2>"$WORK/stderr")"
+STATUS=$?
+assert_status "config with spaces and CRLF accepted" 0
+assert_json "config values are trimmed" '.metadata.top_n == 6 and .metadata.username == "MaTrasaMaae"'
+
 # --------------------------------------------------------------------------
 section "lineup optimisation"
 # --------------------------------------------------------------------------

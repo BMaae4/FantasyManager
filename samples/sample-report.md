@@ -2,16 +2,16 @@
 
 - Season: 2025 (regular)
 - Manager: MaTrasaMaae - Team: Trasa Titans
-- Generated: 2026-09-14T22:05:01Z by fantasy_manager 2.0.0
+- Generated: 2026-11-11T00:56:04Z by fantasy_manager 2.5.1
 - Scoring: league scoring_settings (source: league.scoring_settings x projected stats)
-- Projections: cache - `https://api.sleeper.app/projections/nfl/2025/5?season_type=regular&order_by=pts_ppr` - 62 records
+- Projections: fixture - `https://api.sleeper.app/projections/nfl/2025/5?season_type=regular&order_by=pts_ppr` - 62 records
 
 > Unsupported scoring keys (no matching projection stat): fum_lost, rec_td
 
 ## Warnings
 
-- 2 league scoring categories have no matching projection stat and are excluded: fum_lost, rec_td
-- Waiver score components omitted (no reliable data): rest_of_season_value, schedule_fit. Remaining weights renormalised.
+- 2 league scoring categories have no matching projection stat: fum_lost, rec_td. They are excluded.
+- Waiver score components omitted (no reliable data): schedule_fit. Remaining weights renormalised.
 
 ## Lineup
 
@@ -42,41 +42,43 @@
 
 Differential: -4.7
 
+Projected final (live + remaining): 96 vs 100.7
+
 > Projection-only optimisation: correlation, game script and opponent defensive matchups are not modelled.
 
 ## Waivers
 
-- Waiver type: FAAB (budget 100, remaining 80)
-- Weights: add_trend 15%, opportunity 23%, roster_improvement 62%
-- Omitted components: rest_of_season_value, schedule_fit
+- Waiver type: FAAB (budget 100, remaining 80.0)
+- Weights: add_trend 11%, opportunity 17%, rest_of_season_value 28%, roster_improvement 44%
+- Window: weeks 5, 6, 7, 8
+- Omitted components: schedule_fit
 
 ### Priority claims
 
-| Player | Pos | Team | Proj | Net gain | Score | Bid (est) | Drop |
-| --- | --- | --- | ---: | ---: | ---: | --- | --- |
-| Free Wide One | WR | EEE | 16.5 | 4.5 | 1 | $18 (22%) | Wes Delta |
-| Free Kick One | K | HHH | 8.5 | 1.5 | 0.4 | $6 (8%) | Wes Delta |
-| Hotel Defense | DEF | HHH | 7.5 | 1.5 | 0.4 | $6 (8%) | Wes Delta |
-| Free Tight One | TE | GGG | 9 | 1 | 0.4 | $4 (5%) | Wes Delta |
+| Player | Pos | Team | Proj | Net gain | Window gain | Score | Bid (est) | Drop |
+| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- |
+| Free Wide One | WR | EEE | 16.5 | 4.5 | 18 | 1 | $18 (22%) | Wes Delta |
+| Free Kick One | K | HHH | 8.5 | 1.5 | 6 | 0.4 | $6 (8%) | Wes Delta |
+| Hotel Defense | DEF | HHH | 7.5 | 1.5 | 6 | 0.4 | $6 (8%) | Wes Delta |
+| Free Tight One | TE | GGG | 9 | 1 | 4 | 0.3 | $4 (5%) | Wes Delta |
 
 ### Bench upgrades / stashes
 
-| Player | Pos | Team | Proj | Net gain | Score | Bid (est) | Drop |
-| --- | --- | --- | ---: | ---: | ---: | --- | --- |
-| _(none)_ | | | | | | | |
+| Player | Pos | Team | Proj | Net gain | Window gain | Score | Bid (est) | Drop |
+| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- |
+| Free Hurt One | WR | EEE | 15 | 0 | 9 | 0.3 | $9 (11%) | Wes Delta |
 
 ### Streamers
 
-| Player | Pos | Team | Proj | Net gain | Score | Bid (est) | Drop |
-| --- | --- | --- | ---: | ---: | ---: | --- | --- |
-| _(none)_ | | | | | | | |
+| Player | Pos | Team | Proj | Net gain | Window gain | Score | Bid (est) | Drop |
+| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- |
+| _(none)_ | | | | | | | | |
 
 ### Avoid
 
-| Player | Pos | Team | Proj | Net gain | Score | Bid (est) | Drop |
-| --- | --- | --- | ---: | ---: | ---: | --- | --- |
-| Free Hurt One | WR | EEE | 15 | 0 | 0.2 | n/a | n/a |
-| Free Retired One | RB | FFF | 14 | 0 | 0.2 | n/a | n/a |
+| Player | Pos | Team | Proj | Net gain | Window gain | Score | Bid (est) | Drop |
+| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- |
+| Free Retired One | RB | FFF | 14 | 0 | 0 | 0.2 | n/a | n/a |
 
 ## Trades
 
@@ -87,23 +89,27 @@ Differential: -4.7
 
 - Needs: RB
 
-| Give | Get | My gain | Their gain | Fairness gap |
-| --- | --- | ---: | ---: | ---: |
-| Ryan Bravo | Team2 TE1 | 2.2 | 2.5 | 0.8 |
+| Give | Get | My gain (window) | Their gain (window) | My gain this week | Fairness gap |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Ryan Bravo | Team2 TE1 | 8.8 | 10 | 2.2 | 3.2 |
 
 ## Diagnostics
 
 | Source | Origin | Cache age | Records | Note |
 | --- | --- | --- | ---: | --- |
 | state | fixture | 0m | 4 | ok |
+| schedule | fixture | 0m | 8 | ok |
 | league | fixture | 0m | 9 | ok |
 | rosters | fixture | 0m | 4 | ok |
 | users | fixture | 0m | 4 | ok |
 | matchups | fixture | 0m | 4 | ok |
 | user | fixture | 0m | 3 | ok |
-| players | cache | 0m | 62 | fresh cache |
-| projections | cache | 0m | 62 | fresh cache |
-| trending_add | cache | 0m | 3 | fresh cache |
+| players | fixture | 0m | 62 | ok |
+| projections | fixture | 0m | 62 | ok |
+| projections_w6 | fixture | 0m | 62 | ok |
+| projections_w7 | fixture | 0m | 62 | ok |
+| projections_w8 | fixture | 0m | 62 | ok |
+| trending_add | fixture | 0m | 3 | ok |
 | transactions | fixture | 0m | 1 | ok |
 
 > Read-only tool: it cannot submit lineups, waiver claims or trades.

@@ -1,8 +1,9 @@
 {
+  "custom_trades": null,
   "diagnostics": {
     "fetches": [
       {
-        "at": "2026-09-14T22:04:59Z",
+        "at": "2026-11-11T00:56:05Z",
         "cache_age_seconds": 0,
         "key": "state",
         "note": "ok",
@@ -11,7 +12,16 @@
         "url": "https://api.sleeper.app/v1/state/nfl"
       },
       {
-        "at": "2026-09-14T22:04:59Z",
+        "at": "2026-11-11T00:56:05Z",
+        "cache_age_seconds": 0,
+        "key": "schedule",
+        "note": "ok",
+        "records": 8,
+        "source": "fixture",
+        "url": "https://api.sleeper.com/schedule/nfl/regular/2025"
+      },
+      {
+        "at": "2026-11-11T00:56:05Z",
         "cache_age_seconds": 0,
         "key": "league",
         "note": "ok",
@@ -20,7 +30,7 @@
         "url": "https://api.sleeper.app/v1/league/1400680781302525952"
       },
       {
-        "at": "2026-09-14T22:04:59Z",
+        "at": "2026-11-11T00:56:05Z",
         "cache_age_seconds": 0,
         "key": "rosters",
         "note": "ok",
@@ -29,7 +39,7 @@
         "url": "https://api.sleeper.app/v1/league/1400680781302525952/rosters"
       },
       {
-        "at": "2026-09-14T22:04:59Z",
+        "at": "2026-11-11T00:56:05Z",
         "cache_age_seconds": 0,
         "key": "users",
         "note": "ok",
@@ -38,7 +48,7 @@
         "url": "https://api.sleeper.app/v1/league/1400680781302525952/users"
       },
       {
-        "at": "2026-09-14T22:04:59Z",
+        "at": "2026-11-11T00:56:05Z",
         "cache_age_seconds": 0,
         "key": "matchups",
         "note": "ok",
@@ -47,7 +57,7 @@
         "url": "https://api.sleeper.app/v1/league/1400680781302525952/matchups/5"
       },
       {
-        "at": "2026-09-14T22:04:59Z",
+        "at": "2026-11-11T00:56:05Z",
         "cache_age_seconds": 0,
         "key": "user",
         "note": "ok",
@@ -56,7 +66,7 @@
         "url": "https://api.sleeper.app/v1/user/MaTrasaMaae"
       },
       {
-        "at": "2026-09-14T22:04:59Z",
+        "at": "2026-11-11T00:56:05Z",
         "cache_age_seconds": 0,
         "key": "players",
         "note": "ok",
@@ -65,7 +75,7 @@
         "url": "https://api.sleeper.app/v1/players/nfl"
       },
       {
-        "at": "2026-09-14T22:04:59Z",
+        "at": "2026-11-11T00:56:05Z",
         "cache_age_seconds": 0,
         "key": "projections",
         "note": "ok",
@@ -74,7 +84,34 @@
         "url": "https://api.sleeper.app/projections/nfl/2025/5?season_type=regular&order_by=pts_ppr"
       },
       {
-        "at": "2026-09-14T22:04:59Z",
+        "at": "2026-11-11T00:56:05Z",
+        "cache_age_seconds": 0,
+        "key": "projections_w6",
+        "note": "ok",
+        "records": 62,
+        "source": "fixture",
+        "url": "https://api.sleeper.app/projections/nfl/2025/6?season_type=regular&order_by=pts_ppr"
+      },
+      {
+        "at": "2026-11-11T00:56:05Z",
+        "cache_age_seconds": 0,
+        "key": "projections_w7",
+        "note": "ok",
+        "records": 62,
+        "source": "fixture",
+        "url": "https://api.sleeper.app/projections/nfl/2025/7?season_type=regular&order_by=pts_ppr"
+      },
+      {
+        "at": "2026-11-11T00:56:05Z",
+        "cache_age_seconds": 0,
+        "key": "projections_w8",
+        "note": "ok",
+        "records": 62,
+        "source": "fixture",
+        "url": "https://api.sleeper.app/projections/nfl/2025/8?season_type=regular&order_by=pts_ppr"
+      },
+      {
+        "at": "2026-11-11T00:56:05Z",
         "cache_age_seconds": 0,
         "key": "trending_add",
         "note": "ok",
@@ -83,7 +120,7 @@
         "url": "https://api.sleeper.app/v1/players/nfl/trending/add?lookback_hours=24&limit=100"
       },
       {
-        "at": "2026-09-14T22:05:00Z",
+        "at": "2026-11-11T00:56:05Z",
         "cache_age_seconds": 0,
         "key": "transactions",
         "note": "ok",
@@ -92,8 +129,10 @@
         "url": "https://api.sleeper.app/v1/league/1400680781302525952/transactions/5"
       }
     ],
+    "lock_source": "game schedule + live points",
     "players_cache_age_seconds": 0,
     "read_only": true,
+    "schedule_available": true,
     "transactions_available": true,
     "trending_available": true
   },
@@ -107,19 +146,19 @@
           "injury_status": null,
           "name": "Ryan Bravo",
           "player_id": "rb2",
-          "points": 11,
+          "points": 11.0,
           "position": "RB",
           "status": "Active",
           "team": "BBB"
         },
-        "gain": 2,
+        "gain": 2.0,
         "index": 2,
         "recommended": {
           "in_player_database": true,
           "injury_status": null,
           "name": "Ryan Charlie",
           "player_id": "rb3",
-          "points": 13,
+          "points": 13.0,
           "position": "RB",
           "status": "Active",
           "team": "CCC"
@@ -134,19 +173,19 @@
           "injury_status": null,
           "name": "Wes Bravo",
           "player_id": "wr2",
-          "points": 9,
+          "points": 9.0,
           "position": "WR",
           "status": "Active",
           "team": "BBB"
         },
-        "gain": 5,
+        "gain": 5.0,
         "index": 4,
         "recommended": {
           "in_player_database": true,
           "injury_status": null,
           "name": "Wes Charlie",
           "player_id": "wr3",
-          "points": 14,
+          "points": 14.0,
           "position": "WR",
           "status": "Active",
           "team": "CCC"
@@ -161,19 +200,19 @@
           "injury_status": null,
           "name": "Tom Bravo",
           "player_id": "te2",
-          "points": 6,
+          "points": 6.0,
           "position": "TE",
           "status": "Active",
           "team": "BBB"
         },
-        "gain": 6,
+        "gain": 6.0,
         "index": 6,
         "recommended": {
           "in_player_database": true,
           "injury_status": null,
           "name": "Ryan Echo",
           "player_id": "rb5",
-          "points": 12,
+          "points": 12.0,
           "position": "RB",
           "status": "Active",
           "team": "EEE"
@@ -187,7 +226,7 @@
         "injury_status": null,
         "name": "Quinn Bravo",
         "player_id": "qb2",
-        "points": 12,
+        "points": 12.0,
         "position": "QB",
         "status": "Active",
         "team": "BBB"
@@ -197,7 +236,7 @@
         "injury_status": null,
         "name": "Ryan Bravo",
         "player_id": "rb2",
-        "points": 11,
+        "points": 11.0,
         "position": "RB",
         "status": "Active",
         "team": "BBB"
@@ -207,7 +246,7 @@
         "injury_status": null,
         "name": "Wes Bravo",
         "player_id": "wr2",
-        "points": 9,
+        "points": 9.0,
         "position": "WR",
         "status": "Active",
         "team": "BBB"
@@ -217,7 +256,7 @@
         "injury_status": null,
         "name": "Tom Bravo",
         "player_id": "te2",
-        "points": 6,
+        "points": 6.0,
         "position": "TE",
         "status": "Active",
         "team": "BBB"
@@ -227,7 +266,7 @@
         "injury_status": null,
         "name": "Ryan Delta",
         "player_id": "rb4",
-        "points": 4,
+        "points": 4.0,
         "position": "RB",
         "status": "Active",
         "team": "DDD"
@@ -244,9 +283,14 @@
       }
     ],
     "churn_threshold": 0.5,
-    "current_points": 96,
-    "gain": 13,
-    "optimal_points": 109,
+    "current_points": 96.0,
+    "gain": 13.0,
+    "locks": {
+      "locked_bench": [],
+      "locked_starters": [],
+      "source": "game schedule + live points"
+    },
+    "optimal_points": 109.0,
     "optional_actions": [],
     "risk": [],
     "slots": [
@@ -258,19 +302,19 @@
           "injury_status": null,
           "name": "Quinn Alpha",
           "player_id": "qb1",
-          "points": 18,
+          "points": 18.0,
           "position": "QB",
           "status": "Active",
           "team": "AAA"
         },
-        "gain": 0,
+        "gain": 0.0,
         "index": 0,
         "recommended": {
           "in_player_database": true,
           "injury_status": null,
           "name": "Quinn Alpha",
           "player_id": "qb1",
-          "points": 18,
+          "points": 18.0,
           "position": "QB",
           "status": "Active",
           "team": "AAA"
@@ -285,19 +329,19 @@
           "injury_status": null,
           "name": "Ryan Alpha",
           "player_id": "rb1",
-          "points": 16,
+          "points": 16.0,
           "position": "RB",
           "status": "Active",
           "team": "AAA"
         },
-        "gain": 0,
+        "gain": 0.0,
         "index": 1,
         "recommended": {
           "in_player_database": true,
           "injury_status": null,
           "name": "Ryan Alpha",
           "player_id": "rb1",
-          "points": 16,
+          "points": 16.0,
           "position": "RB",
           "status": "Active",
           "team": "AAA"
@@ -312,19 +356,19 @@
           "injury_status": null,
           "name": "Ryan Bravo",
           "player_id": "rb2",
-          "points": 11,
+          "points": 11.0,
           "position": "RB",
           "status": "Active",
           "team": "BBB"
         },
-        "gain": 2,
+        "gain": 2.0,
         "index": 2,
         "recommended": {
           "in_player_database": true,
           "injury_status": null,
           "name": "Ryan Charlie",
           "player_id": "rb3",
-          "points": 13,
+          "points": 13.0,
           "position": "RB",
           "status": "Active",
           "team": "CCC"
@@ -339,19 +383,19 @@
           "injury_status": null,
           "name": "Wes Alpha",
           "player_id": "wr1",
-          "points": 15,
+          "points": 15.0,
           "position": "WR",
           "status": "Active",
           "team": "AAA"
         },
-        "gain": 0,
+        "gain": 0.0,
         "index": 3,
         "recommended": {
           "in_player_database": true,
           "injury_status": null,
           "name": "Wes Alpha",
           "player_id": "wr1",
-          "points": 15,
+          "points": 15.0,
           "position": "WR",
           "status": "Active",
           "team": "AAA"
@@ -366,19 +410,19 @@
           "injury_status": null,
           "name": "Wes Bravo",
           "player_id": "wr2",
-          "points": 9,
+          "points": 9.0,
           "position": "WR",
           "status": "Active",
           "team": "BBB"
         },
-        "gain": 5,
+        "gain": 5.0,
         "index": 4,
         "recommended": {
           "in_player_database": true,
           "injury_status": null,
           "name": "Wes Charlie",
           "player_id": "wr3",
-          "points": 14,
+          "points": 14.0,
           "position": "WR",
           "status": "Active",
           "team": "CCC"
@@ -393,19 +437,19 @@
           "injury_status": null,
           "name": "Tom Alpha",
           "player_id": "te1",
-          "points": 8,
+          "points": 8.0,
           "position": "TE",
           "status": "Active",
           "team": "AAA"
         },
-        "gain": 0,
+        "gain": 0.0,
         "index": 5,
         "recommended": {
           "in_player_database": true,
           "injury_status": null,
           "name": "Tom Alpha",
           "player_id": "te1",
-          "points": 8,
+          "points": 8.0,
           "position": "TE",
           "status": "Active",
           "team": "AAA"
@@ -420,19 +464,19 @@
           "injury_status": null,
           "name": "Tom Bravo",
           "player_id": "te2",
-          "points": 6,
+          "points": 6.0,
           "position": "TE",
           "status": "Active",
           "team": "BBB"
         },
-        "gain": 6,
+        "gain": 6.0,
         "index": 6,
         "recommended": {
           "in_player_database": true,
           "injury_status": null,
           "name": "Ryan Echo",
           "player_id": "rb5",
-          "points": 12,
+          "points": 12.0,
           "position": "RB",
           "status": "Active",
           "team": "EEE"
@@ -447,19 +491,19 @@
           "injury_status": null,
           "name": "Kai Alpha",
           "player_id": "k1",
-          "points": 7,
+          "points": 7.0,
           "position": "K",
           "status": "Active",
           "team": "AAA"
         },
-        "gain": 0,
+        "gain": 0.0,
         "index": 7,
         "recommended": {
           "in_player_database": true,
           "injury_status": null,
           "name": "Kai Alpha",
           "player_id": "k1",
-          "points": 7,
+          "points": 7.0,
           "position": "K",
           "status": "Active",
           "team": "AAA"
@@ -474,19 +518,19 @@
           "injury_status": null,
           "name": "Alpha Defense",
           "player_id": "def1",
-          "points": 6,
+          "points": 6.0,
           "position": "DEF",
           "status": "Active",
           "team": "AAA"
         },
-        "gain": 0,
+        "gain": 0.0,
         "index": 8,
         "recommended": {
           "in_player_database": true,
           "injury_status": null,
           "name": "Alpha Defense",
           "player_id": "def1",
-          "points": 6,
+          "points": 6.0,
           "position": "DEF",
           "status": "Active",
           "team": "AAA"
@@ -497,27 +541,30 @@
   },
   "matchup": {
     "differential": -4.7,
+    "final_differential": -4.7,
     "matchup_id": 1,
-    "my_points": 0,
-    "my_projected": 96,
+    "my_points": 0.0,
+    "my_projected": 96.0,
+    "my_projected_final": 96.0,
     "my_team": "Trasa Titans",
     "note": "Projection-only optimisation: correlation, game script and opponent defensive matchups are not modelled.",
-    "opponent_points": 0,
+    "opponent_points": 0.0,
     "opponent_projected": 100.7,
+    "opponent_projected_final": 100.7,
     "opponent_roster_id": 2,
     "opponent_team": "Team 2"
   },
   "metadata": {
     "churn_threshold": 0.5,
     "fairness": 0.1,
-    "generated_at": "2026-09-14T22:05:00Z",
+    "generated_at": "2026-11-11T00:56:05Z",
     "league_id": "1400680781302525952",
     "league_name": "Test League",
     "offline": true,
     "players_source": "fixture",
     "projections": {
       "cache_age_seconds": 0,
-      "fetched_at": "2026-09-14T22:04:59Z",
+      "fetched_at": "2026-11-11T00:56:05Z",
       "note": "Projection feed is not part of Sleeper's documented read-only API and is treated as an unstable dependency.",
       "record_count": 62,
       "source": "fixture",
@@ -544,6 +591,7 @@
     ],
     "scoring": {
       "mode": "league scoring_settings",
+      "position_fallback": {},
       "source": "league.scoring_settings x projected stats",
       "unsupported_keys": [
         "fum_lost",
@@ -564,12 +612,1316 @@
       "DEF"
     ],
     "team_name": "Trasa Titans",
-    "tool_version": "2.0.0",
+    "tool_version": "2.5.1",
     "top_n": 10,
     "user_id": "u1",
     "username": "MaTrasaMaae",
-    "week": 5
+    "week": 5,
+    "week_rolled_from": null,
+    "window_weeks": [
+      5,
+      6,
+      7,
+      8
+    ]
   },
+  "player_pool": [
+    {
+      "injury_status": null,
+      "name": "Quinn Alpha",
+      "player_id": "qb1",
+      "position": "QB",
+      "team": "AAA",
+      "window_points": {
+        "half": 72.0,
+        "league": 72.0,
+        "ppr": 72.0,
+        "std": 72.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team4 QB1",
+      "player_id": "t4_qb1",
+      "position": "QB",
+      "team": "EEE",
+      "window_points": {
+        "half": 72.0,
+        "league": 72.0,
+        "ppr": 72.0,
+        "std": 72.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team3 QB1",
+      "player_id": "t3_qb1",
+      "position": "QB",
+      "team": "DDD",
+      "window_points": {
+        "half": 71.0,
+        "league": 71.0,
+        "ppr": 71.0,
+        "std": 71.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team2 QB1",
+      "player_id": "t2_qb1",
+      "position": "QB",
+      "team": "CCC",
+      "window_points": {
+        "half": 70.0,
+        "league": 70.0,
+        "ppr": 70.0,
+        "std": 70.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Free Wide One",
+      "player_id": "fa_wr1",
+      "position": "WR",
+      "team": "EEE",
+      "window_points": {
+        "half": 56.0,
+        "league": 66.0,
+        "ppr": 66.0,
+        "std": 46.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team4 RB1",
+      "player_id": "t4_rb1",
+      "position": "RB",
+      "team": "EEE",
+      "window_points": {
+        "half": 60.0,
+        "league": 66.0,
+        "ppr": 66.0,
+        "std": 54.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team3 RB1",
+      "player_id": "t3_rb1",
+      "position": "RB",
+      "team": "DDD",
+      "window_points": {
+        "half": 59.0,
+        "league": 65.0,
+        "ppr": 65.0,
+        "std": 53.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Free Quarter One",
+      "player_id": "fa_qb1",
+      "position": "QB",
+      "team": "GGG",
+      "window_points": {
+        "half": 64.0,
+        "league": 64.0,
+        "ppr": 64.0,
+        "std": 64.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Ryan Alpha",
+      "player_id": "rb1",
+      "position": "RB",
+      "team": "AAA",
+      "window_points": {
+        "half": 58.0,
+        "league": 64.0,
+        "ppr": 64.0,
+        "std": 52.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team2 RB1",
+      "player_id": "t2_rb1",
+      "position": "RB",
+      "team": "CCC",
+      "window_points": {
+        "half": 58.0,
+        "league": 64.0,
+        "ppr": 64.0,
+        "std": 52.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team4 WR1",
+      "player_id": "t4_wr1",
+      "position": "WR",
+      "team": "EEE",
+      "window_points": {
+        "half": 52.0,
+        "league": 62.0,
+        "ppr": 62.0,
+        "std": 42.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team3 WR1",
+      "player_id": "t3_wr1",
+      "position": "WR",
+      "team": "DDD",
+      "window_points": {
+        "half": 51.0,
+        "league": 61.0,
+        "ppr": 61.0,
+        "std": 41.0
+      }
+    },
+    {
+      "injury_status": "Out",
+      "name": "Free Hurt One",
+      "player_id": "fa_out1",
+      "position": "WR",
+      "team": "EEE",
+      "window_points": {
+        "half": 50.0,
+        "league": 60.0,
+        "ppr": 60.0,
+        "std": 40.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team2 WR1",
+      "player_id": "t2_wr1",
+      "position": "WR",
+      "team": "CCC",
+      "window_points": {
+        "half": 50.0,
+        "league": 60.0,
+        "ppr": 60.0,
+        "std": 40.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Wes Alpha",
+      "player_id": "wr1",
+      "position": "WR",
+      "team": "AAA",
+      "window_points": {
+        "half": 50.0,
+        "league": 60.0,
+        "ppr": 60.0,
+        "std": 40.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Free Retired One",
+      "player_id": "fa_inactive1",
+      "position": "RB",
+      "team": "FFF",
+      "window_points": {
+        "half": 50.0,
+        "league": 56.0,
+        "ppr": 56.0,
+        "std": 44.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Wes Charlie",
+      "player_id": "wr3",
+      "position": "WR",
+      "team": "CCC",
+      "window_points": {
+        "half": 46.0,
+        "league": 56.0,
+        "ppr": 56.0,
+        "std": 36.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team4 RB2",
+      "player_id": "t4_rb2",
+      "position": "RB",
+      "team": "EEE",
+      "window_points": {
+        "half": 48.0,
+        "league": 54.0,
+        "ppr": 54.0,
+        "std": 42.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team3 RB2",
+      "player_id": "t3_rb2",
+      "position": "RB",
+      "team": "DDD",
+      "window_points": {
+        "half": 47.0,
+        "league": 53.0,
+        "ppr": 53.0,
+        "std": 41.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Ryan Charlie",
+      "player_id": "rb3",
+      "position": "RB",
+      "team": "CCC",
+      "window_points": {
+        "half": 46.0,
+        "league": 52.0,
+        "ppr": 52.0,
+        "std": 40.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team4 WR2",
+      "player_id": "t4_wr2",
+      "position": "WR",
+      "team": "EEE",
+      "window_points": {
+        "half": 42.0,
+        "league": 52.0,
+        "ppr": 52.0,
+        "std": 32.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team3 WR2",
+      "player_id": "t3_wr2",
+      "position": "WR",
+      "team": "DDD",
+      "window_points": {
+        "half": 41.0,
+        "league": 51.0,
+        "ppr": 51.0,
+        "std": 31.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team2 WR2",
+      "player_id": "t2_wr2",
+      "position": "WR",
+      "team": "CCC",
+      "window_points": {
+        "half": 40.0,
+        "league": 50.0,
+        "ppr": 50.0,
+        "std": 30.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team2 WR3",
+      "player_id": "t2_wr3",
+      "position": "WR",
+      "team": "CCC",
+      "window_points": {
+        "half": 39.6,
+        "league": 49.6,
+        "ppr": 49.6,
+        "std": 29.6
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Free Run One",
+      "player_id": "fa_rb1",
+      "position": "RB",
+      "team": "EEE",
+      "window_points": {
+        "half": 42.0,
+        "league": 48.0,
+        "ppr": 48.0,
+        "std": 36.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Quinn Bravo",
+      "player_id": "qb2",
+      "position": "QB",
+      "team": "BBB",
+      "window_points": {
+        "half": 48.0,
+        "league": 48.0,
+        "ppr": 48.0,
+        "std": 48.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Ryan Echo",
+      "player_id": "rb5",
+      "position": "RB",
+      "team": "EEE",
+      "window_points": {
+        "half": 42.0,
+        "league": 48.0,
+        "ppr": 48.0,
+        "std": 36.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team2 TE2",
+      "player_id": "t2_te2",
+      "position": "TE",
+      "team": "CCC",
+      "window_points": {
+        "half": 40.0,
+        "league": 48.0,
+        "ppr": 48.0,
+        "std": 32.0
+      }
+    },
+    {
+      "injury_status": "Questionable",
+      "name": "Free Doubt One",
+      "player_id": "fa_quest1",
+      "position": "WR",
+      "team": "GGG",
+      "window_points": {
+        "half": 34.0,
+        "league": 44.0,
+        "ppr": 44.0,
+        "std": 24.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Ryan Bravo",
+      "player_id": "rb2",
+      "position": "RB",
+      "team": "BBB",
+      "window_points": {
+        "half": 38.0,
+        "league": 44.0,
+        "ppr": 44.0,
+        "std": 32.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team4 QB2",
+      "player_id": "t4_qb2",
+      "position": "QB",
+      "team": "EEE",
+      "window_points": {
+        "half": 44.0,
+        "league": 44.0,
+        "ppr": 44.0,
+        "std": 44.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team3 QB2",
+      "player_id": "t3_qb2",
+      "position": "QB",
+      "team": "DDD",
+      "window_points": {
+        "half": 43.0,
+        "league": 43.0,
+        "ppr": 43.0,
+        "std": 43.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team2 QB2",
+      "player_id": "t2_qb2",
+      "position": "QB",
+      "team": "CCC",
+      "window_points": {
+        "half": 42.0,
+        "league": 42.0,
+        "ppr": 42.0,
+        "std": 42.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team4 TE1",
+      "player_id": "t4_te1",
+      "position": "TE",
+      "team": "EEE",
+      "window_points": {
+        "half": 34.0,
+        "league": 42.0,
+        "ppr": 42.0,
+        "std": 26.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team3 TE1",
+      "player_id": "t3_te1",
+      "position": "TE",
+      "team": "DDD",
+      "window_points": {
+        "half": 33.0,
+        "league": 41.0,
+        "ppr": 41.0,
+        "std": 25.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team2 TE1",
+      "player_id": "t2_te1",
+      "position": "TE",
+      "team": "CCC",
+      "window_points": {
+        "half": 32.8,
+        "league": 40.8,
+        "ppr": 40.8,
+        "std": 24.8
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Free Wide Two",
+      "player_id": "fa_wr2",
+      "position": "WR",
+      "team": "FFF",
+      "window_points": {
+        "half": 30.0,
+        "league": 40.0,
+        "ppr": 40.0,
+        "std": 20.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Free Tight One",
+      "player_id": "fa_te1",
+      "position": "TE",
+      "team": "GGG",
+      "window_points": {
+        "half": 28.0,
+        "league": 36.0,
+        "ppr": 36.0,
+        "std": 20.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team4 RB3",
+      "player_id": "t4_rb3",
+      "position": "RB",
+      "team": "EEE",
+      "window_points": {
+        "half": 30.0,
+        "league": 36.0,
+        "ppr": 36.0,
+        "std": 24.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Wes Bravo",
+      "player_id": "wr2",
+      "position": "WR",
+      "team": "BBB",
+      "window_points": {
+        "half": 26.0,
+        "league": 36.0,
+        "ppr": 36.0,
+        "std": 16.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team3 RB3",
+      "player_id": "t3_rb3",
+      "position": "RB",
+      "team": "DDD",
+      "window_points": {
+        "half": 29.0,
+        "league": 35.0,
+        "ppr": 35.0,
+        "std": 23.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Free Kick One",
+      "player_id": "fa_k1",
+      "position": "K",
+      "team": "HHH",
+      "window_points": {
+        "half": 34.0,
+        "league": 34.0,
+        "ppr": 34.0,
+        "std": 34.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team2 RB3",
+      "player_id": "t2_rb3",
+      "position": "RB",
+      "team": "CCC",
+      "window_points": {
+        "half": 28.0,
+        "league": 34.0,
+        "ppr": 34.0,
+        "std": 22.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team4 WR3",
+      "player_id": "t4_wr3",
+      "position": "WR",
+      "team": "EEE",
+      "window_points": {
+        "half": 24.0,
+        "league": 34.0,
+        "ppr": 34.0,
+        "std": 14.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team3 WR3",
+      "player_id": "t3_wr3",
+      "position": "WR",
+      "team": "DDD",
+      "window_points": {
+        "half": 23.0,
+        "league": 33.0,
+        "ppr": 33.0,
+        "std": 13.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team2 RB2",
+      "player_id": "t2_rb2",
+      "position": "RB",
+      "team": "CCC",
+      "window_points": {
+        "half": 26.0,
+        "league": 32.0,
+        "ppr": 32.0,
+        "std": 20.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Tom Alpha",
+      "player_id": "te1",
+      "position": "TE",
+      "team": "AAA",
+      "window_points": {
+        "half": 24.0,
+        "league": 32.0,
+        "ppr": 32.0,
+        "std": 16.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Hotel Defense",
+      "player_id": "fa_def1",
+      "position": "DEF",
+      "team": "HHH",
+      "window_points": {
+        "half": 30.0,
+        "league": 30.0,
+        "ppr": 30.0,
+        "std": 30.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team4 K1",
+      "player_id": "t4_k1",
+      "position": "K",
+      "team": "EEE",
+      "window_points": {
+        "half": 30.0,
+        "league": 30.0,
+        "ppr": 30.0,
+        "std": 30.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team3 K1",
+      "player_id": "t3_k1",
+      "position": "K",
+      "team": "DDD",
+      "window_points": {
+        "half": 29.0,
+        "league": 29.0,
+        "ppr": 29.0,
+        "std": 29.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Kai Alpha",
+      "player_id": "k1",
+      "position": "K",
+      "team": "AAA",
+      "window_points": {
+        "half": 28.0,
+        "league": 28.0,
+        "ppr": 28.0,
+        "std": 28.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team2 K1",
+      "player_id": "t2_k1",
+      "position": "K",
+      "team": "CCC",
+      "window_points": {
+        "half": 28.0,
+        "league": 28.0,
+        "ppr": 28.0,
+        "std": 28.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team4 DEF1",
+      "player_id": "t4_def1",
+      "position": "DEF",
+      "team": "EEE",
+      "window_points": {
+        "half": 26.0,
+        "league": 26.0,
+        "ppr": 26.0,
+        "std": 26.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team3 DEF1",
+      "player_id": "t3_def1",
+      "position": "DEF",
+      "team": "DDD",
+      "window_points": {
+        "half": 25.0,
+        "league": 25.0,
+        "ppr": 25.0,
+        "std": 25.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Alpha Defense",
+      "player_id": "def1",
+      "position": "DEF",
+      "team": "AAA",
+      "window_points": {
+        "half": 24.0,
+        "league": 24.0,
+        "ppr": 24.0,
+        "std": 24.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team2 DEF1",
+      "player_id": "t2_def1",
+      "position": "DEF",
+      "team": "CCC",
+      "window_points": {
+        "half": 24.0,
+        "league": 24.0,
+        "ppr": 24.0,
+        "std": 24.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team4 TE2",
+      "player_id": "t4_te2",
+      "position": "TE",
+      "team": "EEE",
+      "window_points": {
+        "half": 16.0,
+        "league": 24.0,
+        "ppr": 24.0,
+        "std": 8.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Tom Bravo",
+      "player_id": "te2",
+      "position": "TE",
+      "team": "BBB",
+      "window_points": {
+        "half": 16.0,
+        "league": 24.0,
+        "ppr": 24.0,
+        "std": 8.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Team3 TE2",
+      "player_id": "t3_te2",
+      "position": "TE",
+      "team": "DDD",
+      "window_points": {
+        "half": 15.0,
+        "league": 23.0,
+        "ppr": 23.0,
+        "std": 7.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Free Run Two",
+      "player_id": "fa_rb2",
+      "position": "RB",
+      "team": "FFF",
+      "window_points": {
+        "half": 14.0,
+        "league": 20.0,
+        "ppr": 20.0,
+        "std": 8.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Ryan Delta",
+      "player_id": "rb4",
+      "position": "RB",
+      "team": "DDD",
+      "window_points": {
+        "half": 10.0,
+        "league": 16.0,
+        "ppr": 16.0,
+        "std": 4.0
+      }
+    },
+    {
+      "injury_status": null,
+      "name": "Wes Delta",
+      "player_id": "wr4",
+      "position": "WR",
+      "team": "DDD",
+      "window_points": {
+        "half": 4.0,
+        "league": 14.0,
+        "ppr": 14.0,
+        "std": -6.0
+      }
+    }
+  ],
+  "rosters": [
+    {
+      "is_me": true,
+      "players": [
+        {
+          "injury_status": null,
+          "name": "Quinn Alpha",
+          "player_id": "qb1",
+          "position": "QB",
+          "projection": 18.0,
+          "team": "AAA",
+          "window_projection": 72.0
+        },
+        {
+          "injury_status": null,
+          "name": "Quinn Bravo",
+          "player_id": "qb2",
+          "position": "QB",
+          "projection": 12.0,
+          "team": "BBB",
+          "window_projection": 48.0
+        },
+        {
+          "injury_status": null,
+          "name": "Ryan Alpha",
+          "player_id": "rb1",
+          "position": "RB",
+          "projection": 16.0,
+          "team": "AAA",
+          "window_projection": 64.0
+        },
+        {
+          "injury_status": null,
+          "name": "Ryan Charlie",
+          "player_id": "rb3",
+          "position": "RB",
+          "projection": 13.0,
+          "team": "CCC",
+          "window_projection": 52.0
+        },
+        {
+          "injury_status": null,
+          "name": "Ryan Echo",
+          "player_id": "rb5",
+          "position": "RB",
+          "projection": 12.0,
+          "team": "EEE",
+          "window_projection": 48.0
+        },
+        {
+          "injury_status": null,
+          "name": "Ryan Bravo",
+          "player_id": "rb2",
+          "position": "RB",
+          "projection": 11.0,
+          "team": "BBB",
+          "window_projection": 44.0
+        },
+        {
+          "injury_status": null,
+          "name": "Ryan Delta",
+          "player_id": "rb4",
+          "position": "RB",
+          "projection": 4.0,
+          "team": "DDD",
+          "window_projection": 16.0
+        },
+        {
+          "injury_status": null,
+          "name": "Wes Alpha",
+          "player_id": "wr1",
+          "position": "WR",
+          "projection": 15.0,
+          "team": "AAA",
+          "window_projection": 60.0
+        },
+        {
+          "injury_status": null,
+          "name": "Wes Charlie",
+          "player_id": "wr3",
+          "position": "WR",
+          "projection": 14.0,
+          "team": "CCC",
+          "window_projection": 56.0
+        },
+        {
+          "injury_status": null,
+          "name": "Wes Bravo",
+          "player_id": "wr2",
+          "position": "WR",
+          "projection": 9.0,
+          "team": "BBB",
+          "window_projection": 36.0
+        },
+        {
+          "injury_status": null,
+          "name": "Wes Delta",
+          "player_id": "wr4",
+          "position": "WR",
+          "projection": 3.5,
+          "team": "DDD",
+          "window_projection": 14.0
+        },
+        {
+          "injury_status": null,
+          "name": "Tom Alpha",
+          "player_id": "te1",
+          "position": "TE",
+          "projection": 8.0,
+          "team": "AAA",
+          "window_projection": 32.0
+        },
+        {
+          "injury_status": null,
+          "name": "Tom Bravo",
+          "player_id": "te2",
+          "position": "TE",
+          "projection": 6.0,
+          "team": "BBB",
+          "window_projection": 24.0
+        },
+        {
+          "injury_status": null,
+          "name": "Kai Alpha",
+          "player_id": "k1",
+          "position": "K",
+          "projection": 7.0,
+          "team": "AAA",
+          "window_projection": 28.0
+        },
+        {
+          "injury_status": null,
+          "name": "Alpha Defense",
+          "player_id": "def1",
+          "position": "DEF",
+          "projection": 6.0,
+          "team": "AAA",
+          "window_projection": 24.0
+        }
+      ],
+      "roster_id": 1,
+      "team": "Trasa Titans"
+    },
+    {
+      "is_me": false,
+      "players": [
+        {
+          "injury_status": null,
+          "name": "Team2 QB1",
+          "player_id": "t2_qb1",
+          "position": "QB",
+          "projection": 17.5,
+          "team": "CCC",
+          "window_projection": 70.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team2 QB2",
+          "player_id": "t2_qb2",
+          "position": "QB",
+          "projection": 10.5,
+          "team": "CCC",
+          "window_projection": 42.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team2 RB1",
+          "player_id": "t2_rb1",
+          "position": "RB",
+          "projection": 16.0,
+          "team": "CCC",
+          "window_projection": 64.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team2 RB3",
+          "player_id": "t2_rb3",
+          "position": "RB",
+          "projection": 8.5,
+          "team": "CCC",
+          "window_projection": 34.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team2 RB2",
+          "player_id": "t2_rb2",
+          "position": "RB",
+          "projection": 8.0,
+          "team": "CCC",
+          "window_projection": 32.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team2 WR1",
+          "player_id": "t2_wr1",
+          "position": "WR",
+          "projection": 15.0,
+          "team": "CCC",
+          "window_projection": 60.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team2 WR2",
+          "player_id": "t2_wr2",
+          "position": "WR",
+          "projection": 12.5,
+          "team": "CCC",
+          "window_projection": 50.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team2 WR3",
+          "player_id": "t2_wr3",
+          "position": "WR",
+          "projection": 12.4,
+          "team": "CCC",
+          "window_projection": 49.6
+        },
+        {
+          "injury_status": null,
+          "name": "Team2 TE2",
+          "player_id": "t2_te2",
+          "position": "TE",
+          "projection": 12.0,
+          "team": "CCC",
+          "window_projection": 48.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team2 TE1",
+          "player_id": "t2_te1",
+          "position": "TE",
+          "projection": 10.2,
+          "team": "CCC",
+          "window_projection": 40.8
+        },
+        {
+          "injury_status": null,
+          "name": "Team2 K1",
+          "player_id": "t2_k1",
+          "position": "K",
+          "projection": 7.0,
+          "team": "CCC",
+          "window_projection": 28.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team2 DEF1",
+          "player_id": "t2_def1",
+          "position": "DEF",
+          "projection": 6.0,
+          "team": "CCC",
+          "window_projection": 24.0
+        }
+      ],
+      "roster_id": 2,
+      "team": "Team 2"
+    },
+    {
+      "is_me": false,
+      "players": [
+        {
+          "injury_status": null,
+          "name": "Team3 QB1",
+          "player_id": "t3_qb1",
+          "position": "QB",
+          "projection": 17.75,
+          "team": "DDD",
+          "window_projection": 71.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team3 QB2",
+          "player_id": "t3_qb2",
+          "position": "QB",
+          "projection": 10.75,
+          "team": "DDD",
+          "window_projection": 43.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team3 RB1",
+          "player_id": "t3_rb1",
+          "position": "RB",
+          "projection": 16.25,
+          "team": "DDD",
+          "window_projection": 65.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team3 RB2",
+          "player_id": "t3_rb2",
+          "position": "RB",
+          "projection": 13.25,
+          "team": "DDD",
+          "window_projection": 53.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team3 RB3",
+          "player_id": "t3_rb3",
+          "position": "RB",
+          "projection": 8.75,
+          "team": "DDD",
+          "window_projection": 35.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team3 WR1",
+          "player_id": "t3_wr1",
+          "position": "WR",
+          "projection": 15.25,
+          "team": "DDD",
+          "window_projection": 61.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team3 WR2",
+          "player_id": "t3_wr2",
+          "position": "WR",
+          "projection": 12.75,
+          "team": "DDD",
+          "window_projection": 51.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team3 WR3",
+          "player_id": "t3_wr3",
+          "position": "WR",
+          "projection": 8.25,
+          "team": "DDD",
+          "window_projection": 33.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team3 TE1",
+          "player_id": "t3_te1",
+          "position": "TE",
+          "projection": 10.25,
+          "team": "DDD",
+          "window_projection": 41.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team3 TE2",
+          "player_id": "t3_te2",
+          "position": "TE",
+          "projection": 5.75,
+          "team": "DDD",
+          "window_projection": 23.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team3 K1",
+          "player_id": "t3_k1",
+          "position": "K",
+          "projection": 7.25,
+          "team": "DDD",
+          "window_projection": 29.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team3 DEF1",
+          "player_id": "t3_def1",
+          "position": "DEF",
+          "projection": 6.25,
+          "team": "DDD",
+          "window_projection": 25.0
+        }
+      ],
+      "roster_id": 3,
+      "team": "Team 3"
+    },
+    {
+      "is_me": false,
+      "players": [
+        {
+          "injury_status": null,
+          "name": "Team4 QB1",
+          "player_id": "t4_qb1",
+          "position": "QB",
+          "projection": 18.0,
+          "team": "EEE",
+          "window_projection": 72.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team4 QB2",
+          "player_id": "t4_qb2",
+          "position": "QB",
+          "projection": 11.0,
+          "team": "EEE",
+          "window_projection": 44.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team4 RB1",
+          "player_id": "t4_rb1",
+          "position": "RB",
+          "projection": 16.5,
+          "team": "EEE",
+          "window_projection": 66.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team4 RB2",
+          "player_id": "t4_rb2",
+          "position": "RB",
+          "projection": 13.5,
+          "team": "EEE",
+          "window_projection": 54.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team4 RB3",
+          "player_id": "t4_rb3",
+          "position": "RB",
+          "projection": 9.0,
+          "team": "EEE",
+          "window_projection": 36.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team4 WR1",
+          "player_id": "t4_wr1",
+          "position": "WR",
+          "projection": 15.5,
+          "team": "EEE",
+          "window_projection": 62.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team4 WR2",
+          "player_id": "t4_wr2",
+          "position": "WR",
+          "projection": 13.0,
+          "team": "EEE",
+          "window_projection": 52.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team4 WR3",
+          "player_id": "t4_wr3",
+          "position": "WR",
+          "projection": 8.5,
+          "team": "EEE",
+          "window_projection": 34.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team4 TE1",
+          "player_id": "t4_te1",
+          "position": "TE",
+          "projection": 10.5,
+          "team": "EEE",
+          "window_projection": 42.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team4 TE2",
+          "player_id": "t4_te2",
+          "position": "TE",
+          "projection": 6.0,
+          "team": "EEE",
+          "window_projection": 24.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team4 K1",
+          "player_id": "t4_k1",
+          "position": "K",
+          "projection": 7.5,
+          "team": "EEE",
+          "window_projection": 30.0
+        },
+        {
+          "injury_status": null,
+          "name": "Team4 DEF1",
+          "player_id": "t4_def1",
+          "position": "DEF",
+          "projection": 6.5,
+          "team": "EEE",
+          "window_projection": 26.0
+        }
+      ],
+      "roster_id": 4,
+      "team": "Team 4"
+    }
+  ],
   "schema_version": "1.0",
   "trades": {
     "fairness_tolerance": 0.1,
@@ -582,73 +1934,78 @@
       "WR": 31.35
     },
     "method": "Optimal-starter points by position, bench value above replacement, and re-optimised lineups for both teams after each swap.",
-    "my_bench_above_replacement": 2,
+    "my_bench_above_replacement": 0.0,
     "my_depth": {
-      "DEF": 6,
-      "K": 7,
-      "QB": 18,
-      "RB": 41,
-      "TE": 8,
-      "WR": 29
+      "DEF": 6.0,
+      "K": 7.0,
+      "QB": 18.0,
+      "RB": 41.0,
+      "TE": 8.0,
+      "WR": 29.0
     },
     "my_needs": [
       {
         "league_average": 10.19,
         "position": "TE",
         "shortfall": 2.19,
-        "starter_points": 8
+        "starter_points": 8.0
       }
     ],
     "my_surplus": [
       {
         "above_replacement": -5.5,
-        "lineup_cost": 0,
+        "lineup_cost": 0.0,
         "name": "Quinn Bravo",
         "player_id": "qb2",
         "position": "QB",
-        "projection": 12
+        "projection": 12.0,
+        "window_projection": 48.0
       },
       {
-        "above_replacement": 2,
-        "lineup_cost": 0,
+        "above_replacement": -1.0,
+        "lineup_cost": 0.0,
         "name": "Ryan Bravo",
         "player_id": "rb2",
         "position": "RB",
-        "projection": 11
+        "projection": 11.0,
+        "window_projection": 44.0
       },
       {
-        "above_replacement": -2,
-        "lineup_cost": 0,
+        "above_replacement": -3.75,
+        "lineup_cost": 0.0,
         "name": "Wes Bravo",
         "player_id": "wr2",
         "position": "WR",
-        "projection": 9
+        "projection": 9.0,
+        "window_projection": 36.0
       },
       {
-        "above_replacement": 0,
-        "lineup_cost": 0,
+        "above_replacement": -3.0,
+        "lineup_cost": 0.0,
         "name": "Tom Bravo",
         "player_id": "te2",
         "position": "TE",
-        "projection": 6
+        "projection": 6.0,
+        "window_projection": 24.0
       },
       {
-        "above_replacement": -5,
-        "lineup_cost": 0,
+        "above_replacement": -8.0,
+        "lineup_cost": 0.0,
         "name": "Ryan Delta",
         "player_id": "rb4",
         "position": "RB",
-        "projection": 4
+        "projection": 4.0,
+        "window_projection": 16.0
       }
     ],
     "partners": [
       {
         "depth_before": {
-          "DEF": 6,
-          "K": 7,
+          "DEF": 6.0,
+          "K": 7.0,
           "QB": 17.5,
           "RB": 24.5,
-          "TE": 12,
+          "TE": 12.0,
           "WR": 39.9
         },
         "needs": [
@@ -661,13 +2018,14 @@
         ],
         "packages": [
           {
-            "fairness_gap": 0.8,
+            "fairness_gap": 3.2,
             "get": [
               {
                 "name": "Team2 TE1",
                 "player_id": "t2_te1",
                 "position": "TE",
-                "projection": 10.2
+                "projection": 10.2,
+                "window_projection": 40.8
               }
             ],
             "give": [
@@ -675,62 +2033,77 @@
                 "name": "Ryan Bravo",
                 "player_id": "rb2",
                 "position": "RB",
-                "projection": 11
+                "projection": 11.0,
+                "window_projection": 44.0
               }
             ],
             "my_depth_after": {
-              "DEF": 6,
-              "K": 7,
-              "QB": 18,
-              "RB": 41,
+              "DEF": 6.0,
+              "K": 7.0,
+              "QB": 18.0,
+              "RB": 41.0,
               "TE": 10.2,
-              "WR": 29
+              "WR": 29.0
             },
-            "my_gain": 2.2,
-            "their_gain": 2.5,
-            "value_given": 11,
-            "value_received": 10.2
+            "my_gain": 8.8,
+            "my_gain_this_week": 2.2,
+            "their_gain": 10.0,
+            "their_gain_this_week": 2.5,
+            "value_given": 44.0,
+            "value_received": 40.8,
+            "window_weeks": 4
           }
         ],
         "roster_id": 2,
         "surplus": [
           {
-            "above_replacement": -7,
-            "lineup_cost": 0,
+            "above_replacement": -7.0,
+            "lineup_cost": 0.0,
             "name": "Team2 QB2",
             "player_id": "t2_qb2",
             "position": "QB",
-            "projection": 10.5
+            "projection": 10.5,
+            "window_projection": 42.0
           },
           {
-            "above_replacement": 4.2,
-            "lineup_cost": 0,
+            "above_replacement": 1.2,
+            "lineup_cost": 0.0,
             "name": "Team2 TE1",
             "player_id": "t2_te1",
             "position": "TE",
-            "projection": 10.2
+            "projection": 10.2,
+            "window_projection": 40.8
           },
           {
-            "above_replacement": -0.5,
-            "lineup_cost": 0.5,
+            "above_replacement": -3.5,
+            "lineup_cost": 2.0,
             "name": "Team2 RB3",
             "player_id": "t2_rb3",
             "position": "RB",
-            "projection": 8.5
+            "projection": 8.5,
+            "window_projection": 34.0
           },
           {
-            "above_replacement": -1,
-            "lineup_cost": 0,
+            "above_replacement": -4.0,
+            "lineup_cost": 0.0,
             "name": "Team2 RB2",
             "player_id": "t2_rb2",
             "position": "RB",
-            "projection": 8
+            "projection": 8.0,
+            "window_projection": 32.0
           }
         ],
         "team": "Team 2"
       }
+    ],
+    "window_weeks": [
+      5,
+      6,
+      7,
+      8
     ]
   },
+  "value_trades": null,
   "waivers": {
     "candidates_considered": 11,
     "groups": {
@@ -739,61 +2112,37 @@
           "available": false,
           "bid_basis": null,
           "depth_chart_order": 1,
-          "depth_chart_position": "WR",
-          "drop_candidate": null,
-          "lineup_gain": 0,
-          "name": "Free Hurt One",
-          "net_gain": 0,
-          "notes": [
-            "injury Out"
-          ],
-          "player_id": "fa_out1",
-          "position": "WR",
-          "projection": 15,
-          "replacement_advantage": 4,
-          "replacement_level": 11,
-          "rest_of_season_value": null,
-          "score": 0.2308,
-          "suggested_bid": null,
-          "suggested_bid_pct": null,
-          "team": "EEE",
-          "trending_adds_24h": null,
-          "use_priority": null,
-          "would_start_this_week": false
-        },
-        {
-          "available": false,
-          "bid_basis": null,
-          "depth_chart_order": 1,
           "depth_chart_position": "RB",
           "drop_candidate": null,
-          "lineup_gain": 0,
+          "evaluated_week": 5,
+          "lineup_gain": 0.0,
           "name": "Free Retired One",
-          "net_gain": 0,
+          "net_gain": 0.0,
           "notes": [
             "marked inactive",
             "status Inactive"
           ],
           "player_id": "fa_inactive1",
           "position": "RB",
-          "projection": 14,
-          "replacement_advantage": 5,
-          "replacement_level": 9,
-          "rest_of_season_value": null,
-          "score": 0.2308,
+          "projection": 14.0,
+          "replacement_advantage": 2.0,
+          "replacement_level": 12.0,
+          "rest_of_season_value": 0.0,
+          "score": 0.1667,
           "suggested_bid": null,
           "suggested_bid_pct": null,
           "team": "FFF",
           "trending_adds_24h": null,
           "use_priority": null,
+          "window_gain": 0.0,
+          "window_projection": 56.0,
           "would_start_this_week": false
         }
       ],
-      "bench_upgrades": [],
-      "priority": [
+      "bench_upgrades": [
         {
-          "available": true,
-          "bid_basis": "estimate from net projected gain and remaining budget",
+          "available": false,
+          "bid_basis": "estimate from average projected gain over 4 weeks and remaining budget",
           "depth_chart_order": 1,
           "depth_chart_position": "WR",
           "drop_candidate": {
@@ -806,6 +2155,47 @@
             "status": "Active",
             "team": "DDD"
           },
+          "evaluated_week": 5,
+          "lineup_gain": 0.0,
+          "name": "Free Hurt One",
+          "net_gain": 0.0,
+          "notes": [
+            "injury Out"
+          ],
+          "player_id": "fa_out1",
+          "position": "WR",
+          "projection": 15.0,
+          "replacement_advantage": 2.25,
+          "replacement_level": 12.75,
+          "rest_of_season_value": 9.0,
+          "score": 0.3056,
+          "suggested_bid": 9,
+          "suggested_bid_pct": 11,
+          "team": "EEE",
+          "trending_adds_24h": null,
+          "use_priority": null,
+          "window_gain": 9.0,
+          "window_projection": 60.0,
+          "would_start_this_week": false
+        }
+      ],
+      "priority": [
+        {
+          "available": true,
+          "bid_basis": "estimate from average projected gain over 4 weeks and remaining budget",
+          "depth_chart_order": 1,
+          "depth_chart_position": "WR",
+          "drop_candidate": {
+            "in_player_database": true,
+            "injury_status": null,
+            "name": "Wes Delta",
+            "player_id": "wr4",
+            "points": 3.5,
+            "position": "WR",
+            "status": "Active",
+            "team": "DDD"
+          },
+          "evaluated_week": 5,
           "lineup_gain": 4.5,
           "name": "Free Wide One",
           "net_gain": 4.5,
@@ -813,20 +2203,22 @@
           "player_id": "fa_wr1",
           "position": "WR",
           "projection": 16.5,
-          "replacement_advantage": 5.5,
-          "replacement_level": 11,
-          "rest_of_season_value": null,
-          "score": 1,
+          "replacement_advantage": 3.75,
+          "replacement_level": 12.75,
+          "rest_of_season_value": 18.0,
+          "score": 1.0,
           "suggested_bid": 18,
           "suggested_bid_pct": 22,
           "team": "EEE",
           "trending_adds_24h": 4200,
           "use_priority": null,
+          "window_gain": 18.0,
+          "window_projection": 66.0,
           "would_start_this_week": true
         },
         {
           "available": true,
-          "bid_basis": "estimate from net projected gain and remaining budget",
+          "bid_basis": "estimate from average projected gain over 4 weeks and remaining budget",
           "depth_chart_order": 1,
           "depth_chart_position": "K",
           "drop_candidate": {
@@ -839,6 +2231,7 @@
             "status": "Active",
             "team": "DDD"
           },
+          "evaluated_week": 5,
           "lineup_gain": 1.5,
           "name": "Free Kick One",
           "net_gain": 1.5,
@@ -847,19 +2240,21 @@
           "position": "K",
           "projection": 8.5,
           "replacement_advantage": 1.5,
-          "replacement_level": 7,
-          "rest_of_season_value": null,
-          "score": 0.4359,
+          "replacement_level": 7.0,
+          "rest_of_season_value": 6.0,
+          "score": 0.4074,
           "suggested_bid": 6,
           "suggested_bid_pct": 8,
           "team": "HHH",
           "trending_adds_24h": null,
           "use_priority": null,
+          "window_gain": 6.0,
+          "window_projection": 34.0,
           "would_start_this_week": true
         },
         {
           "available": true,
-          "bid_basis": "estimate from net projected gain and remaining budget",
+          "bid_basis": "estimate from average projected gain over 4 weeks and remaining budget",
           "depth_chart_order": 1,
           "depth_chart_position": "DEF",
           "drop_candidate": {
@@ -872,6 +2267,7 @@
             "status": "Active",
             "team": "DDD"
           },
+          "evaluated_week": 5,
           "lineup_gain": 1.5,
           "name": "Hotel Defense",
           "net_gain": 1.5,
@@ -880,19 +2276,21 @@
           "position": "DEF",
           "projection": 7.5,
           "replacement_advantage": 1.5,
-          "replacement_level": 6,
-          "rest_of_season_value": null,
-          "score": 0.4359,
+          "replacement_level": 6.0,
+          "rest_of_season_value": 6.0,
+          "score": 0.4074,
           "suggested_bid": 6,
           "suggested_bid_pct": 8,
           "team": "HHH",
           "trending_adds_24h": null,
           "use_priority": null,
+          "window_gain": 6.0,
+          "window_projection": 30.0,
           "would_start_this_week": true
         },
         {
           "available": true,
-          "bid_basis": "estimate from net projected gain and remaining budget",
+          "bid_basis": "estimate from average projected gain over 4 weeks and remaining budget",
           "depth_chart_order": 1,
           "depth_chart_position": "TE",
           "drop_candidate": {
@@ -905,45 +2303,54 @@
             "status": "Active",
             "team": "DDD"
           },
-          "lineup_gain": 1,
+          "evaluated_week": 5,
+          "lineup_gain": 1.0,
           "name": "Free Tight One",
-          "net_gain": 1,
+          "net_gain": 1.0,
           "notes": [],
           "player_id": "fa_te1",
           "position": "TE",
-          "projection": 9,
-          "replacement_advantage": 3,
-          "replacement_level": 6,
-          "rest_of_season_value": null,
-          "score": 0.3785,
+          "projection": 9.0,
+          "replacement_advantage": 0.0,
+          "replacement_level": 9.0,
+          "rest_of_season_value": 4.0,
+          "score": 0.3351,
           "suggested_bid": 4,
           "suggested_bid_pct": 5,
           "team": "GGG",
           "trending_adds_24h": 300,
           "use_priority": null,
+          "window_gain": 4.0,
+          "window_projection": 36.0,
           "would_start_this_week": true
         }
       ],
       "streamers": []
     },
     "omitted_components": [
-      "rest_of_season_value",
       "schedule_fit"
     ],
     "waiver": {
       "budget": 100,
       "note": "Bid suggestions are estimates, not market data.",
-      "remaining": 80,
+      "remaining": 80.0,
       "type": "FAAB"
     },
     "weights_used": {
-      "add_trend": 0.1538,
-      "opportunity": 0.2308,
-      "roster_improvement": 0.6154
-    }
+      "add_trend": 0.1111,
+      "opportunity": 0.1667,
+      "rest_of_season_value": 0.2778,
+      "roster_improvement": 0.4444
+    },
+    "window_weeks": [
+      5,
+      6,
+      7,
+      8
+    ]
   },
   "warnings": [
-    "2 league scoring categories have no matching projection stat and are excluded: fum_lost, rec_td",
-    "Waiver score components omitted (no reliable data): rest_of_season_value, schedule_fit. Remaining weights renormalised."
+    "2 league scoring categories have no matching projection stat: fum_lost, rec_td. They are excluded.",
+    "Waiver score components omitted (no reliable data): schedule_fit. Remaining weights renormalised."
   ]
 }
