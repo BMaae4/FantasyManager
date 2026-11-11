@@ -219,6 +219,9 @@ league.
   - **form:** average points over the last few weeks / average projection
     for those weeks (once there are past weeks).
   - **drop:** who to let go.
+- **Matchup** adds the **win probability** with your current and the
+  recommended lineup, the likely score range for both teams (10th-90th
+  percentile), and any swap that improves your chances.
 - **Trades** list your needs and surplus, then trade ideas that improve
   *both* lineups and are within the fairness tolerance.
 - **History** shows how good the projections have been this season, and how
@@ -401,7 +404,22 @@ of the current week is final the report moves to the next week.
 
 **Matchup.** Opponent, both projected totals, live points and a projected
 final (actual points for players who have played plus projections for the
-rest). Correlation and game script are not modelled.
+rest).
+
+**Win probability.** The week is simulated 10,000 times:
+- Each starter scores around his projection with a spread for his position.
+  Bigger projections get wider spreads.
+- The spreads come from this season's projection misses once there are 30+
+  games for that position (typical values before that). Players with at least
+  3 games also count their own boom-or-bust record.
+- Players whose game has started count at their current points.
+
+You get the chance to win with your current lineup and with the recommended
+one, and the likely score range for both teams. A swap is suggested when it
+raises the chance by at least a point, even if it projects lower (a
+big underdog may want the volatile player). Players are treated as
+independent, so same-game correlation and game script aren't modelled. The
+same week always gives the same numbers.
 
 **Multi-week window.** Besides this week, projections for the next `--horizon`
 weeks are fetched and scored the same way. Waivers, drops and trades are
@@ -501,7 +519,7 @@ include the effective configuration and every request.
 | `lib/fm_history.py` | The history database (SQLite) and the accuracy / recent-form statistics |
 | `fantasy_manager.sh` | macOS/Linux launcher: finds Python and runs `lib/fm_app.py` |
 | `FantasyManager.ps1` / `.cmd` | Windows: the WPF window, `-NoGui` mapped onto `lib/fm_app.py`, and a launcher |
-| `tests/run.sh` | Offline test suite (288 checks, no network) |
+| `tests/run.sh` | Offline test suite (304 checks, no network) |
 | `tests/make_fixtures.py` | Generates the synthetic test leagues in `tests/fixtures/` |
 | `tests/parity.sh` | Runs every fixture through both front ends and compares the reports (needs `pwsh`) |
 | `tests/windows.ps1`, `tests/make_expected.sh`, `tests/compare_reports.py` | Windows checks, including a GUI smoke test |
@@ -532,6 +550,8 @@ The suite covers:
 - The real HTTP path against a local server (404 not retried, 5xx retried).
 - History: accuracy checked against an independent calculation, the
   database across runs, pre-kickoff snapshots, and a missing stats feed.
+- Win probability: checked against the closed-form normal result,
+  reproducible, locked players, and the underdog swap.
 
 Both front ends run the same Python code (standard library only), so there is
 one place to change behaviour. When you do, update the version in

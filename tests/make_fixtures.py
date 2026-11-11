@@ -663,6 +663,19 @@ def main() -> int:
     del history["stats_w2"]
     write_case(out_dir, "season_history", history, raw={"stats_w2.status": "404\n"})
 
+    # 30. heavy underdog with a boom-or-bust bench back: the steady FLEX
+    #     projects a little higher, but the volatile one gives a better
+    #     chance to win.
+    underdog = copy.deepcopy(base)
+    for record in underdog["projections"]:
+        if record["player_id"].startswith("t2_"):
+            record["stats"] = {k: round(v * 1.35, 2) for k, v in record["stats"].items()}
+    underdog = with_history(underdog, {
+        "rb2": {1: (11.0, 0.0, 0.6), 2: (11.0, 30.0, 0.6), 3: (11.0, 0.0, 0.6), 4: (11.0, 30.0, 0.6)},
+        "rb5": {1: (12.0, 12.5, 0.8), 2: (12.0, 11.0, 0.8), 3: (12.0, 12.0, 0.8), 4: (12.0, 13.0, 0.8)},
+    })
+    write_case(out_dir, "underdog_volatile", underdog)
+
     print("fixtures written to %s" % out_dir)
     return 0
 

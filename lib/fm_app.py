@@ -29,7 +29,7 @@ import fm_analysis  # noqa: E402
 import fm_history  # noqa: E402
 
 TOOL_NAME = "fantasy_manager"
-TOOL_VERSION = "2.8.0"
+TOOL_VERSION = "2.9.0"
 
 # --------------------------------------------------------------------------
 # Defaults (run with no parameters)
@@ -1151,8 +1151,9 @@ def render_text(r: dict) -> str:
                 "  Differential: " + n1(mu.get("differential")),
                 "  Live/final points: " + n1(mu.get("my_points")) + "  vs  " + n1(mu.get("opponent_points")),
                 "  Projected final (live + remaining): " + n1(mu.get("my_projected_final")) + "  vs  "
-                + n1(mu.get("opponent_projected_final")) + "  (" + n1(mu.get("final_differential")) + ")",
-                "  Note: " + mu["note"], ""]
+                + n1(mu.get("opponent_projected_final")) + "  (" + n1(mu.get("final_differential")) + ")"]
+        out += win_probability_text(mu.get("win_probability"))
+        out += ["  Note: " + mu["note"], ""]
 
     wv = r.get("waivers")
     if wv is None:
@@ -1333,8 +1334,9 @@ def render_markdown(r: dict) -> str:
                 + n1(mu.get("opponent_points")) + " |",
                 "", "Differential: " + n1(mu.get("differential")),
                 "", "Projected final (live + remaining): " + n1(mu.get("my_projected_final")) + " vs "
-                + n1(mu.get("opponent_projected_final")),
-                "", "> " + mu["note"], ""]
+                + n1(mu.get("opponent_projected_final")), ""]
+        out += win_probability_markdown(mu.get("win_probability"))
+        out += ["> " + mu["note"], ""]
 
     wv = r.get("waivers")
     if wv is not None:
@@ -1445,6 +1447,49 @@ def render_markdown(r: dict) -> str:
             "> Read-only tool: it cannot submit lineups, waiver claims or trades.",
             "> Projections are advisory and do not model correlation or game script."]
     return "\n".join(out) + "\n"
+
+
+def pct(v: Any) -> str:
+    return "n/a" if v is None else n1(v) + "%"
+
+
+def whole(v: Any) -> str:
+    return "n/a" if v is None else num(c_round(v))
+
+
+def move_text(m: dict) -> str:
+    change = m.get("points_change")
+    points = "" if change is None else (
+        ", %s projected points" % signed(change) if c_round(change * 10) != 0 else ", same projection")
+    return ("start " + s(m["in"].get("name")) + " over " + s(m["out"].get("name")) + " (" + m["slot"] + "): "
+            + pct(m.get("win_pct")) + " (" + signed(m.get("win_gain")) + ")" + points)
+
+
+def win_probability_text(w: Optional[dict]) -> List[str]:
+    if w is None:
+        return []
+    out = ["  Win probability: " + pct(w.get("current_lineup_pct")) + " with your current lineup, "
+           + pct(w.get("recommended_lineup_pct")) + " with the recommended one (" + ts(w["simulations"]) + " simulations)",
+           "  Likely range (10th-90th percentile): you " + whole(w["my_range"]["p10"]) + "-" + whole(w["my_range"]["p90"])
+           + ", them " + whole(w["opponent_range"]["p10"]) + "-" + whole(w["opponent_range"]["p90"])]
+    for m in w.get("moves") or []:
+        out.append("  To raise your chances: " + move_text(m))
+    out.append("  Score spreads: " + w["spread_source"])
+    return out
+
+
+def win_probability_markdown(w: Optional[dict]) -> List[str]:
+    if w is None:
+        return []
+    out = ["| Win probability | Current lineup | Recommended lineup |", "| --- | ---: | ---: |",
+           "| " + ts(w["simulations"]) + " simulations | " + pct(w.get("current_lineup_pct")) + " | "
+           + pct(w.get("recommended_lineup_pct")) + " |", "",
+           "Likely range (10th-90th percentile): you " + whole(w["my_range"]["p10"]) + "-" + whole(w["my_range"]["p90"])
+           + ", them " + whole(w["opponent_range"]["p10"]) + "-" + whole(w["opponent_range"]["p90"])
+           + ". Score spreads: " + w["spread_source"] + ".", ""]
+    if w.get("moves"):
+        out += ["To raise your chances:", ""] + ["- " + move_text(m) for m in w["moves"]] + [""]
+    return out
 
 
 def signed(v: Any) -> str:

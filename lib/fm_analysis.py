@@ -13,7 +13,9 @@ calls; rendering happens in lib/fm_app.py.
 from __future__ import annotations
 
 import json
+import math
 import os
+import random
 import sys
 from itertools import combinations
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
@@ -21,7 +23,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fm_history  # noqa: E402
 
-SCHEMA_VERSION = "1.1"
+SCHEMA_VERSION = "1.2"
 
 # Slots that do not start.
 NON_STARTING_SLOTS = {"BN", "BE", "IR", "TAXI", "RESERVE"}
@@ -102,6 +104,19 @@ MIN_TRADE_GAIN = 0.5
 
 # Schedule statuses that mean a game has kicked off.
 STARTED_GAME_STATUSES = {"in_game", "complete"}
+
+# Win-probability simulation: spread of a starter's score around the
+# projection (points, one standard deviation) for a typical starter, used
+# until this season's history has enough games; scaled by sqrt(projection /
+# reference projection).
+DEFAULT_SPREAD = {"QB": 6.5, "RB": 6.5, "WR": 6.5, "TE": 5.0, "K": 4.0, "DEF": 5.5}
+SPREAD_REFERENCE = {"QB": 18.0, "RB": 12.0, "WR": 12.0, "TE": 9.0, "K": 8.0, "DEF": 7.0}
+MIN_HISTORY_GAMES = 30
+# A player's own spread needs at least this many games, and is shrunk
+# toward the position estimate as if that estimate were worth this many.
+MIN_PLAYER_GAMES = 3
+PLAYER_SPREAD_PRIOR_GAMES = 6
+SIMULATIONS = 10000
 
 WAIVER_WEIGHTS = {
     "roster_improvement": 0.40,
@@ -943,6 +958,125 @@ class Analyzer:
                 "Projection-only optimisation: correlation, game script and "
                 "opponent defensive matchups are not modelled."
             ),
+        }
+
+    # -- win probability --------------------------------------------------
+    def score_spread(self, pid: str) -> float:
+        """Spread of this player's score: the position estimate (this
+        season's misses, or a typical value) scaled by projection, blended
+        with the player's own misses when he has enough games."""
+        position = self.primary_position(pid) or "?"
+        base = DEFAULT_SPREAD.get(position, 6.0)
+        acc = (getattr(self, "history_accuracy", None) or {}).get(position)
+        if acc and (acc.get("n") or 0) >= MIN_HISTORY_GAMES and acc.get("sd"):
+            base = float(acc["sd"])
+        ref = SPREAD_REFERENCE.get(position, 10.0)
+        scale = math.sqrt(max(self.points(pid), 0.5) / ref)
+        prior = base * min(1.6, max(0.4, scale))
+        own = (getattr(self, "history_player_misses", None) or {}).get(pid)
+        if not own or len(own) < MIN_PLAYER_GAMES:
+            return prior
+        mean = sum(own) / len(own)
+        var = sum((e - mean) ** 2 for e in own) / (len(own) - 1)
+        k, dof = PLAYER_SPREAD_PRIOR_GAMES, len(own) - 1
+        return math.sqrt((k * prior * prior + dof * var) / (k + dof))
+
+    def simulate_matchup(self, matchup: dict, lineup: dict) -> Optional[dict]:
+        """Monte Carlo win probability for the current and recommended
+        lineups against the opponent's current starters."""
+        mine = next((m for m in self.matchups if m.get("roster_id") == self.my_roster_id), None)
+        opponent = next((m for m in self.matchups if m is not mine and mine is not None
+                         and m.get("matchup_id") == mine.get("matchup_id")), None)
+        if mine is None or opponent is None:
+            return None
+
+        def starters(entry: dict) -> List[str]:
+            return [str(p) for p in (entry.get("starters") or []) if p not in (None, "", "0", 0)]
+
+        current = starters(mine)
+        recommended = [s["recommended"]["player_id"] for s in lineup["slots"] if s.get("recommended")]
+        theirs = starters(opponent)
+        if not recommended or not theirs:
+            return None
+        my_roster = self.roster_by_id(self.my_roster_id) or {}
+        bench = [p for p in self.roster_active_players(my_roster)
+                 if p not in recommended and self.has_projection(p) and self.availability(p)[0] and not self.is_locked(p)]
+
+        fixed: Dict[str, float] = {}
+        for entry in (mine, opponent):
+            live = entry.get("players_points") or {}
+            for pid in starters(entry):
+                if self.is_locked(pid):
+                    value = live.get(pid, self.live_points.get(pid, 0.0))
+                    fixed[pid] = float(value) if isinstance(value, (int, float)) else 0.0
+
+        rng = random.Random("%s-%s-%s" % (self.config.get("league_id"), self.config.get("season"), self.config.get("week")))
+        n = SIMULATIONS
+        draws: Dict[str, List[float]] = {}
+        for pid in sorted(set(current) | set(recommended) | set(theirs) | set(bench)):
+            if pid in fixed:
+                draws[pid] = [fixed[pid]] * n
+                continue
+            mean, sd = self.points(pid), self.score_spread(pid)
+            draws[pid] = [max(0.0, mean + sd * rng.gauss(0.0, 1.0)) for _ in range(n)]
+
+        def totals(pids: Sequence[str]) -> List[float]:
+            out = [0.0] * n
+            for pid in pids:
+                d = draws[pid]
+                for i in range(n):
+                    out[i] += d[i]
+            return out
+
+        opp_totals = totals(theirs)
+
+        def win_pct(mine_totals: Sequence[float]) -> float:
+            wins = sum(1.0 if a > b else 0.5 if a == b else 0.0 for a, b in zip(mine_totals, opp_totals))
+            return round(100.0 * wins / n, 1)
+
+        def spread_of(values: Sequence[float]) -> dict:
+            ordered = sorted(values)
+            return {"p10": r2(ordered[int(0.1 * n)]), "p50": r2(ordered[int(0.5 * n)]), "p90": r2(ordered[int(0.9 * n)])}
+
+        rec_totals = totals(recommended)
+        rec_pct = win_pct(rec_totals)
+        moves = []
+        slot_of = {s["recommended"]["player_id"]: s for s in lineup["slots"] if s.get("recommended")}
+        for out_pid in recommended:
+            slot = slot_of[out_pid]
+            if slot["action"] == "LOCKED" or out_pid in fixed:
+                continue
+            for in_pid in bench:
+                if not self.eligible(slot["slot"], in_pid):
+                    continue
+                d_out, d_in = draws[out_pid], draws[in_pid]
+                pct = win_pct([rec_totals[i] - d_out[i] + d_in[i] for i in range(n)])
+                if pct - rec_pct >= 1.0:
+                    moves.append({"slot": slot["slot"], "out": self.player_ref(out_pid), "in": self.player_ref(in_pid),
+                                  "win_pct": pct, "win_gain": round(pct - rec_pct, 1),
+                                  "points_change": r2(self.points(in_pid) - self.points(out_pid))})
+        moves.sort(key=lambda m: (-m["win_gain"], m["in"]["player_id"]))
+        hist = getattr(self, "history_accuracy", None) or {}
+        from_history = sorted(p for p, a in hist.items() if a and (a.get("n") or 0) >= MIN_HISTORY_GAMES and a.get("sd"))
+        spreads = {}
+        for pos in sorted({self.primary_position(p) or "?" for p in draws}):
+            acc = hist.get(pos)
+            spreads[pos] = r2(float(acc["sd"]) if pos in from_history else DEFAULT_SPREAD.get(pos, 6.0))
+        return {
+            "current_lineup_pct": win_pct(totals(current)) if current else None,
+            "recommended_lineup_pct": rec_pct,
+            "simulations": n,
+            "my_range": spread_of(rec_totals),
+            "opponent_range": spread_of(opp_totals),
+            "fixed_players": len(fixed),
+            "spread_source": ("this season's projection misses for " + ", ".join(from_history)
+                              + ("; typical spreads for the rest" if len(from_history) < len(spreads) else "")
+                              if from_history else "typical spreads (not enough history yet)"),
+            "spreads": spreads,
+            "moves": moves[:3],
+            "note": ("Each starter scores around their projection with a spread by position (normal, floored at 0, "
+                     "wider for bigger projections); players whose game has started count at their current points. "
+                     "Players are treated as independent: same-game correlation is not modelled."),
         }
 
     # -- waivers ----------------------------------------------------------
@@ -2040,7 +2174,8 @@ class Analyzer:
         self.history_form (recent form per player)."""
         self.history_updates: Dict[str, list] = {"projections": [], "actuals": []}
         self.history_form: Dict[str, dict] = {}
-        self.history_errors: Dict[str, float] = {}
+        self.history_accuracy: Dict[str, dict] = {}
+        self.history_player_misses: Dict[str, List[float]] = {}
         hist = self.bundle.get("history")
         if not isinstance(hist, dict):
             return None
@@ -2107,6 +2242,9 @@ class Analyzer:
             if w < week and (w, pid) not in proj:
                 per_pid.setdefault(pid, {})[w] = (None, a)
         self.history_usage = usage
+        self.history_player_misses = {
+            pid: [a - p for _, (p, a) in sorted(weeks.items()) if p is not None and a is not None and p >= 1.0]
+            for pid, weeks in per_pid.items()}
         pairs = []
         sources = {"snapshot": 0, "backfill": 0}
         for pid, weeks in per_pid.items():
@@ -2119,7 +2257,7 @@ class Analyzer:
                 self.history_form[pid] = form
         weeks_with_data = sorted({w for (w, _) in act if w < week} | {w for (w, _) in proj if w < week})
         acc = fm_history.accuracy(pairs)
-        self.history_errors = {pos: s["sd"] for pos, s in acc["by_position"].items() if s and s.get("sd") is not None}
+        self.history_accuracy = {pos: s for pos, s in acc["by_position"].items() if s}
 
         reason = None
         if not weeks_with_data:
@@ -2205,6 +2343,8 @@ class Analyzer:
 
         lineup = self.analyze_lineup(my_roster)
         matchup = self.analyze_matchup()
+        if matchup is not None:
+            matchup["win_probability"] = self.simulate_matchup(matchup, lineup)
         waivers = None if self.config.get("skip_waivers") else self.analyze_waivers(my_roster)
         if waivers is not None and self.history_form:
             for rows in waivers["groups"].values():

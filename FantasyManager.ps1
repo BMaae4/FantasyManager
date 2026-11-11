@@ -80,7 +80,7 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '2.8.0'
+$ToolVersion = '2.9.0'
 
 # --------------------------------------------------------------------------
 # Shared application: lib/fm_app.py does configuration, fetching, caching,
@@ -726,14 +726,17 @@ function Update-ReportView($ui, $report) {
         $ui.OppScoreText.Text = Format-Points $m.opponent_points
         $ui.MyProjText.Text = 'proj. final ' + (Format-Points (Get-Prop $m 'my_projected_final'))
         $ui.OppProjText.Text = 'proj. final ' + (Format-Points (Get-Prop $m 'opponent_projected_final'))
+        $wpLines = @(Get-WinProbabilityLines (Get-Prop $m 'win_probability'))
+        $wp = Get-Prop $m 'win_probability'
+        if ($wp) { $ui.MyProjText.Text += ('  -  win {0}%' -f (Format-Points $wp.recommended_lineup_pct)) }
         $ui.MatchupDetail.Text = (@(
             ('{0}  vs  {1}' -f $ui.MyTeamText.Text, $ui.OppTeamText.Text),
             ('Live / final points:  {0}  vs  {1}' -f (Format-Points $m.my_points), (Format-Points $m.opponent_points)),
             ('Projected (current lineups):  {0}  vs  {1}   (differential {2})' -f (Format-Points $m.my_projected), (Format-Points $m.opponent_projected), (Format-Points $m.differential)),
             ('Projected final (live + remaining):  {0}  vs  {1}   ({2})' -f (Format-Points (Get-Prop $m 'my_projected_final')), (Format-Points (Get-Prop $m 'opponent_projected_final')), (Format-Points (Get-Prop $m 'final_differential'))),
-            '',
-            $m.note
-        ) -join "`n")
+            ''
+        ) + $wpLines + @($m.note)) -join "`n"
+
     } else {
         foreach ($n in 'MyTeamText', 'OppTeamText', 'MyScoreText', 'OppScoreText') { $ui[$n].Text = '-' }
         $ui.MyProjText.Text = ''; $ui.OppProjText.Text = ''
@@ -840,6 +843,25 @@ function Update-ReportView($ui, $report) {
         }
     })
     Update-TradeAnalyzer $ui $report
+}
+
+function Get-WinProbabilityLines($wp) {
+    # Matchup simulation (reports from 2.9.0 on).
+    if ($null -eq $wp) { return @() }
+    $lines = @(
+        ('Win probability:  {0}% with your current lineup,  {1}% with the recommended one  ({2} simulations)' -f
+            (Format-Points $wp.current_lineup_pct), (Format-Points $wp.recommended_lineup_pct), $wp.simulations),
+        ('Likely range (10th-90th percentile):  you {0}-{1},  them {2}-{3}' -f
+            (Format-Points ([Math]::Round([double]$wp.my_range.p10))), (Format-Points ([Math]::Round([double]$wp.my_range.p90))),
+            (Format-Points ([Math]::Round([double]$wp.opponent_range.p10))), (Format-Points ([Math]::Round([double]$wp.opponent_range.p90))))
+    )
+    foreach ($mv in @($wp.moves)) {
+        if ($null -eq $mv) { continue }
+        $lines += ('To raise your chances: start {0} over {1} ({2}): {3}% ({4}), {5} projected points' -f
+            $mv.in.name, $mv.out.name, $mv.slot, (Format-Points $mv.win_pct), (Format-Signed $mv.win_gain), (Format-Signed $mv.points_change))
+    }
+    $lines += ('Score spreads: ' + $wp.spread_source)
+    return $lines + @('')
 }
 
 function Format-Signed($value) {
@@ -1430,8 +1452,9 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
             @($ui.LineupGrid.ItemsSource).Count, @($ui.WaiverGrid.ItemsSource).Count, @($ui.TradeGrid.ItemsSource).Count,
             @($ui.WarningsList.ItemsSource).Count, @($ui.GiveList.ItemsSource).Count, @($ui.GetList.ItemsSource).Count, $ui.YouGrade.Text,
             $(if (Test-OpenMode $ui) { 'open' } else { 'league' }), @($ui.ResultsA.ItemsSource).Count, $pickedCount) +
-            (', remember {0}, history rows {1}, form rows {2}' -f [bool]$ui.RememberBox.IsChecked,
-                @($ui.HistoryAccGrid.ItemsSource).Count, @($ui.HistoryFormGrid.ItemsSource).Count))
+            (', remember {0}, history rows {1}, form rows {2}, win {3}' -f [bool]$ui.RememberBox.IsChecked,
+                @($ui.HistoryAccGrid.ItemsSource).Count, @($ui.HistoryFormGrid.ItemsSource).Count,
+                $(if ($ui.MyProjText.Text -match 'win ([\d.]+)%') { $Matches[1] } else { 'n/a' })))
         $window.Close()
         return
     }

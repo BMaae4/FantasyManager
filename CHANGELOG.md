@@ -2,6 +2,44 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 2.9.0
+
+### Added
+
+- Win probability. The matchup is simulated 10,000 times, with each
+  starter's score spread around the projection.
+  - Spreads are by position and wider for bigger projections.
+  - They come from this season's projection misses once a position has 30+
+    games in the history, and use typical values before that.
+  - A player with 3+ games also counts his own boom-or-bust record (blended
+    with the position estimate).
+  - Players whose game has started count at their current points.
+- The report shows:
+  - the chance to win with your current lineup and with the recommended one
+  - the likely score range for both teams (10th to 90th percentile)
+  - which spreads were used
+  - swaps that raise the chance by a point or more, even when they project
+    lower (for example a volatile back when you're a big underdog)
+- In text, Markdown and JSON `matchup.win_probability`. On Windows it is in
+  the Matchup tab, and the header shows the win chance.
+- Results are reproducible: the same league and week always give the same
+  numbers.
+- JSON schema version 1.2.
+
+### Tests
+
+- 16 new checks (304 total):
+  - the simulated win chance matches the closed-form normal result within
+    1.5 points
+  - reproducibility and history-based spreads
+  - locked players
+  - a new `underdog_volatile` fixture where the volatile bench back is the
+    suggested swap
+  - text and Markdown output
+- Windows GUI check for the header.
+- `compare_reports.py` allows ±0.01 in simulated numbers, for last-digit
+  differences between platforms' math libraries.
+
 ## 2.8.0
 
 ### Added
