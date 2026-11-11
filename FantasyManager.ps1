@@ -55,6 +55,8 @@ param(
     [string]$Teams,
     [switch]$SkipWaivers,
     [switch]$SkipTrades,
+    [switch]$NoHistory,
+    [string]$HistoryDb,
     [switch]$NoGui,
     [string]$Format,
     [string]$OutFile,
@@ -78,7 +80,7 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '2.7.0'
+$ToolVersion = '2.8.0'
 
 # --------------------------------------------------------------------------
 # Shared application: lib/fm_app.py does configuration, fetching, caching,
@@ -258,10 +260,11 @@ function ConvertTo-AppArgs($bound, [string[]]$skip = @()) {
         Horizon = '--horizon'; Locked = '--locked'; Trade = '--trade'; ValueTrade = '--value-trade'
         Scoring = '--scoring'; Teams = '--teams'; Format = '--format'; CacheDir = '--cache-dir'
         CacheTtl = '--cache-ttl'; Fixtures = '--fixtures'; Config = '--config'; LogFile = '--log-file'
+        HistoryDb = '--history-db'
     }
     $flags = [ordered]@{
         SkipWaivers = '--skip-waivers'; SkipTrades = '--skip-trades'; NoCache = '--no-cache'; Refresh = '--refresh'
-        Offline = '--offline'; Quiet = '--quiet'; DebugLog = '--debug'
+        Offline = '--offline'; Quiet = '--quiet'; DebugLog = '--debug'; NoHistory = '--no-history'
     }
     $out = @()
     foreach ($k in $map.Keys) {
@@ -609,6 +612,33 @@ $script:WindowXaml = @'
           <TextBlock x:Name="MatchupDetail" Margin="4" TextWrapping="Wrap" FontSize="14" LineHeight="24"/>
         </ScrollViewer>
       </TabItem>
+      <TabItem Header="History">
+        <Grid>
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <TextBlock x:Name="HistorySummary" Grid.Row="0" Margin="2,0,0,8" TextWrapping="Wrap"/>
+          <DataGrid x:Name="HistoryAccGrid" Grid.Row="1" MaxHeight="230">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Position" Binding="{Binding Position}" Width="80"/>
+              <DataGridTextColumn Header="Player-weeks" Binding="{Binding N}" Width="95"/>
+              <DataGridTextColumn Header="Avg miss" Binding="{Binding Mae}" Width="80"/>
+              <DataGridTextColumn Header="Bias" Binding="{Binding Bias}" Width="70"/>
+              <DataGridTextColumn Header="Within 5 pts" Binding="{Binding Within}" Width="*"/>
+            </DataGrid.Columns>
+          </DataGrid>
+          <TextBlock Grid.Row="2" Margin="2,12,0,6" FontWeight="SemiBold" Text="Your roster: recent form (last 4 weeks played)"/>
+          <DataGrid x:Name="HistoryFormGrid" Grid.Row="3">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Player" Binding="{Binding Player}" Width="200"/>
+              <DataGridTextColumn Header="Pos" Binding="{Binding Pos}" Width="50"/>
+              <DataGridTextColumn Header="GP" Binding="{Binding Games}" Width="45"/>
+              <DataGridTextColumn Header="Avg" Binding="{Binding Avg}" Width="60"/>
+              <DataGridTextColumn Header="Proj" Binding="{Binding Proj}" Width="60"/>
+              <DataGridTextColumn Header="Beat proj" Binding="{Binding Beat}" Width="75"/>
+              <DataGridTextColumn Header="Weekly (actual)" Binding="{Binding Weekly}" Width="*"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </Grid>
+      </TabItem>
       <TabItem Header="Diagnostics">
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
@@ -795,6 +825,9 @@ function Update-ReportView($ui, $report) {
         $ui.TradeGrid.ItemsSource = @()
     }
 
+    # history (reports from 2.8.0 on)
+    Update-HistoryView $ui (Get-Prop $report 'history')
+
     # diagnostics
     $proj = $meta.projections
     $ui.DiagSummary.Text = ('Projections: {0} ({1} records{2})     Lock source: {3}     Tool {4}' -f $proj.source, $proj.record_count,
@@ -807,6 +840,55 @@ function Update-ReportView($ui, $report) {
         }
     })
     Update-TradeAnalyzer $ui $report
+}
+
+function Format-Signed($value) {
+    if ($null -eq $value) { return 'n/a' }
+    $text = Format-Points $value
+    if ($text -eq '0' -or $text -eq '-0') { return '0' }
+    if ($text.StartsWith('-')) { return $text }
+    return '+' + $text
+}
+
+function Update-HistoryView($ui, $h) {
+    if ($null -eq $h) {
+        $ui.HistorySummary.Text = 'No history in this report (recorded from version 2.8.0, or turned off with --no-history).'
+        $ui.HistoryAccGrid.ItemsSource = @(); $ui.HistoryFormGrid.ItemsSource = @()
+        return
+    }
+    if (-not $h.available) {
+        $ui.HistorySummary.Text = 'History unavailable: ' + $h.reason
+        $ui.HistoryAccGrid.ItemsSource = @(); $ui.HistoryFormGrid.ItemsSource = @()
+        return
+    }
+    $weeks = @($h.weeks)
+    $src = $h.projection_sources
+    $summary = ('Projected vs actual points in your league''s scoring, weeks {0}-{1}. {2} projections recorded before kickoff, {3} fetched afterwards. Bias above 0 means players beat their projections.' -f
+        $weeks[0], $weeks[-1], $src.snapshot, $src.backfill)
+    $missing = @(Get-Prop $h 'stats_missing_weeks' | Where-Object { $null -ne $_ })
+    if ($missing.Count) { $summary += ' No stats feed for week ' + ($missing -join ', ') + ': only rostered players have results there.' }
+    $ui.HistorySummary.Text = $summary
+    $rows = New-Object System.Collections.ArrayList
+    foreach ($prop in $h.accuracy.by_position.PSObject.Properties) {
+        $st = $prop.Value
+        if ($null -eq $st) { continue }
+        [void]$rows.Add([pscustomobject]@{ Position = $prop.Name; N = $st.n; Mae = (Format-Points $st.mae); Bias = (Format-Signed $st.bias); Within = ('{0}%' -f $st.within_5_pct) })
+    }
+    $all = $h.accuracy.overall
+    if ($all) { [void]$rows.Add([pscustomobject]@{ Position = 'All'; N = $all.n; Mae = (Format-Points $all.mae); Bias = (Format-Signed $all.bias); Within = ('{0}%' -f $all.within_5_pct) }) }
+    $ui.HistoryAccGrid.ItemsSource = $rows
+    $form = New-Object System.Collections.ArrayList
+    foreach ($playerId in @($h.my_roster)) {
+        if ($null -eq $playerId) { continue }
+        $p = Get-Prop $h.players ([string]$playerId)
+        if ($null -eq $p) { continue }
+        [void]$form.Add([pscustomobject]@{
+            Player = $p.name; Pos = $p.position; Games = $p.games; Avg = (Format-Points $p.avg_points)
+            Proj = (Format-Points $p.avg_projection); Beat = ('{0}/{1}' -f $p.beat, $p.compared)
+            Weekly = (@($p.last | ForEach-Object { Format-Points $_.actual }) -join '  ')
+        })
+    }
+    $ui.HistoryFormGrid.ItemsSource = $form
 }
 
 function Get-GradeBrush([string]$grade) {
@@ -1096,7 +1178,7 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
             'Busy', 'StatusText', 'TitleText', 'SubtitleText', 'NoticeText', 'MyTeamText', 'MyScoreText', 'MyProjText',
             'OppTeamText', 'OppScoreText', 'OppProjText', 'WarningsExpander', 'WarningsHeader', 'WarningsList',
             'LineupSummary', 'LineupGrid', 'RiskGrid', 'WaiverSummary', 'WaiverGrid', 'TradeSummary', 'TradeGrid',
-            'MatchupDetail', 'DiagSummary', 'DiagGrid', 'Tabs', 'AnalyzerTab', 'PartnerBox', 'GiveList', 'GetList',
+            'MatchupDetail', 'HistorySummary', 'HistoryAccGrid', 'HistoryFormGrid', 'DiagSummary', 'DiagGrid', 'Tabs', 'AnalyzerTab', 'PartnerBox', 'GiveList', 'GetList',
             'GradeButton', 'ClearTradeButton', 'TradePickSummary', 'YouGrade', 'ThemGrade', 'ThemLabel', 'AcceptText',
             'VerdictText', 'TradeDetail', 'YouLabel', 'LeagueModeRadio', 'OpenModeRadio', 'LeaguePanel', 'OpenPanel',
             'FromBox', 'GiveHeader', 'GetHeader', 'ScoringBox', 'TeamsBox', 'SearchA', 'SearchB', 'ResultsA', 'ResultsB',
@@ -1148,10 +1230,10 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         if (Test-Path -LiteralPath $log) { Remove-Item -LiteralPath $log -Force }
         $childArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $script:ScriptPath, '-NoGui',
             '-OutFile', $out, '-LogFile', $log) + $extraArgs
-        foreach ($pass in @('Season', 'SeasonType', 'Top', 'Threshold', 'Fairness', 'Locked', 'CacheDir', 'Config', 'Python', 'Fixtures')) {
+        foreach ($pass in @('Season', 'SeasonType', 'Top', 'Threshold', 'Fairness', 'Locked', 'CacheDir', 'Config', 'Python', 'Fixtures', 'HistoryDb')) {
             if ($script:BoundParams.ContainsKey($pass)) { $childArgs += @("-$pass", [string]$script:BoundParams[$pass]) }
         }
-        foreach ($flag in @('Offline', 'NoCache', 'SkipWaivers', 'SkipTrades')) {
+        foreach ($flag in @('Offline', 'NoCache', 'SkipWaivers', 'SkipTrades', 'NoHistory')) {
             if ($script:BoundParams.ContainsKey($flag) -and $childArgs -notcontains "-$flag") { $childArgs += "-$flag" }
         }
         $psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -1348,7 +1430,8 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
             @($ui.LineupGrid.ItemsSource).Count, @($ui.WaiverGrid.ItemsSource).Count, @($ui.TradeGrid.ItemsSource).Count,
             @($ui.WarningsList.ItemsSource).Count, @($ui.GiveList.ItemsSource).Count, @($ui.GetList.ItemsSource).Count, $ui.YouGrade.Text,
             $(if (Test-OpenMode $ui) { 'open' } else { 'league' }), @($ui.ResultsA.ItemsSource).Count, $pickedCount) +
-            (', remember {0}' -f [bool]$ui.RememberBox.IsChecked))
+            (', remember {0}, history rows {1}, form rows {2}' -f [bool]$ui.RememberBox.IsChecked,
+                @($ui.HistoryAccGrid.ItemsSource).Count, @($ui.HistoryFormGrid.ItemsSource).Count))
         $window.Close()
         return
     }

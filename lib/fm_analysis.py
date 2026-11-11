@@ -1,22 +1,27 @@
 #!/usr/bin/env python3
-"""Analysis engine for fantasy_manager.sh.
+"""Analysis engine for fantasy_manager.
 
-Reads one bundle JSON object on stdin (league, rosters, users, matchups,
-players, projections, activity, provenance) and writes one canonical report
-JSON object on stdout.  Standard library only.
+Turns one bundle (league, rosters, users, matchups, players, projections,
+activity, history, provenance) into one canonical report. lib/fm_app.py calls
+it in-process; `fm_analysis.py --in BUNDLE --out REPORT` runs it on files.
+Standard library only.
 
 The engine never prints human readable output and never performs network
-calls; rendering happens in fantasy_manager.sh.
+calls; rendering happens in lib/fm_app.py.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import sys
 from itertools import combinations
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
-SCHEMA_VERSION = "1.0"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import fm_history  # noqa: E402
+
+SCHEMA_VERSION = "1.1"
 
 # Slots that do not start.
 NON_STARTING_SLOTS = {"BN", "BE", "IR", "TAXI", "RESERVE"}
@@ -2010,6 +2015,147 @@ class Analyzer:
             })
         return results
 
+    # -- history: past weeks, projection accuracy, recent form -----------
+    @staticmethod
+    def _stat_records(feed) -> List[Tuple[str, dict]]:
+        """A stats feed as (player_id, stats): a list of records like the
+        projection feed, or an object keyed by player id."""
+        out: List[Tuple[str, dict]] = []
+        if isinstance(feed, list):
+            for record in feed:
+                if isinstance(record, dict) and record.get("player_id") is not None and isinstance(record.get("stats"), dict):
+                    out.append((str(record["player_id"]), record["stats"]))
+        elif isinstance(feed, dict):
+            for pid, value in feed.items():
+                if isinstance(value, dict):
+                    stats = value.get("stats") if isinstance(value.get("stats"), dict) else value
+                    out.append((str(pid), stats))
+        return out
+
+    def analyze_history(self) -> Optional[dict]:
+        """Score past weeks with this league's rules, record this week's
+        pre-kickoff projections, and measure projection accuracy.
+
+        Sets self.history_updates (rows for the history database) and
+        self.history_form (recent form per player)."""
+        self.history_updates: Dict[str, list] = {"projections": [], "actuals": []}
+        self.history_form: Dict[str, dict] = {}
+        self.history_errors: Dict[str, float] = {}
+        hist = self.bundle.get("history")
+        if not isinstance(hist, dict):
+            return None
+        week = int(self.config.get("week") or 0)
+        stored = hist.get("stored") or {}
+        proj: Dict[Tuple[int, str], float] = {}
+        proj_src: Dict[Tuple[int, str], str] = {}
+        act: Dict[Tuple[int, str], float] = {}
+        act_src: Dict[Tuple[int, str], str] = {}
+        usage: Dict[Tuple[int, str], dict] = {}
+        for row in stored.get("projections") or []:
+            w, pid, pts, src = int(row[0]), str(row[1]), row[2], row[3]
+            if isinstance(pts, (int, float)):
+                proj[(w, pid)], proj_src[(w, pid)] = float(pts), src
+        for row in stored.get("actuals") or []:
+            w, pid, pts, src = int(row[0]), str(row[1]), row[2], row[3]
+            if isinstance(pts, (int, float)):
+                act[(w, pid)], act_src[(w, pid)] = float(pts), src
+            if len(row) > 4 and isinstance(row[4], dict) and row[4]:
+                usage[(w, pid)] = row[4]
+
+        for wk, entry in sorted((hist.get("raw") or {}).items(), key=lambda kv: int(kv[0])):
+            w = int(wk)
+            for record in entry.get("projections") or []:
+                if not isinstance(record, dict) or record.get("player_id") is None or not isinstance(record.get("stats"), dict):
+                    continue
+                pid = str(record["player_id"])
+                value = self.score_stats(pid, record["stats"])
+                if value is None:
+                    continue
+                self.history_updates["projections"].append([w, pid, round(value, 3), "backfill"])
+                if proj_src.get((w, pid)) != "snapshot":
+                    proj[(w, pid)], proj_src[(w, pid)] = value, "backfill"
+            for pid, stats in self._stat_records(entry.get("stats")):
+                value = self.score_stats(pid, stats)
+                opp = {k: stats[k] for k in fm_history.OPPORTUNITY_KEYS
+                       if isinstance(stats.get(k), (int, float)) and not isinstance(stats.get(k), bool) and stats[k] != 0}
+                if value is None and not opp:
+                    continue
+                self.history_updates["actuals"].append([w, pid, None if value is None else round(value, 3), "stats", opp])
+                if opp:
+                    usage[(w, pid)] = opp
+                if value is not None and act_src.get((w, pid)) != "league":
+                    act[(w, pid)], act_src[(w, pid)] = value, "stats"
+            for entry_m in entry.get("matchups") or []:
+                points = entry_m.get("players_points") if isinstance(entry_m, dict) else None
+                if not isinstance(points, dict):
+                    continue
+                for pid, pts in points.items():
+                    if isinstance(pts, (int, float)) and not isinstance(pts, bool):
+                        self.history_updates["actuals"].append([w, str(pid), float(pts), "league", None])
+                        act[(w, str(pid))], act_src[(w, str(pid))] = float(pts), "league"
+
+        # This week's projections, recorded before each player's game starts.
+        for pid, value in self.projection_points.items():
+            if not self.is_locked(pid):
+                self.history_updates["projections"].append([week, pid, round(value, 3), "snapshot"])
+
+        per_pid: Dict[str, Dict[int, Tuple[Optional[float], Optional[float]]]] = {}
+        for (w, pid), p in proj.items():
+            if w < week:
+                per_pid.setdefault(pid, {})[w] = (p, act.get((w, pid)))
+        for (w, pid), a in act.items():
+            if w < week and (w, pid) not in proj:
+                per_pid.setdefault(pid, {})[w] = (None, a)
+        self.history_usage = usage
+        pairs = []
+        sources = {"snapshot": 0, "backfill": 0}
+        for pid, weeks in per_pid.items():
+            for w, (p, a) in weeks.items():
+                if p is not None and a is not None and p >= 1.0:
+                    pairs.append((self.primary_position(pid), p, a))
+                    sources[proj_src.get((w, pid), "backfill")] += 1
+            form = fm_history.player_form(weeks)
+            if form is not None:
+                self.history_form[pid] = form
+        weeks_with_data = sorted({w for (w, _) in act if w < week} | {w for (w, _) in proj if w < week})
+        acc = fm_history.accuracy(pairs)
+        self.history_errors = {pos: s["sd"] for pos, s in acc["by_position"].items() if s and s.get("sd") is not None}
+
+        reason = None
+        if not weeks_with_data:
+            reason = ("No completed weeks yet this season." if not hist.get("weeks")
+                      else "No past-week results could be loaded (see diagnostics).")
+        elif acc["overall"] is None:
+            reason = "Past results loaded, but no projections for those weeks to compare against."
+        players = {}
+        for pid in sorted(self.rostered):
+            form = self.history_form.get(pid)
+            if form is None:
+                continue
+            entry = {"name": self.player_name(pid), "position": self.primary_position(pid),
+                     "team": self.player(pid).get("team"), "roster_id": self.rostered.get(pid)}
+            entry.update(form)
+            players[pid] = entry
+        my_roster = self.roster_by_id(self.my_roster_id) or {}
+        mine = [pid for pid in self.roster_active_players(my_roster) if pid in players]
+        mine.sort(key=lambda pid: (-(players[pid]["avg_points"] or 0), self.player_name(pid)))
+        return {
+            "available": reason is None,
+            "reason": reason,
+            "weeks": weeks_with_data,
+            "accuracy": acc,
+            "min_projection": 1.0,
+            "projection_sources": sources,
+            "actual_sources": {s: sum(1 for (w, _), v in act_src.items() if w < week and v == s)
+                               for s in ("league", "stats")},
+            "stats_missing_weeks": list(hist.get("stats_missing") or []),
+            "players": players,
+            "my_roster": mine,
+            "note": ("Projected vs actual points in your league's scoring. Projections recorded before "
+                     "kickoff by earlier runs are used when available; otherwise the feed's projections "
+                     "for past weeks are fetched afterwards."),
+        }
+
     def player_pool(self) -> List[dict]:
         """Projected players at fantasy positions, for picking any-player trades."""
         rows = []
@@ -2055,10 +2201,17 @@ class Analyzer:
         my_roster = self.roster_by_id(self.my_roster_id)
         if my_roster is None:
             raise SystemExit("roster %s not found in league rosters" % self.my_roster_id)
+        history = self.analyze_history()
 
         lineup = self.analyze_lineup(my_roster)
         matchup = self.analyze_matchup()
         waivers = None if self.config.get("skip_waivers") else self.analyze_waivers(my_roster)
+        if waivers is not None and self.history_form:
+            for rows in waivers["groups"].values():
+                for row in rows:
+                    form = self.history_form.get(str(row.get("player_id")))
+                    if form is not None:
+                        row["recent"] = {k: form[k] for k in ("games", "avg_points", "avg_projection", "beat", "compared")}
         trades = None if self.config.get("skip_trades") else self.analyze_trades(my_roster)
         custom_trades = self.analyze_custom_trades()
         value_trades = self.analyze_value_trades()
@@ -2114,6 +2267,7 @@ class Analyzer:
             "trades": trades,
             "custom_trades": custom_trades,
             "value_trades": value_trades,
+            "history": history,
             "player_pool": self.player_pool(),
             "rosters": self.roster_summaries(),
             "diagnostics": {

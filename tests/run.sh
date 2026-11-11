@@ -406,7 +406,7 @@ run_case ppr_basic --format json
 assert_json "json has metadata" '.metadata.league_id == "1400680781302525952"'
 assert_json "json has diagnostics" '(.diagnostics.fetches | length) > 0'
 assert_json "json keys stable" \
-    '[keys[]] == ["custom_trades","diagnostics","lineup","matchup","metadata","player_pool","rosters","schema_version","trades","value_trades","waivers","warnings"]'
+    '[keys[]] == ["custom_trades","diagnostics","history","lineup","matchup","metadata","player_pool","rosters","schema_version","trades","value_trades","waivers","warnings"]'
 
 run_case ppr_basic --format json --quiet
 assert_status "--quiet exits 0" 0
@@ -762,6 +762,91 @@ run_case ppr_basic --skip-waivers --skip-trades --teams 4 --value-trade "Team2 R
 assert_match "text shows any-player grades" "$STDOUT" 'GRADE  side A F   side B A-'
 run_case ppr_basic --format markdown --skip-waivers --skip-trades --teams 4 --value-trade "Team2 RB1 for Team3 RB2, Team4 WR3"
 assert_match "markdown shows any-player table" "$STDOUT" '\| Side B gives \| Pos \| Team \| Points \| Above repl. \|'
+
+# --------------------------------------------------------------------------
+section "history and projection accuracy"
+# --------------------------------------------------------------------------
+run_case season_history --format json
+assert_status "history case exits 0" 0
+assert_json "history available for weeks 1-4" '.history.available and .history.weeks == [1,2,3,4]'
+assert_json "accuracy by position" '.history.accuracy.by_position | keys == ["DEF","K","QB","RB","TE","WR"]'
+assert_json "every compared player-week counted" '.history.accuracy.overall.n == 237'
+assert_json "missing stats feed for week 2 is reported" '.history.stats_missing_weeks == [2]'
+assert_json "league points used for rostered players, stats feed for the rest" \
+    '.history.actual_sources == {"league": 204, "stats": 33}'
+assert_json "fading starter: recent form below projection" \
+    '.history.players.wr2 | .avg_points == 7.8 and .avg_projection == 10.6 and .beat == 1 and .compared == 4'
+assert_json "weekly results listed in order" '[.history.players.wr2.last[].actual] == [14,9,5,3]'
+assert_json "my roster listed by recent average" '.history.my_roster[0] == "qb1" and (.history.my_roster | length) == 15'
+assert_json "waiver rows carry recent form" \
+    '[.waivers.groups[][] | select(.player_id == "fa_wr1") | .recent.games] == [3]'
+assert_json "history diagnostic summarises the weeks" \
+    '[.diagnostics.fetches[] | select(.key == "history") | .note] | .[0] | test("weeks 1-4; 0 stored, 4 fetched")'
+# Independent check of the overall average miss straight from the fixture files.
+MAE_EXPECTED="$(python3 - "$FIXTURES/season_history" <<'PY'
+import json, os, sys
+d = sys.argv[1]
+errs = []
+for w in (1, 2, 3, 4):
+    proj = {r["player_id"]: r["stats"]["pts_ppr"] for r in json.load(open(os.path.join(d, "projections_w%d.json" % w)))}
+    act = {}
+    sp = os.path.join(d, "stats_w%d.json" % w)
+    if os.path.exists(sp):
+        act.update({r["player_id"]: r["stats"]["pts_ppr"] for r in json.load(open(sp))})
+    for m in json.load(open(os.path.join(d, "matchups_w%d.json" % w))):
+        act.update(m["players_points"])
+    errs += [act[p] - v for p, v in proj.items() if v >= 1 and p in act]
+print(round(sum(abs(e) for e in errs) / len(errs), 2))
+PY
+)"
+assert_json "average miss matches an independent calculation" ".history.accuracy.overall.mae == $MAE_EXPECTED"
+
+run_case season_history --format text
+assert_match "text history section" "$STDOUT" 'HISTORY - weeks 1-4 \(projected vs actual, league scoring\)'
+assert_match "text accuracy row" "$STDOUT" 'ALL   237   3\.1'
+assert_match "text recent form row" "$STDOUT" 'Wes Bravo \(WR/BBB\) +4   7\.8    10\.6   1/4   14 9 5 3'
+assert_match "text waiver form column" "$STDOUT" 'Free Wide One .*form 14\.6/16\.6'
+run_case season_history --format markdown
+assert_match "markdown history table" "$STDOUT" '\| ALL \| 237 \| 3\.1 \| 0 \| 81% \|'
+run_case ppr_basic --format text
+assert_match "no past data: history explained" "$STDOUT" 'HISTORY: unavailable - No past-week results could be loaded'
+run_case ppr_basic --format json --week 1
+assert_json "week 1: no completed weeks yet" '.history.available == false and (.history.reason | test("No completed weeks"))'
+run_case season_history --format json --no-history
+assert_json "--no-history: no history section or diagnostic" \
+    '.history == null and ([.diagnostics.fetches[] | select(.key == "history")] | length == 0)'
+run_case season_history --format text --no-history
+assert_no_match "--no-history: no history text" "$STDOUT" '^HISTORY'
+
+# The database: past weeks are fetched once, pre-kickoff snapshots are kept.
+HDB="$WORK/history_cache"
+rm -rf "$HDB"
+hist_run() {
+    STDOUT="$(FM_OFFLINE=1 FM_FIXTURES="$FIXTURES/season_history" "$SCRIPT" --cache-dir "$HDB" -q -f json "$@" 2>"$WORK/stderr")"
+    STATUS=$?
+}
+hist_run --week 4
+assert_json "week 4 run: weeks 1-3 compared" '.history.weeks == [1,2,3] and .history.projection_sources.snapshot == 0'
+if [ -f "$HDB/history.sqlite" ]; then pass "history database written to the cache folder"; else fail "history database written to the cache folder"; fi
+hist_run
+assert_json "week 5 run: week 4 compared against the pre-kickoff snapshot" \
+    '.history.projection_sources == {"snapshot": 62, "backfill": 175}'
+assert_json "week 5 run: weeks 1-3 come from the database" \
+    '[.diagnostics.fetches[] | select(.key == "history") | .note][0] | test("3 stored, 1 fetched")'
+hist_run
+assert_json "third run: nothing fetched" \
+    '[.diagnostics.fetches[] | select(.key == "history") | .source, .note] | .[0] == "database" and (.[1] | test("4 stored, 0 fetched"))'
+FIRST_MAE="$(jq '.history.accuracy.overall' <<< "$STDOUT")"
+hist_run --history-db "$WORK/other.sqlite"
+if [ -f "$WORK/other.sqlite" ]; then pass "--history-db chooses the database file"; else fail "--history-db chooses the database file"; fi
+assert_json "a fresh database gives backfill-only results" '.history.projection_sources.snapshot == 0'
+rm -rf "$WORK/nc_history"
+STDOUT="$(FM_OFFLINE=1 FM_FIXTURES="$FIXTURES/season_history" "$SCRIPT" --cache-dir "$WORK/nc_history" --no-cache -q -f json 2>"$WORK/stderr")"
+assert_json "--no-cache keeps history in memory" '.history.available and .history.projection_sources.snapshot == 0'
+if [ ! -e "$WORK/nc_history/history.sqlite" ]; then pass "--no-cache writes no database"; else fail "--no-cache writes no database"; fi
+if [ -n "$FIRST_MAE" ]; then pass "history accuracy readable after reruns"; else fail "history accuracy readable after reruns"; fi
+FM_HISTORY=2 "$SCRIPT" --print-config >/dev/null 2>"$WORK/stderr"; STATUS=$?
+assert_status "invalid FM_HISTORY rejected" 2
 
 # --------------------------------------------------------------------------
 printf '\n%s\n' "------------------------------------------------------------"
