@@ -49,6 +49,11 @@ foreach ($case in $cases) {
     Check $case ($LASTEXITCODE -eq 0) ([string]$cmp)
 }
 
+$r = Run-Script @('-NoGui', '-Offline', '-Fixtures', "`"$(Join-Path $fixtures 'ppr_basic')`"", '-NoCache', '-Quiet', '-Format', 'text')
+Check '-Format text prints the text report' ($r.Code -eq 0 -and $r.Out -match 'LINEUP - week 5' -and $r.Out -match 'Trasa Titans') ("$($r.Err)")
+$r = Run-Script @('-NoGui', '-Offline', '-Fixtures', "`"$(Join-Path $fixtures 'ppr_basic')`"", '-NoCache', '-Quiet')
+$printed = $null; try { $printed = $r.Out | ConvertFrom-Json } catch { }
+Check '-NoGui prints JSON by default' ($r.Code -eq 0 -and $null -ne $printed -and @($printed.lineup.slots).Count -gt 0) ("$($r.Err)")
 $r = Run-Script @('-Version')
 Check '-Version' ($r.Code -eq 0 -and $r.Out -match 'fantasy_manager \d')
 $r = Run-Script @('-NoGui', '-LeagueId', 'abc', '-Quiet')

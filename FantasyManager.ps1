@@ -5,12 +5,12 @@
     with a WPF window for the report.
 
 .DESCRIPTION
-    PowerShell front end for fantasy_manager. It fetches, caches and validates
-    Sleeper data exactly like fantasy_manager.sh and runs the same Python
-    analysis (lib/fm_analysis.py), so both front ends produce the same report.
+    Windows front end for fantasy_manager. The application itself is the
+    Python module lib/fm_app.py, shared with fantasy_manager.sh, so both front
+    ends accept the same settings and produce the same report.
 
     With no arguments it opens the window and loads the current week. Use
-    -NoGui to print the JSON report instead.
+    -NoGui to print the report instead (JSON unless -Format says otherwise).
 
     Read-only: it cannot submit lineups, waiver claims or trades.
 
@@ -56,6 +56,7 @@ param(
     [switch]$SkipWaivers,
     [switch]$SkipTrades,
     [switch]$NoGui,
+    [string]$Format,
     [string]$OutFile,
     [string]$ReportFile,
     [string]$CacheDir,
@@ -75,38 +76,26 @@ param(
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
-$ProgressPreference = 'SilentlyContinue'   # Invoke-WebRequest is very slow with progress on 5.1
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '2.6.0'
+$ToolVersion = '2.7.0'
 
 # --------------------------------------------------------------------------
-# Defaults (kept in step with fantasy_manager.sh)
+# Shared application: lib/fm_app.py does configuration, fetching, caching,
+# validation, analysis and rendering for both front ends. This script maps
+# its parameters onto that module and shows the report in a window.
 # --------------------------------------------------------------------------
 $Defaults = [ordered]@{
-    league_id        = '1400680781302525952'
-    username         = 'MaTrasaMaae'
-    api              = 'https://api.sleeper.app/v1'
-    projections_base = 'https://api.sleeper.app/projections/nfl'
-    schedule_base    = 'https://api.sleeper.com/schedule/nfl'
-    season_type      = 'regular'
-    top_n            = '10'
-    threshold        = '0.5'
-    fairness         = '0.10'
-    horizon          = '3'
-    players_ttl      = '86400'
-    projections_ttl  = '21600'
-    trending_ttl     = '21600'
-    schedule_ttl     = '300'
-    stale_max_age    = '604800'
+    league_id = '1400680781302525952'
+    username  = 'MaTrasaMaae'
+    horizon   = '3'
 }
 
 $EX_OK = 0; $EX_USAGE = 2; $EX_DEPENDENCY = 3; $EX_DATA = 4
 
 $IsWindowsHost = ($PSVersionTable.PSVersion.Major -lt 6) -or ((Get-Variable -Name IsWindows -ValueOnly -ErrorAction SilentlyContinue) -eq $true)
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$AnalysisPy = Join-Path (Join-Path $ScriptDir 'lib') 'fm_analysis.py'
-$IoPy = Join-Path (Join-Path $ScriptDir 'lib') 'fm_io.py'
+$AppPy = Join-Path (Join-Path $ScriptDir 'lib') 'fm_app.py'
 $Invariant = [Globalization.CultureInfo]::InvariantCulture
 $Utf8NoBom = New-Object System.Text.UTF8Encoding $false
 
@@ -123,66 +112,13 @@ function Get-DefaultDir([string]$kind) {
     return Join-Path $base $ToolName
 }
 
-# --------------------------------------------------------------------------
-# Logging (diagnostics on stderr and optional log file; report on stdout)
-# --------------------------------------------------------------------------
-$script:LogLevel = 'INFO'
-$script:LogPath = $null
-$script:Warnings = New-Object System.Collections.ArrayList
-$script:Diagnostics = New-Object System.Collections.ArrayList
 $script:ExitCode = $EX_OK
 
-function Get-LevelValue([string]$level) {
-    switch ($level) {
-        'ERROR' { 0 } 'WARN' { 1 } 'INFO' { 2 } 'DEBUG' { 3 } 'QUIET' { 0 } default { 2 }
-    }
-}
-
 function Write-Log([string]$level, [string]$message) {
-    if ((Get-LevelValue $level) -gt (Get-LevelValue $script:LogLevel)) { return }
-    $line = '{0} [{1}] {2}' -f ([DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ', $Invariant)), $level, $message
-    $line = $line -replace '([?&](access_token|api_key|token|key)=)[^&\s]+', '$1***REDACTED***'
-    [Console]::Error.WriteLine($line)
-    if ($script:LogPath) {
-        [IO.File]::AppendAllText($script:LogPath, $line + "`n", $Utf8NoBom)
-    }
-}
-
-function Add-Warning([string]$message) {
-    [void]$script:Warnings.Add($message)
-    Write-Log 'WARN' $message
-}
-
-function Stop-Run([int]$code, [string]$message) {
-    Write-Log 'ERROR' $message
-    $script:ExitCode = $code
-    throw 'FM_EXIT'
-}
-
-function Get-NowIso { [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ', $Invariant) }
-
-# --------------------------------------------------------------------------
-# Configuration: CLI > environment (FM_*) > config file > defaults
-# --------------------------------------------------------------------------
-$script:FileValues = @{}
-
-function Read-ConfigFile([string]$path) {
-    if (-not $path -or -not (Test-Path -LiteralPath $path -PathType Leaf)) {
-        Write-Log 'DEBUG' "No config file at $path"
-        return
-    }
-    foreach ($raw in [IO.File]::ReadAllLines($path)) {
-        $line = $raw
-        if ($line -eq '' -or $line.StartsWith('#')) { continue }
-        $idx = $line.IndexOf('=')
-        if ($idx -lt 0) { continue }
-        $key = ($line.Substring(0, $idx) -replace '\s', '').ToLowerInvariant()
-        if ($key.StartsWith('fm_')) { $key = $key.Substring(3) }
-        # Tolerate "key = value" and trailing spaces.
-        $value = $line.Substring($idx + 1).Trim().Trim('"').Trim("'")
-        $script:FileValues[$key] = $value
-    }
-    Write-Log 'DEBUG' ("Loaded config file {0} ({1} keys)" -f $path, $script:FileValues.Count)
+    # Messages from this script itself (Python not found, window errors);
+    # everything else is logged by fm_app.py in the same format.
+    if ($Quiet -and $level -ne 'ERROR') { return }
+    [Console]::Error.WriteLine(('{0} [{1}] {2}' -f ([DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ', $Invariant)), $level, $message))
 }
 
 function Save-Defaults([string]$path, $values) {
@@ -219,112 +155,6 @@ function Save-Defaults([string]$path, $values) {
     return $full
 }
 
-function Resolve-Setting([string]$key, [string]$envName, $cliValue, [bool]$cliSet, [string]$default) {
-    if ($cliSet) { return [string]$cliValue }
-    $envValue = [Environment]::GetEnvironmentVariable($envName)
-    if ($envValue) { return $envValue }
-    if ($script:FileValues.ContainsKey($key)) { return $script:FileValues[$key] }
-    return $default
-}
-
-function Test-UInt([string]$value) { return $value -match '^[0-9]+$' }
-function Test-Number([string]$value) { return $value -match '^-?[0-9]+(\.[0-9]+)?$' }
-
-function Initialize-Configuration {
-    $bp = $script:BoundParams
-    function Test-CliSet([string]$name) { return $bp.ContainsKey($name) }
-
-    $cfgFile = Resolve-Setting 'config_file' 'FM_CONFIG_FILE' $Config (Test-CliSet 'Config') (Join-Path (Get-DefaultDir 'config') 'config.env')
-    Read-ConfigFile $cfgFile
-
-    $levelCli = $null
-    if (Test-CliSet 'Quiet') { $levelCli = 'QUIET' } elseif (Test-CliSet 'DebugLog') { $levelCli = 'DEBUG' }
-    $script:LogLevel = Resolve-Setting 'log_level' 'FM_LOG_LEVEL' $levelCli ($null -ne $levelCli) 'INFO'
-    $logPath = Resolve-Setting 'log_file' 'FM_LOG_FILE' $LogFile (Test-CliSet 'LogFile') ''
-    if ($logPath) {
-        $dir = Split-Path -Parent ([IO.Path]::GetFullPath($logPath))
-        if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-        $script:LogPath = [IO.Path]::GetFullPath($logPath)
-    }
-
-    $c = [ordered]@{}
-    $c.config_file      = $cfgFile
-    $c.league_id        = Resolve-Setting 'league_id' 'FM_LEAGUE_ID' $LeagueId (Test-CliSet 'LeagueId') $Defaults.league_id
-    $c.username         = Resolve-Setting 'username' 'FM_USERNAME' $Username (Test-CliSet 'Username') $Defaults.username
-    $c.api              = Resolve-Setting 'api' 'FM_API' $null $false $Defaults.api
-    $c.projections_base = Resolve-Setting 'projections_base' 'FM_PROJECTIONS_BASE' $null $false $Defaults.projections_base
-    $c.schedule_base    = Resolve-Setting 'schedule_base' 'FM_SCHEDULE_BASE' $null $false $Defaults.schedule_base
-    $c.schedule_ttl     = Resolve-Setting 'schedule_ttl' 'FM_SCHEDULE_TTL' $null $false $Defaults.schedule_ttl
-    $c.week             = Resolve-Setting 'week' 'FM_WEEK' $Week (Test-CliSet 'Week') ''
-    $c.season           = Resolve-Setting 'season' 'FM_SEASON' $Season (Test-CliSet 'Season') ''
-    $c.season_type      = Resolve-Setting 'season_type' 'FM_SEASON_TYPE' $SeasonType (Test-CliSet 'SeasonType') $Defaults.season_type
-    $c.top_n            = Resolve-Setting 'top_n' 'FM_TOP_N' $Top (Test-CliSet 'Top') $Defaults.top_n
-    $c.threshold        = Resolve-Setting 'threshold' 'FM_THRESHOLD' $Threshold (Test-CliSet 'Threshold') $Defaults.threshold
-    $c.fairness         = Resolve-Setting 'fairness' 'FM_FAIRNESS' $Fairness (Test-CliSet 'Fairness') $Defaults.fairness
-    $c.horizon          = Resolve-Setting 'horizon' 'FM_HORIZON' $Horizon (Test-CliSet 'Horizon') $Defaults.horizon
-    $c.locked           = Resolve-Setting 'locked' 'FM_LOCKED' $Locked (Test-CliSet 'Locked') ''
-    $c.trade            = Resolve-Setting 'trade' 'FM_TRADE' $Trade (Test-CliSet 'Trade') ''
-    $c.value_trade      = Resolve-Setting 'value_trade' 'FM_VALUE_TRADE' $ValueTrade (Test-CliSet 'ValueTrade') ''
-    $c.scoring          = Resolve-Setting 'scoring' 'FM_SCORING' $Scoring (Test-CliSet 'Scoring') 'ppr'
-    $c.teams            = Resolve-Setting 'teams' 'FM_TEAMS' $Teams (Test-CliSet 'Teams') '12'
-    $c.skip_waivers     = Resolve-Setting 'skip_waivers' 'FM_SKIP_WAIVERS' '1' (Test-CliSet 'SkipWaivers') '0'
-    $c.skip_trades      = Resolve-Setting 'skip_trades' 'FM_SKIP_TRADES' '1' (Test-CliSet 'SkipTrades') '0'
-    $c.cache_dir        = Resolve-Setting 'cache_dir' 'FM_CACHE_DIR' $CacheDir (Test-CliSet 'CacheDir') ''
-    $c.players_ttl      = Resolve-Setting 'players_ttl' 'FM_PLAYERS_TTL' $null $false $Defaults.players_ttl
-    $c.projections_ttl  = Resolve-Setting 'projections_ttl' 'FM_PROJECTIONS_TTL' $CacheTtl (Test-CliSet 'CacheTtl') $Defaults.projections_ttl
-    $c.trending_ttl     = Resolve-Setting 'trending_ttl' 'FM_TRENDING_TTL' $null $false $Defaults.trending_ttl
-    $c.stale_max_age    = Resolve-Setting 'stale_max_age' 'FM_STALE_MAX_AGE' $null $false $Defaults.stale_max_age
-    $c.no_cache         = Resolve-Setting 'no_cache' 'FM_NO_CACHE' '1' (Test-CliSet 'NoCache') '0'
-    $c.refresh          = Resolve-Setting 'refresh' 'FM_REFRESH' '1' (Test-CliSet 'Refresh') '0'
-    $c.offline          = Resolve-Setting 'offline' 'FM_OFFLINE' '1' (Test-CliSet 'Offline') '0'
-    $c.fixtures         = Resolve-Setting 'fixtures' 'FM_FIXTURES' $Fixtures (Test-CliSet 'Fixtures') ''
-    $c.python           = Resolve-Setting 'python' 'FM_PYTHON' $Python (Test-CliSet 'Python') ''
-
-    # Offline fixture data must never land in (or be read from) the real cache.
-    if (-not $c.cache_dir) {
-        $c.cache_dir = Get-DefaultDir 'cache'
-        if ($c.offline -eq '1') { $c.no_cache = '1' }
-    }
-
-    # validation (same rules and messages as fantasy_manager.sh)
-    if (-not (Test-UInt $c.league_id)) { Stop-Run $EX_USAGE "League id must be a non-empty numeric string (got '$($c.league_id)')." }
-    if (-not $c.username) { Stop-Run $EX_USAGE 'Username must not be empty.' }
-    if ($c.week -and (-not (Test-UInt $c.week) -or [int]$c.week -lt 1 -or [int]$c.week -gt 18)) {
-        Stop-Run $EX_USAGE "Week must be an integer between 1 and 18 (got '$($c.week)')."
-    }
-    if ($c.season -and (-not (Test-UInt $c.season) -or $c.season.Length -ne 4)) {
-        Stop-Run $EX_USAGE "Season must be a 4 digit year (got '$($c.season)')."
-    }
-    if (@('regular', 'pre', 'post') -notcontains $c.season_type) {
-        Stop-Run $EX_USAGE "Season type must be regular, pre or post (got '$($c.season_type)')."
-    }
-    if (-not (Test-UInt $c.top_n) -or [int]$c.top_n -lt 1 -or [int]$c.top_n -gt 50) {
-        Stop-Run $EX_USAGE "Top N must be an integer between 1 and 50 (got '$($c.top_n)')."
-    }
-    if (@('ppr', 'half', 'std', 'league') -notcontains $c.scoring) {
-        Stop-Run $EX_USAGE "Scoring must be ppr, half, std or league (got '$($c.scoring)')."
-    }
-    if (-not (Test-UInt $c.teams) -or [int]$c.teams -lt 4 -or [int]$c.teams -gt 32) {
-        Stop-Run $EX_USAGE "Teams must be an integer between 4 and 32 (got '$($c.teams)')."
-    }
-    if (-not (Test-UInt $c.horizon) -or [int]$c.horizon -gt 6) {
-        Stop-Run $EX_USAGE "Horizon must be an integer between 0 and 6 (got '$($c.horizon)')."
-    }
-    if (-not (Test-Number $c.threshold)) { Stop-Run $EX_USAGE "Threshold must be numeric (got '$($c.threshold)')." }
-    if (-not (Test-Number $c.fairness)) { Stop-Run $EX_USAGE "Fairness must be numeric (got '$($c.fairness)')." }
-    if (-not (Test-UInt $c.projections_ttl)) { Stop-Run $EX_USAGE "Cache TTL must be a non-negative integer (got '$($c.projections_ttl)')." }
-    if (@('QUIET', 'ERROR', 'WARN', 'INFO', 'DEBUG') -notcontains $script:LogLevel) {
-        Stop-Run $EX_USAGE "Log level must be QUIET, ERROR, WARN, INFO or DEBUG (got '$($script:LogLevel)')."
-    }
-    if ($c.offline -eq '1') {
-        if (-not $c.fixtures) { Stop-Run $EX_USAGE '-Offline requires -Fixtures DIR (or FM_FIXTURES).' }
-        if (-not (Test-Path -LiteralPath $c.fixtures -PathType Container)) { Stop-Run $EX_USAGE "Fixture directory '$($c.fixtures)' does not exist." }
-    }
-
-    foreach ($k in $c.Keys) { Write-Log 'DEBUG' ("  {0}={1}" -f $k, $c[$k]) }
-    return $c
-}
-
 # --------------------------------------------------------------------------
 # Python
 # --------------------------------------------------------------------------
@@ -342,24 +172,45 @@ function ConvertTo-Argument([string]$arg) {
     return $result + ('\' * ($backslashes * 2)) + '"'
 }
 
-function Invoke-Native([string]$exe, [string[]]$arguments) {
-    # Runs a program with captured output. Avoids PowerShell pipes and
-    # redirection, which re-encode text and turn stderr into errors on 5.1.
+function Start-Native([string]$exe, [string[]]$arguments, [bool]$capture) {
+    # Runs a program. Avoids PowerShell pipes and redirection, which re-encode
+    # text and turn stderr into errors on 5.1. Without capture the child
+    # writes straight to this console (live log lines).
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = $exe
     $psi.Arguments = (($arguments | ForEach-Object { ConvertTo-Argument $_ }) -join ' ')
     $psi.UseShellExecute = $false
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
     $psi.CreateNoWindow = $true
+    $psi.EnvironmentVariables['PYTHONIOENCODING'] = 'utf-8'
+    if ($capture) {
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        $psi.StandardOutputEncoding = $Utf8NoBom
+        $psi.StandardErrorEncoding = $Utf8NoBom
+    }
     $proc = [Diagnostics.Process]::Start($psi)
-    $outTask = $proc.StandardOutput.ReadToEndAsync()
-    $errTask = $proc.StandardError.ReadToEndAsync()
+    if ($capture) {
+        $outTask = $proc.StandardOutput.ReadToEndAsync()
+        $errTask = $proc.StandardError.ReadToEndAsync()
+        $proc.WaitForExit()
+        return [pscustomobject]@{ Code = $proc.ExitCode; Out = $outTask.Result; Err = $errTask.Result }
+    }
     $proc.WaitForExit()
-    return [pscustomobject]@{ Code = $proc.ExitCode; Out = $outTask.Result; Err = $errTask.Result }
+    return [pscustomobject]@{ Code = $proc.ExitCode; Out = ''; Err = '' }
 }
 
-$script:Py = $null
+function Get-PythonSetting {
+    # -Python > FM_PYTHON > "python" in the config file.
+    if ($Python) { return $Python }
+    if ($env:FM_PYTHON) { return $env:FM_PYTHON }
+    $cfg = if ($Config) { $Config } elseif ($env:FM_CONFIG_FILE) { $env:FM_CONFIG_FILE } else { Join-Path (Get-DefaultDir 'config') 'config.env' }
+    if (Test-Path -LiteralPath $cfg -PathType Leaf) {
+        foreach ($line in [IO.File]::ReadAllLines($cfg)) {
+            if ($line -match '^\s*(fm_)?python\s*=(.*)$') { return $Matches[2].Trim().Trim('"').Trim("'") }
+        }
+    }
+    return ''
+}
 
 function Find-Python([string]$preferred) {
     $candidates = @()
@@ -371,7 +222,7 @@ function Find-Python([string]$preferred) {
         $pre = @(); if ($cand.Count -gt 1) { $pre = $cand[1..($cand.Count - 1)] }
         if (-not (Get-Command $exe -ErrorAction SilentlyContinue)) { continue }
         try {
-            $r = Invoke-Native $exe ($pre + @('-c', 'import sys; print(1 if sys.version_info >= (3, 8) else 0)'))
+            $r = Start-Native $exe ($pre + @('-c', 'import sys; print(1 if sys.version_info >= (3, 8) else 0)')) $true
         } catch { continue }
         # The Microsoft Store "python" stub exits non-zero without running.
         if ($r.Code -eq 0 -and $r.Out.Trim() -eq '1') {
@@ -381,364 +232,59 @@ function Find-Python([string]$preferred) {
     return $null
 }
 
-function Invoke-Python([string[]]$arguments) {
-    return Invoke-Native $script:Py.Exe ($script:Py.Pre + $arguments)
-}
-
-function Test-Dependencies($c) {
-    $script:Py = Find-Python $c.python
+$script:Py = $null
+function Get-Python {
+    if ($script:Py) { return $script:Py }
+    $script:Py = Find-Python (Get-PythonSetting)
     if (-not $script:Py) {
-        Stop-Run $EX_DEPENDENCY 'Python 3.8+ not found. Install it from https://www.python.org (tick "Add python.exe to PATH") or pass -Python C:\path\to\python.exe.'
-    }
-    foreach ($f in @($AnalysisPy, $IoPy)) {
-        if (-not (Test-Path -LiteralPath $f)) { Stop-Run $EX_DEPENDENCY "Analysis helper not found at $f" }
-    }
-    Write-Log 'DEBUG' ("Python: {0} {1}" -f $script:Py.Exe, ($script:Py.Pre -join ' '))
-}
-
-# --------------------------------------------------------------------------
-# Fetch / cache / validate
-# --------------------------------------------------------------------------
-function Add-Diagnostic([string]$key, [string]$url, [string]$source, $age, $records, [string]$note) {
-    [void]$script:Diagnostics.Add([ordered]@{
-        key = $key; url = $url; source = $source; cache_age_seconds = $age
-        records = $records; note = $note; at = (Get-NowIso)
-    })
-}
-
-function Test-JsonFile([string]$path, [string]$want, [string]$shape, [string]$label) {
-    # Returns the record count, or $null if invalid.
-    $pyArgs = @($IoPy, 'check', $path, $want)
-    if ($shape) { $pyArgs += $shape }
-    $r = Invoke-Python $pyArgs
-    if ($r.Code -ne 0) {
-        Write-Log 'DEBUG' ("{0}: {1}" -f $label, $r.Err.Trim())
+        Write-Log 'ERROR' 'Python 3.8+ not found. Install it from https://www.python.org (tick "Add python.exe to PATH") or pass -Python C:\path\to\python.exe.'
+        $script:ExitCode = $EX_DEPENDENCY
         return $null
     }
-    return [int]$r.Out.Trim()
+    if (-not (Test-Path -LiteralPath $AppPy)) {
+        Write-Log 'ERROR' "Application module not found at $AppPy"
+        $script:ExitCode = $EX_DEPENDENCY
+        return $null
+    }
+    return $script:Py
 }
 
-function Get-CacheAge([string]$path) {
-    $mtime = (Get-Item -LiteralPath $path).LastWriteTimeUtc
-    return [int][Math]::Floor(([DateTime]::UtcNow - $mtime).TotalSeconds)
+function ConvertTo-AppArgs($bound, [string[]]$skip = @()) {
+    # PowerShell parameters -> fm_app.py options. Settings not given here fall
+    # back to FM_* variables, the config file and defaults inside fm_app.py.
+    $map = [ordered]@{
+        LeagueId = '--league-id'; Username = '--username'; Week = '--week'; Season = '--season'
+        SeasonType = '--season-type'; Top = '--top'; Threshold = '--threshold'; Fairness = '--fairness'
+        Horizon = '--horizon'; Locked = '--locked'; Trade = '--trade'; ValueTrade = '--value-trade'
+        Scoring = '--scoring'; Teams = '--teams'; Format = '--format'; CacheDir = '--cache-dir'
+        CacheTtl = '--cache-ttl'; Fixtures = '--fixtures'; Config = '--config'; LogFile = '--log-file'
+    }
+    $flags = [ordered]@{
+        SkipWaivers = '--skip-waivers'; SkipTrades = '--skip-trades'; NoCache = '--no-cache'; Refresh = '--refresh'
+        Offline = '--offline'; Quiet = '--quiet'; DebugLog = '--debug'
+    }
+    $out = @()
+    foreach ($k in $map.Keys) {
+        if ($bound.ContainsKey($k) -and $skip -notcontains $k) { $out += @($map[$k], [string]$bound[$k]) }
+    }
+    foreach ($k in $flags.Keys) {
+        if ($bound.ContainsKey($k) -and $skip -notcontains $k -and [bool]$bound[$k]) { $out += $flags[$k] }
+    }
+    return , $out
 }
 
-function Save-Cache($c, [string]$name, [string]$src) {
-    if ($c.no_cache -eq '1' -or -not $name) { return }
-    if (-not (Test-Path -LiteralPath $c.cache_dir)) { New-Item -ItemType Directory -Path $c.cache_dir -Force | Out-Null }
-    $dest = Join-Path $c.cache_dir "$name.json"
-    $tmp = "$dest.tmp.$PID"
-    Copy-Item -LiteralPath $src -Destination $tmp -Force
-    Move-Item -LiteralPath $tmp -Destination $dest -Force   # atomic rename
-    Write-Log 'DEBUG' "Cached $name -> $dest"
+function Invoke-App([string[]]$appArgs, [bool]$capture = $false) {
+    $py = Get-Python
+    if (-not $py) { return $null }
+    return Start-Native $py.Exe ($py.Pre + @($AppPy) + $appArgs) $capture
 }
 
-function Get-HttpStatus($errorRecord) {
-    $resp = $null
-    try { $resp = $errorRecord.Exception.Response } catch { }
-    if ($null -eq $resp) { return 0 }
-    try { return [int]$resp.StatusCode } catch { return 0 }
-}
-
-function Invoke-Fetch([string]$url, [string]$dest) {
-    # Retries only transient failures (connection errors, 408, 429, 5xx).
-    $delay = 1
-    for ($attempt = 1; $attempt -le 4; $attempt++) {
-        try {
-            Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing -TimeoutSec 45 `
-                -Headers @{ Accept = 'application/json' } -UserAgent "$ToolName/$ToolVersion" | Out-Null
-            Write-Log 'DEBUG' ("HTTP 200 {0} ({1} bytes)" -f $url, (Get-Item -LiteralPath $dest).Length)
-            return $true
-        } catch {
-            $status = Get-HttpStatus $_
-            if ($status -eq 0 -or $status -eq 408 -or $status -eq 429 -or $status -ge 500) {
-                Write-Log 'DEBUG' ("Transient failure for {0} (status {1}, attempt {2}/4): {3}" -f $url, $status, $attempt, $_.Exception.Message)
-                if ($attempt -lt 4) { Start-Sleep -Seconds $delay; $delay *= 2 }
-            } else {
-                Write-Log 'DEBUG' ("HTTP {0} for {1} (not retried)" -f $status, $url)
-                return $false
-            }
-        }
-    }
-    return $false
-}
-
-$script:FetchSource = ''
-$script:FetchAge = $null
-
-function Get-Json($c, [string]$key, [string]$url, [string]$want, [string]$cacheName, [int]$ttl, [bool]$allowStale, [string]$shape) {
-    # Writes validated JSON to TMP\<key>.json; sets FetchSource / FetchAge.
-    $dest = Join-Path $script:Tmp "$key.json"
-    $raw = Join-Path $script:Tmp "$key.raw"
-    $script:FetchSource = ''
-    $script:FetchAge = $null
-    $cfile = $null
-    if ($cacheName -and $c.no_cache -ne '1') { $cfile = Join-Path $c.cache_dir "$cacheName.json" }
-
-    # 1. fresh cache
-    if ($cfile -and (Test-Path -LiteralPath $cfile) -and $c.refresh -ne '1') {
-        $age = Get-CacheAge $cfile
-        if ($age -le $ttl) {
-            $n = Test-JsonFile $cfile $want $shape "cache:$key"
-            if ($null -ne $n) {
-                Copy-Item -LiteralPath $cfile -Destination $dest -Force
-                $script:FetchSource = 'cache'; $script:FetchAge = $age
-                Write-Log 'INFO' "Using cached $key (age ${age}s)"
-                Add-Diagnostic $key $url 'cache' $age $n 'fresh cache'
-                return $true
-            }
-        }
-    }
-
-    # 2. fetch
-    $ok = $false
-    if ($c.offline -eq '1') {
-        $statusFile = Join-Path $c.fixtures "$key.status"
-        $src = Join-Path $c.fixtures "$key.json"
-        if (Test-Path -LiteralPath $statusFile) {
-            Write-Log 'DEBUG' ("Fixture {0} simulates HTTP {1}" -f $key, ([IO.File]::ReadAllText($statusFile).Trim()))
-        } elseif (Test-Path -LiteralPath $src) {
-            Copy-Item -LiteralPath $src -Destination $raw -Force
-            $ok = $true
-        } else {
-            Write-Log 'DEBUG' "Fixture $key missing at $src"
-        }
-    } else {
-        Write-Log 'INFO' "Fetching $key from $url"
-        $ok = Invoke-Fetch $url $raw
-    }
-    if ($ok) {
-        $n = Test-JsonFile $raw $want $shape $key
-        if ($null -ne $n) {
-            Copy-Item -LiteralPath $raw -Destination $dest -Force
-            Save-Cache $c $cacheName $dest
-            $script:FetchSource = if ($c.offline -eq '1') { 'fixture' } else { 'network' }
-            $script:FetchAge = 0
-            Add-Diagnostic $key $url $script:FetchSource 0 $n 'ok'
-            return $true
-        }
-    }
-
-    # 3. stale cache fallback
-    if ($allowStale -and $cfile -and (Test-Path -LiteralPath $cfile)) {
-        $age = Get-CacheAge $cfile
-        if ($age -le [int]$c.stale_max_age) {
-            $n = Test-JsonFile $cfile $want $shape "stale:$key"
-            if ($null -ne $n) {
-                Copy-Item -LiteralPath $cfile -Destination $dest -Force
-                $script:FetchSource = 'stale-cache'; $script:FetchAge = $age
-                Add-Warning ("STALE DATA: '{0}' could not be refreshed; using cached copy from {1} minutes ago." -f $key, [int][Math]::Floor($age / 60))
-                Add-Diagnostic $key $url 'stale-cache' $age $n 'stale fallback'
-                return $true
-            }
-        }
-    }
-
-    Add-Diagnostic $key $url 'unavailable' $null $null 'fetch or validation failed'
-    Write-Log 'DEBUG' "Could not obtain valid $want for '$key'"
-    return $false
-}
-
-function Read-SmallJson([string]$key) {
-    # Small documents only (Windows PowerShell 5.1 cannot parse > ~2 MB).
-    # -InputObject + return enumerates arrays the same way on 5.1 and 7.
-    $obj = ConvertFrom-Json -InputObject ([IO.File]::ReadAllText((Join-Path $script:Tmp "$key.json"), $Utf8NoBom))
-    return $obj
-}
-
-function Write-EmptyArray([string]$key) {
-    [IO.File]::WriteAllText((Join-Path $script:Tmp "$key.json"), "[]`n", $Utf8NoBom)
-}
-
-# --------------------------------------------------------------------------
-# Stages (same order, rules and messages as fantasy_manager.sh)
-# --------------------------------------------------------------------------
-function Invoke-Pipeline($c) {
-    $api = $c.api
-    $s = @{}   # run state
-
-    # state + schedule + week
-    $stateSeason = ''; $stateWeek = ''
-    if (Get-Json $c 'state' "$api/state/nfl" 'object' '' 0 $false '') {
-        $state = Read-SmallJson 'state'
-        if ($state.PSObject.Properties['season'] -and $state.season) { $stateSeason = [string]$state.season }
-        if ($state.PSObject.Properties['week'] -and $null -ne $state.week) { $stateWeek = [string]$state.week }
-        if ($state.PSObject.Properties['season_type'] -and $state.season_type -and $state.season_type -ne $c.season_type) {
-            Add-Warning ("NFL state reports season type '{0}' but '{1}' was requested." -f $state.season_type, $c.season_type)
-        }
-    } else {
-        if (-not $c.season -or -not $c.week) {
-            Stop-Run $EX_DATA 'Could not load /state/nfl and no -Season/-Week supplied. Rerun with -Season YYYY -Week N.'
-        }
-        Add-Warning 'Could not load NFL state; using supplied season/week.'
-    }
-    $season = if ($c.season) { $c.season } else { $stateSeason }
-    $weekAuto = -not $c.week
-    $week = if ($c.week) { $c.week } else { $stateWeek }
-    if (-not $season) { Stop-Run $EX_DATA 'Season unavailable from /state/nfl; pass -Season YYYY.' }
-    if (-not $week) { Stop-Run $EX_DATA 'Week unavailable from /state/nfl; pass -Week N.' }
-    if (-not (Test-UInt $week) -or [int]$week -lt 1 -or [int]$week -gt 18) {
-        Stop-Run $EX_DATA "Resolved week '$week' is out of range 1-18; pass -Week N."
-    }
-    $week = [int]$week
-
-    $scheduleAvailable = $false
-    $schedUrl = "$($c.schedule_base)/$($c.season_type)/$season"
-    if (Get-Json $c 'schedule' $schedUrl 'array' "schedule_${season}_$($c.season_type)" ([int]$c.schedule_ttl) $false 'schedule') {
-        $scheduleAvailable = $true
-        Write-Log 'INFO' ("Schedule: {0} games" -f $script:Diagnostics[$script:Diagnostics.Count - 1].records)
-    } else {
-        Write-EmptyArray 'schedule'
-        Add-Warning "Game schedule unavailable; locked players are detected from live points only (use --locked to add more). If this week's games are over, pass --week to analyse the next week."
-    }
-    $rolledFrom = $null
-    if ($weekAuto -and $scheduleAvailable -and $week -lt 18) {
-        $ws = (Invoke-Python @($IoPy, 'week-state', (Join-Path $script:Tmp 'schedule.json'), [string]$week)).Out.Trim()
-        if ($ws -eq 'complete') {
-            $rolledFrom = $week
-            $week = $week + 1
-            Write-Log 'INFO' "Every week $rolledFrom game is final; analysing week $week instead (pass -Week to override)."
-        }
-    }
-    Write-Log 'INFO' "Season $season, week $week, season type $($c.season_type)"
-
-    # league
-    if (-not (Get-Json $c 'league' "$api/league/$($c.league_id)" 'object' '' 0 $false '')) {
-        Stop-Run $EX_DATA "League $($c.league_id) could not be loaded or is not a JSON object. Check the league id."
-    }
-    $league = Read-SmallJson 'league'
-    $positions = @(); if ($league.PSObject.Properties['roster_positions'] -and $league.roster_positions) { $positions = @($league.roster_positions) }
-    if ($positions.Count -eq 0) { Stop-Run $EX_DATA "League $($c.league_id) has no roster_positions; cannot build a lineup." }
-    $hasScoring = $league.PSObject.Properties['scoring_settings'] -and $league.scoring_settings -and @($league.scoring_settings.PSObject.Properties).Count -gt 0
-    if (-not $hasScoring) { Add-Warning 'League has no scoring_settings; projections will fall back to provider aggregate points.' }
-    if (-not (Get-Json $c 'rosters' "$api/league/$($c.league_id)/rosters" 'array' '' 0 $false '')) {
-        Stop-Run $EX_DATA "League rosters unavailable or empty for league $($c.league_id)."
-    }
-    if (-not (Get-Json $c 'users' "$api/league/$($c.league_id)/users" 'array' '' 0 $false '')) {
-        Stop-Run $EX_DATA "League users unavailable or empty for league $($c.league_id)."
-    }
-    if (-not (Get-Json $c 'matchups' "$api/league/$($c.league_id)/matchups/$week" 'array' '' 0 $false '')) {
-        Add-Warning "Week $week matchups unavailable; matchup context omitted."
-        Write-EmptyArray 'matchups'
-    }
-
-    # user + roster
-    if (-not (Get-Json $c 'user' "$api/user/$($c.username)" 'object' '' 0 $false '')) {
-        Stop-Run $EX_DATA "Sleeper user '$($c.username)' could not be resolved. Check -Username."
-    }
-    $user = Read-SmallJson 'user'
-    $userId = if ($user.PSObject.Properties['user_id']) { [string]$user.user_id } else { '' }
-    if (-not $userId) { Stop-Run $EX_DATA "Sleeper user '$($c.username)' has no user_id in the API response." }
-    $rosters = @(Read-SmallJson 'rosters')
-    $myRoster = $rosters | Where-Object { $_.PSObject.Properties['owner_id'] -and [string]$_.owner_id -eq $userId } | Select-Object -First 1
-    if (-not $myRoster) {
-        $myRoster = $rosters | Where-Object { $_.PSObject.Properties['co_owners'] -and @($_.co_owners) -contains $userId } | Select-Object -First 1
-    }
-    if (-not $myRoster) { Stop-Run $EX_DATA "User '$($c.username)' (id $userId) does not own a roster in league $($c.league_id)." }
-    $myRosterId = [int]$myRoster.roster_id
-    Write-Log 'INFO' "User $($c.username) -> user_id $userId, roster_id $myRosterId"
-
-    # players
-    if (-not (Get-Json $c 'players' "$api/players/nfl" 'object' 'players_nfl' ([int]$c.players_ttl) $true '')) {
-        Stop-Run $EX_DATA 'Player database unavailable (network and cache). Retry later or run with -Offline -Fixtures DIR.'
-    }
-    $playersSource = $script:FetchSource; $playersAge = $script:FetchAge
-    Write-Log 'INFO' ("Player database: {0} players (source {1})" -f $script:Diagnostics[$script:Diagnostics.Count - 1].records, $playersSource)
-
-    # projections (this week)
-    $projUrl = "$($c.projections_base)/$season/${week}?season_type=$($c.season_type)&order_by=pts_ppr"
-    if (-not (Get-Json $c 'projections' $projUrl 'array' "projections_${season}_$($c.season_type)_$week" ([int]$c.projections_ttl) $true '')) {
-        Stop-Run $EX_DATA "No valid projections for season $season week $week (source: $projUrl). Lineup and waiver analysis need projections; refusing to rank every player at zero."
-    }
-    $projSource = $script:FetchSource; $projAge = $script:FetchAge
-    $projCount = [int]$script:Diagnostics[$script:Diagnostics.Count - 1].records
-    if ($projCount -lt 50) { Add-Warning "Projection feed returned only $projCount records; results may be incomplete." }
-    if ($null -eq (Test-JsonFile (Join-Path $script:Tmp 'projections.json') 'array' 'projections' 'projections')) {
-        Stop-Run $EX_DATA "Projection feed schema changed: no records with 'player_id' and object 'stats' (source: $projUrl)."
-    }
-    $projFetchedAt = Get-NowIso
-    Write-Log 'INFO' "Projections: $projCount records (source $projSource)"
-
-    # future weeks
-    $futureWeeks = New-Object System.Collections.ArrayList
-    $missing = @()
-    for ($i = 1; $i -le [int]$c.horizon; $i++) {
-        $w = $week + $i
-        if ($w -gt 18) { break }
-        $url = "$($c.projections_base)/$season/${w}?season_type=$($c.season_type)&order_by=pts_ppr"
-        if (Get-Json $c "projections_w$w" $url 'array' "projections_${season}_$($c.season_type)_$w" ([int]$c.projections_ttl) $true 'projections') {
-            [void]$futureWeeks.Add($w)
-        } else {
-            $missing += $w
-        }
-    }
-    if ($missing.Count -gt 0) {
-        Add-Warning ("Projections for week(s) {0} unavailable; multi-week values use the remaining weeks." -f ($missing -join ', '))
-    }
-    Write-Log 'INFO' ("Future projection weeks: {0}" -f $(if ($futureWeeks.Count) { $futureWeeks -join ',' } else { 'none' }))
-
-    # activity
-    $trendingAvailable = $false
-    if (Get-Json $c 'trending_add' "$api/players/nfl/trending/add?lookback_hours=24&limit=100" 'array' 'trending_add' ([int]$c.trending_ttl) $true '') {
-        $trendingAvailable = $true
-    } else {
-        Write-EmptyArray 'trending_add'
-        Add-Warning 'Trending add data unavailable; the add-trend component is omitted from waiver scoring.'
-    }
-    $transactionsAvailable = $false
-    if (Get-Json $c 'transactions' "$api/league/$($c.league_id)/transactions/$week" 'array' '' 0 $false '') {
-        $transactionsAvailable = $true
-    } else {
-        Write-EmptyArray 'transactions'
-        Write-Log 'DEBUG' "No transactions for week $week"
-    }
-
-    # bundle + analysis
-    $lockedList = @($c.locked -split ',' | ForEach-Object { $_.Trim(' ') } | Where-Object { $_ })
-    $meta = [ordered]@{
-        config = [ordered]@{
-            tool_version = $ToolVersion; generated_at = (Get-NowIso)
-            league_id = $c.league_id; username = $c.username; user_id = $userId
-            season = [string]$season; season_type = $c.season_type; week = $week
-            my_roster_id = $myRosterId; top_n = [int]$c.top_n
-            churn_threshold = [double]::Parse($c.threshold, $Invariant)
-            fairness = [double]::Parse($c.fairness, $Invariant)
-            skip_waivers = ($c.skip_waivers -eq '1'); skip_trades = ($c.skip_trades -eq '1')
-            offline = ($c.offline -eq '1')
-            locked = $lockedList
-            week_rolled_from = $rolledFrom
-            horizon = [int]$c.horizon
-            custom_trades = $(if ($c.trade) { $c.trade } else { $null })
-            value_trades = $(if ($c.value_trade) { $c.value_trade } else { $null })
-            value_scoring = $c.scoring
-            value_teams = [int]$c.teams
-        }
-        provenance = [ordered]@{
-            projections = [ordered]@{ url = $projUrl; source = $projSource; cache_age_seconds = $projAge; fetched_at = $projFetchedAt }
-            players = [ordered]@{ source = $playersSource; cache_age_seconds = $playersAge }
-            trending_available = $trendingAvailable
-            transactions_available = $transactionsAvailable
-            schedule_available = $scheduleAvailable
-        }
-        warnings = @($script:Warnings)
-        diagnostics = @($script:Diagnostics)
-        future_weeks = @($futureWeeks)
-    }
-    $metaPath = Join-Path $script:Tmp 'meta.json'
-    $metaJson = ConvertTo-Json -InputObject $meta -Depth 10 -Compress
-    [IO.File]::WriteAllText($metaPath, $metaJson, $Utf8NoBom)
-    $bundlePath = Join-Path $script:Tmp 'bundle.json'
-    $r = Invoke-Python @($IoPy, 'bundle', $script:Tmp, $metaPath, $bundlePath)
-    if ($r.Code -ne 0) { Stop-Run $EX_DATA ("Could not assemble the analysis bundle: {0}" -f $r.Err.Trim()) }
-
-    $reportPath = Join-Path $script:Tmp 'report.json'
-    $r = Invoke-Python @($AnalysisPy, '--in', $bundlePath, '--out', $reportPath)
-    if ($r.Code -ne 0) {
-        $tail = $r.Err; if ($tail.Length -gt 1000) { $tail = $tail.Substring($tail.Length - 1000) }
-        Stop-Run $EX_DATA "Analysis failed: $($tail.Trim())"
-    }
-    foreach ($line in ($r.Err -split "`n")) { if ($line.Trim()) { Write-Log 'DEBUG' "analysis: $line" } }
-    return $reportPath
+function Get-EffectiveConfig {
+    # The settings fm_app.py would use (CLI > FM_* > config file > defaults),
+    # used to pre-fill the window.
+    $r = Invoke-App ((ConvertTo-AppArgs $script:BoundParams @('LogFile', 'Quiet', 'DebugLog')) + @('--quiet', '--print-config')) $true
+    if (-not $r -or $r.Code -ne 0) { return $null }
+    return ConvertFrom-Json -InputObject $r.Out
 }
 
 # --------------------------------------------------------------------------
@@ -1561,15 +1107,15 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
     $script:CurrentReportPath = $null
 
     # Defaults for the inputs follow the normal precedence (CLI > env > config > defaults).
-    try {
-        $script:LogLevel = 'ERROR'
-        $cfg = Initialize-Configuration
+    $cfg = $null
+    try { $cfg = Get-EffectiveConfig } catch { $cfg = $null }
+    if ($cfg) {
         $script:ConfigPath = $cfg.config_file
         $ui.LeagueBox.Text = $cfg.league_id
         $ui.UserBox.Text = $cfg.username
         $ui.WeekBox.Text = $cfg.week
         $ui.HorizonBox.SelectedIndex = [int]$cfg.horizon
-    } catch {
+    } else {
         $script:ConfigPath = Join-Path (Get-DefaultDir 'config') 'config.env'
         if ($script:BoundParams.ContainsKey('Config')) { $script:ConfigPath = [string]$script:BoundParams['Config'] }
         $ui.LeagueBox.Text = $Defaults.league_id
@@ -1824,7 +1370,6 @@ foreach ($kv in $PSBoundParameters.GetEnumerator()) {
     }
 }
 $script:ScriptPath = $MyInvocation.MyCommand.Path
-$script:Tmp = $null
 
 if ($Version) { [Console]::Out.WriteLine("$ToolName $ToolVersion"); exit $EX_OK }
 
@@ -1837,33 +1382,29 @@ if (-not $NoGui) {
     exit $script:ExitCode
 }
 
+# -NoGui: run fm_app.py. The report goes to a file and is printed from there,
+# so console code pages never touch it. JSON is the default format here.
+$appArgs = ConvertTo-AppArgs $script:BoundParams
+if (-not $script:BoundParams.ContainsKey('Format')) { $appArgs += @('--format', 'json') }
+$tmpReport = $null
+if ($OutFile) {
+    $appArgs += @('--output', [IO.Path]::GetFullPath($OutFile))
+} else {
+    $tmpReport = Join-Path ([IO.Path]::GetTempPath()) ('fantasy_manager_{0}.out' -f [Guid]::NewGuid().ToString('N').Substring(0, 8))
+    $appArgs += @('--output', $tmpReport)
+}
 try {
-    $cfg = Initialize-Configuration
-    Test-Dependencies $cfg
-    if ($IsWindowsHost -and $PSVersionTable.PSVersion.Major -lt 6) {
-        # Windows PowerShell 5.1 on older .NET may not offer TLS 1.2 by default.
-        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-    }
-    $script:Tmp = Join-Path ([IO.Path]::GetTempPath()) ("fantasy_manager." + [Guid]::NewGuid().ToString('N').Substring(0, 8))
-    New-Item -ItemType Directory -Path $script:Tmp | Out-Null
-    Write-Log 'DEBUG' "Temporary workspace: $($script:Tmp)"
-
-    $reportPath = Invoke-Pipeline $cfg
-    if ($OutFile) {
-        $full = [IO.Path]::GetFullPath($OutFile)
-        $dir = Split-Path -Parent $full
-        if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-        Copy-Item -LiteralPath $reportPath -Destination $full -Force
-        Write-Log 'INFO' "Report written to $full"
-    } else {
-        [Console]::Out.Write([IO.File]::ReadAllText($reportPath, $Utf8NoBom))
-    }
-} catch {
-    if ($_.Exception.Message -ne 'FM_EXIT') {
-        Write-Log 'ERROR' ("Unexpected error: {0}" -f $_.Exception.Message)
-        $script:ExitCode = $EX_DATA
+    $r = Invoke-App $appArgs
+    if ($r) {
+        $script:ExitCode = $r.Code
+        if ($tmpReport -and $r.Code -eq 0 -and (Test-Path -LiteralPath $tmpReport)) {
+            $stdout = [Console]::OpenStandardOutput()
+            $bytes = [IO.File]::ReadAllBytes($tmpReport)
+            $stdout.Write($bytes, 0, $bytes.Length)
+            $stdout.Flush()
+        }
     }
 } finally {
-    if ($script:Tmp -and (Test-Path -LiteralPath $script:Tmp)) { Remove-Item -LiteralPath $script:Tmp -Recurse -Force -ErrorAction SilentlyContinue }
+    if ($tmpReport -and (Test-Path -LiteralPath $tmpReport)) { Remove-Item -LiteralPath $tmpReport -Force -ErrorAction SilentlyContinue }
 }
 exit $script:ExitCode

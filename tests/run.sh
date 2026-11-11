@@ -87,11 +87,13 @@ section() { printf '\n== %s ==\n' "$1"; }
 section "static checks"
 # --------------------------------------------------------------------------
 if bash -n "$SCRIPT"; then pass "bash -n fantasy_manager.sh"; else fail "bash -n fantasy_manager.sh"; fi
-if python3 -m py_compile "$ROOT/lib/fm_analysis.py"; then
-    pass "python3 -m py_compile lib/fm_analysis.py"
-else
-    fail "python3 -m py_compile lib/fm_analysis.py"
-fi
+for py in fm_app fm_analysis; do
+    if python3 -m py_compile "$ROOT/lib/$py.py"; then
+        pass "python3 -m py_compile lib/$py.py"
+    else
+        fail "python3 -m py_compile lib/$py.py"
+    fi
+done
 if command -v shellcheck >/dev/null 2>&1; then
     if shellcheck -x "$SCRIPT" "$HERE/run.sh"; then pass "shellcheck"; else fail "shellcheck"; fi
 else
@@ -114,9 +116,9 @@ done
 # --------------------------------------------------------------------------
 section "defaults and CLI validation"
 # --------------------------------------------------------------------------
-assert_match "default league id preserved" "$(grep -m1 DEFAULT_LEAGUE_ID= "$SCRIPT")" '1400680781302525952'
-assert_match "default username preserved" "$(grep -m1 DEFAULT_USERNAME= "$SCRIPT")" 'MaTrasaMaae'
-assert_match "api base is plain text" "$(grep -m1 DEFAULT_API= "$SCRIPT")" 'https://api\.sleeper\.app/v1'
+assert_match "default league id preserved" "$(grep -m1 "^DEFAULT_LEAGUE_ID = " "$ROOT/lib/fm_app.py")" '1400680781302525952'
+assert_match "default username preserved" "$(grep -m1 "^DEFAULT_USERNAME = " "$ROOT/lib/fm_app.py")" 'MaTrasaMaae'
+assert_match "api base is plain text" "$(grep -m1 "^DEFAULT_API = " "$ROOT/lib/fm_app.py")" 'https://api\.sleeper\.app/v1'
 
 run_case "" --help
 assert_status "--help exits 0" 0
@@ -486,27 +488,76 @@ assert_json "suspended player listed as excluded risk" \
     '[.lineup.risk[] | select(.player_id == "rb3" and .excluded_from_recommendations)] | length == 1'
 
 # HTTP 404 is not retried (only 408/429/5xx/connection errors are).
-FAKE_BIN="$WORK/fakebin"
-mkdir -p "$FAKE_BIN"
-cat > "$FAKE_BIN/curl" <<'FAKE'
-#!/usr/bin/env bash
-echo call >> "$FAKE_CURL_LOG"
-out=""
-while [ $# -gt 0 ]; do
-    case "$1" in --output) out="$2"; shift 2 ;; *) shift ;; esac
-done
-[ -n "$out" ] && printf 'not found' > "$out"
-printf '%s' "${FAKE_CURL_STATUS:-404}"
-FAKE
-chmod +x "$FAKE_BIN/curl"
-FAKE_CURL_LOG="$WORK/curl_calls"
-: > "$FAKE_CURL_LOG"
-STDOUT="$(PATH="$FAKE_BIN:$PATH" FAKE_CURL_LOG="$FAKE_CURL_LOG" FAKE_CURL_STATUS=404 \
-    "$SCRIPT" --no-cache --format json 2>"$WORK/stderr")"
-STATUS=$?
+# A local HTTP server counts requests; FM_RETRY_DELAY=0 keeps retries fast.
+cat > "$WORK/server.py" <<'PY'
+import http.server, sys
+count_file, status = sys.argv[1], int(sys.argv[2])
+class H(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        with open(count_file, "a") as fh:
+            fh.write(self.path + "\n")
+        self.send_response(status)
+        self.end_headers()
+        self.wfile.write(b"not found")
+    def log_message(self, *a):
+        pass
+srv = http.server.HTTPServer(("127.0.0.1", 0), H)
+print(srv.server_address[1], flush=True)
+srv.serve_forever()
+PY
+http_case() {
+    # http_case <status>: sets CALLS to the number of requests made for /state/nfl
+    : > "$WORK/calls"
+    python3 "$WORK/server.py" "$WORK/calls" "$1" > "$WORK/port" &
+    SERVER_PID=$!
+    for _ in $(seq 50); do [ -s "$WORK/port" ] && break; sleep 0.1; done
+    STDOUT="$(FM_API="http://127.0.0.1:$(cat "$WORK/port")" FM_RETRY_DELAY=0 \
+        "$SCRIPT" --no-cache --format json 2>"$WORK/stderr")"
+    STATUS=$?
+    kill "$SERVER_PID" 2>/dev/null; wait "$SERVER_PID" 2>/dev/null
+    CALLS="$(grep -c '/state/nfl' "$WORK/calls" | tr -d ' ')"
+}
+http_case 404
 assert_status "404 on /state/nfl fails with data error" 4
-CALLS="$(wc -l < "$FAKE_CURL_LOG" | tr -d ' ')"
-if [ "$CALLS" = "1" ]; then pass "404 is not retried"; else fail "404 is not retried" "curl called $CALLS times"; fi
+if [ "$CALLS" = "1" ]; then pass "404 is not retried"; else fail "404 is not retried" "requested $CALLS times"; fi
+http_case 503
+assert_status "503 on /state/nfl fails with data error" 4
+if [ "$CALLS" = "4" ]; then pass "503 is retried 3 times"; else fail "503 is retried 3 times" "requested $CALLS times"; fi
+assert_match "request failure reported on stderr" "$(cat "$WORK/stderr")" 'Could not load /state/nfl'
+
+# --------------------------------------------------------------------------
+section "shared python application"
+# --------------------------------------------------------------------------
+# The window pre-fills from --print-config: CLI > FM_* > config file > defaults.
+printf 'league_id = 555\r\ntop_n=4\nhorizon=1\n' > "$WORK/pc.env"
+STDOUT="$(FM_TOP_N=8 "$SCRIPT" --config "$WORK/pc.env" --horizon 2 --print-config 2>"$WORK/stderr")"
+STATUS=$?
+assert_status "--print-config exits 0" 0
+assert_json "--print-config reads the config file" '.league_id == "555" and .config_file != null'
+assert_json "--print-config: environment beats the config file" '.top_n == "8"'
+assert_json "--print-config: command line beats both" '.horizon == "2"'
+STDOUT="$("$SCRIPT" --horizon 9 --print-config 2>"$WORK/stderr")"
+STATUS=$?
+assert_status "--print-config still validates" 2
+
+# The launcher needs only Python: no jq, curl or bash 4 on PATH.
+MIN_BIN="$WORK/minbin"
+mkdir -p "$MIN_BIN"
+for tool in python3 dirname env date; do ln -sf "$(command -v "$tool")" "$MIN_BIN/$tool"; done
+STDOUT="$(PATH="$MIN_BIN" FM_OFFLINE=1 FM_FIXTURES="$FIXTURES/ppr_basic" /bin/bash "$SCRIPT" --no-cache -q -f json 2>"$WORK/stderr")"
+STATUS=$?
+assert_status "runs with only python3 on PATH (no jq or curl)" 0
+assert_json "report produced without jq or curl" '.lineup.slots | length > 0'
+STDOUT="$(PATH="$WORK/empty" FM_PYTHON=/nonexistent /bin/bash "$SCRIPT" --version 2>"$WORK/stderr")"
+STATUS=$?
+assert_status "missing python exits 3" 3
+assert_match "missing python is explained" "$(cat "$WORK/stderr")" 'Python 3\.8 or newer is required'
+
+# fm_app.py can be run directly, without the launcher.
+STDOUT="$(FM_OFFLINE=1 FM_FIXTURES="$FIXTURES/ppr_basic" python3 "$ROOT/lib/fm_app.py" --no-cache -q -f text 2>"$WORK/stderr")"
+STATUS=$?
+assert_status "lib/fm_app.py runs directly" 0
+assert_match "direct run renders the text report" "$STDOUT" 'LINEUP - week 5'
 
 # --------------------------------------------------------------------------
 section "locks, week rollover and live matchup"
