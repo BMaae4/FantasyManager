@@ -12,7 +12,7 @@ WORK="$(mktemp -d "${TMPDIR:-/tmp}/fm_tests.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
 # The tool has no built-in league or user; the suite supplies the test league's.
-export FM_LEAGUE_ID=100000000000000001 FM_USERNAME=testmanager
+export FM_LEAGUE_ID=100000000000000001 FM_USERNAME=TestManager
 
 PASS=0
 FAIL=0

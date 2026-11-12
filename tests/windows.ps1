@@ -17,7 +17,7 @@ $hostExe = (Get-Process -Id $PID).Path
 $work = Join-Path ([IO.Path]::GetTempPath()) ('fm_win_' + [Guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Path $work | Out-Null
 # No built-in league or user: supply the test league's.
-$env:FM_LEAGUE_ID = '100000000000000001'; $env:FM_USERNAME = 'testmanager'
+$env:FM_LEAGUE_ID = '100000000000000001'; $env:FM_USERNAME = 'TestManager'
 $pass = 0; $fail = 0; $failed = @()
 
 function Run-Script([string[]]$arguments) {

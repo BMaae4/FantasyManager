@@ -4,7 +4,7 @@
 # same report apart from timestamps. Needs pwsh; skipped (exit 0) without it.
 set -uo pipefail
 # No built-in league or user: supply the test league's.
-export FM_LEAGUE_ID=100000000000000001 FM_USERNAME=testmanager
+export FM_LEAGUE_ID=100000000000000001 FM_USERNAME=TestManager
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd -- "$HERE/.." && pwd)"
 PWSH="${PWSH:-pwsh}"

@@ -4,7 +4,7 @@
 # FantasyManager.ps1 against these.
 set -uo pipefail
 # No built-in league or user: supply the test league's.
-export FM_LEAGUE_ID=100000000000000001 FM_USERNAME=testmanager
+export FM_LEAGUE_ID=100000000000000001 FM_USERNAME=TestManager
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd -- "$HERE/.." && pwd)"
 OUT="${1:?usage: make_expected.sh DIR}"
