@@ -1171,6 +1171,10 @@ printf 'passed: %d   failed: %d\n' "$PASS" "$FAIL"
 if [ "$FAIL" -gt 0 ]; then
     printf 'failed tests:\n'
     printf '  - %s\n' "${FAILED_NAMES[@]}"
+    # On GitHub Actions, also show the failures as annotations on the run.
+    if [ -n "${GITHUB_ACTIONS:-}" ]; then
+        printf '::error title=Offline suite::%s\n' "${FAILED_NAMES[@]:0:10}"
+    fi
     exit 1
 fi
 exit 0
