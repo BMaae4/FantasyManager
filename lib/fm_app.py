@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""fantasy_manager - Sleeper weekly decision support (lineup / waivers / trades).
+"""fantasy_manager - weekly decision support for Sleeper and ESPN leagues (lineup / waivers / trades).
 
 The whole application except analysis: command line, configuration, fetching,
 caching, validation, the run pipeline and text/Markdown/JSON rendering. Both
@@ -28,17 +28,19 @@ from typing import Any, Dict, List, Optional, Tuple
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fm_analysis  # noqa: E402
+import fm_espn  # noqa: E402
 import fm_history  # noqa: E402
 import fm_providers  # noqa: E402
 
 TOOL_NAME = "fantasy_manager"
-TOOL_VERSION = "2.12.1"
+TOOL_VERSION = "3.0.0"
 
 # --------------------------------------------------------------------------
-# Defaults (run with no parameters)
+# Defaults. There is no built-in league or user: they come from the command
+# line, FM_* variables or the config file.
 # --------------------------------------------------------------------------
-DEFAULT_LEAGUE_ID = "1400680781302525952"
-DEFAULT_USERNAME = "MaTrasaMaae"
+DEFAULT_LEAGUE_ID = ""
+DEFAULT_USERNAME = ""
 DEFAULT_API = "https://api.sleeper.app/v1"
 DEFAULT_PROJECTIONS_BASE = "https://api.sleeper.app/projections/nfl"
 # Unofficial game schedule (status per game); optional, used for locks and week rollover.
@@ -80,13 +82,17 @@ def default_dir(kind: str) -> str:
 DEFAULT_CACHE_DIR = default_dir("cache")
 DEFAULT_CONFIG_FILE = os.path.join(default_dir("config"), "config.env")
 
-USAGE = """fantasy_manager.sh - Sleeper weekly decision support (lineup / waivers / trades)
+USAGE = """fantasy_manager.sh - weekly decision support for Sleeper and ESPN leagues
+(lineup / waivers / trades)
 
 Usage: fantasy_manager.sh [options]
 
 Data options:
-  -l, --league-id ID       Sleeper league id (default: 1400680781302525952)
-  -u, --username NAME      Sleeper username (default: MaTrasaMaae)
+      --platform NAME      Where the league is hosted: sleeper (default) or espn
+  -l, --league-id ID       League id (required: here, or league_id in the config file)
+  -u, --username NAME      Your Sleeper username (required for a Sleeper league)
+      --team NAME          Your team in an ESPN league: its name, a unique part
+                           of the name, its abbreviation or its team id
   -w, --week N             NFL week, 1-18 (default: current week from /state/nfl,
                            or the next week once every game of it is complete)
   -s, --season YYYY        Season (default: current season from /state/nfl)
@@ -280,7 +286,7 @@ VALUE_OPTIONS = {
     "--season-type": "season_type", "-n": "top_n", "--top": "top_n",
     "--threshold": "threshold", "--fairness": "fairness", "--locked": "locked",
     "--trade": "trade", "--value-trade": "value_trade", "--scoring": "scoring",
-    "--teams": "teams", "--horizon": "horizon", "--compare": "compare", "--projections": "projections_mode", "-f": "format", "--format": "format",
+    "--teams": "teams", "--platform": "platform", "--team": "team", "--horizon": "horizon", "--compare": "compare", "--projections": "projections_mode", "-f": "format", "--format": "format",
     "-o": "output", "--output": "output", "--log-file": "log_file",
     "--cache-dir": "cache_dir", "--cache-ttl": "projections_ttl",
     "--fixtures": "fixtures", "--config": "config_file", "--history-db": "history_db",
@@ -420,6 +426,8 @@ def load_configuration(cli: Dict[str, str]) -> Config:
 
     c.league_id = resolve("league_id", "FM_LEAGUE_ID", DEFAULT_LEAGUE_ID)
     c.username = resolve("username", "FM_USERNAME", DEFAULT_USERNAME)
+    c.platform = resolve("platform", "FM_PLATFORM", "sleeper").lower()
+    c.team = resolve("team", "FM_TEAM", "").strip()
     c.api = resolve("api", "FM_API", DEFAULT_API)
     c.projections_base = resolve("projections_base", "FM_PROJECTIONS_BASE", DEFAULT_PROJECTIONS_BASE)
     c.schedule_base = resolve("schedule_base", "FM_SCHEDULE_BASE", DEFAULT_SCHEDULE_BASE)
@@ -469,7 +477,8 @@ def load_configuration(cli: Dict[str, str]) -> Config:
     validate_config(c)
 
     LOG.debug("Effective configuration:")
-    LOG.debug("  league_id=%s username=%s api=%s" % (c.league_id, c.username, c.api))
+    LOG.debug("  platform=%s league_id=%s username=%s team=%s api=%s"
+              % (c.platform, c.league_id, c.username, c.team or "none", c.api))
     LOG.debug("  projections_base=%s season=%s week=%s season_type=%s"
               % (c.projections_base, c.season or "auto", c.week or "auto", c.season_type))
     LOG.debug("  top_n=%s threshold=%s fairness=%s horizon=%s" % (c.top_n, c.threshold, c.fairness, c.horizon))
@@ -484,10 +493,19 @@ def load_configuration(cli: Dict[str, str]) -> Config:
 
 
 def validate_config(c: Config) -> None:
-    if not is_uint(c.league_id):
+    if c.print_config and not c.league_id:
+        pass  # the window pre-fills from this before a league has been chosen
+    elif not c.league_id:
+        die(EX_USAGE, "No league set. Pass --league-id ID with --username NAME (Sleeper) or --platform espn "
+                      "--team NAME (ESPN), or save league_id and username / team in the config file.")
+    elif not is_uint(c.league_id):
         die(EX_USAGE, "League id must be a non-empty numeric string (got '%s')." % c.league_id)
-    if not c.username:
-        die(EX_USAGE, "Username must not be empty.")
+    if c.platform not in ("sleeper", "espn"):
+        die(EX_USAGE, "Platform must be sleeper or espn (got '%s')." % c.platform)
+    if c.platform == "sleeper" and not c.username and not c.print_config:
+        die(EX_USAGE, "Username must not be empty: pass --username NAME (your Sleeper username).")
+    if c.platform == "espn" and not c.team and not c.print_config:
+        die(EX_USAGE, "An ESPN league needs your team: --team NAME (team name, abbreviation or id).")
     if c.week and (not is_uint(c.week) or int(c.week) < 1 or int(c.week) > 18):
         die(EX_USAGE, "Week must be an integer between 1 and 18 (got '%s')." % c.week)
     if c.season and (not is_uint(c.season) or len(c.season) != 4):
@@ -874,47 +892,61 @@ def run_pipeline(c: Config) -> dict:
         LOG.info("Every week %d game is final; analysing week %d instead (pass --week to override)." % (rolled_from, week))
     LOG.info("Season %s, week %d, season type %s" % (season, week, c.season_type))
 
-    # league
-    if not f.fetch_json("league", "%s/league/%s" % (api, c.league_id), "object", "-", 0, False):
-        die(EX_DATA, "League %s could not be loaded or is not a JSON object. Check the league id." % c.league_id)
-    league = f.data["league"]
-    if json_length(alt(league.get("roster_positions"), [])) <= 0:
-        die(EX_DATA, "League %s has no roster_positions; cannot build a lineup." % c.league_id)
-    if not truthy(league.get("scoring_settings")):
-        f.add_warning("League has no scoring_settings; projections will fall back to provider aggregate points.")
-    if not f.fetch_json("rosters", "%s/league/%s/rosters" % (api, c.league_id), "array", "-", 0, False):
-        die(EX_DATA, "League rosters unavailable or empty for league %s." % c.league_id)
-    if not f.fetch_json("users", "%s/league/%s/users" % (api, c.league_id), "array", "-", 0, False):
-        die(EX_DATA, "League users unavailable or empty for league %s." % c.league_id)
-    if not f.fetch_json("matchups", "%s/league/%s/matchups/%d" % (api, c.league_id, week), "array", "-", 0, False):
-        f.add_warning("Week %d matchups unavailable; matchup context omitted." % week)
-        f.data["matchups"] = []
+    def load_players() -> Tuple[Dict[str, Any], str, Optional[int]]:
+        if not f.fetch_json("players", api + "/players/nfl", "object", "players_nfl", int(c.players_ttl), True):
+            die(EX_DATA, "Player database unavailable (network and cache). Retry later or run with --fixtures.")
+        source, age = f.source, f.age
+        db = slim_players(f.data["players"])
+        LOG.info("Player database: %d players (source %s)" % (len(db), source))
+        return db, source, age
 
-    # user and roster
-    if not f.fetch_json("user", "%s/user/%s" % (api, c.username), "object", "-", 0, False):
-        die(EX_DATA, "Sleeper user '%s' could not be resolved. Check --username." % c.username)
-    uid_raw = f.data["user"].get("user_id")
-    user_id = ts(uid_raw) if truthy(uid_raw) else ""
-    if not user_id:
-        die(EX_DATA, "Sleeper user '%s' has no user_id in the API response." % c.username)
-    rosters = f.data["rosters"]
-    mine = next((r for r in rosters if isinstance(r, dict) and r.get("owner_id") == user_id), None)
-    if mine is None or not truthy(mine.get("roster_id")):
-        mine = next((r for r in rosters if isinstance(r, dict)
-                     and user_id in (alt(r.get("co_owners"), []) or [])), None)
-    if mine is None or not truthy(mine.get("roster_id")):
-        die(EX_DATA, "User '%s' (id %s) does not own a roster in league %s." % (c.username, user_id, c.league_id))
-    my_roster_id = mine["roster_id"]
-    if isinstance(my_roster_id, str) and is_uint(my_roster_id):
-        my_roster_id = int(my_roster_id)
-    LOG.info("User %s -> user_id %s, roster_id %s" % (c.username, user_id, ts(my_roster_id)))
+    host_points: Optional[dict] = None
+    actuals_loader = None
+    if c.platform == "espn":
+        # The player database comes first: ESPN's players are mapped onto it.
+        players, players_source, players_age = load_players()
+        espn = load_espn_league(c, f, season, week, players)
+        league, rosters, my_roster_id, user_id = espn["league"], espn["rosters"], espn["my_roster_id"], espn["user_id"]
+        c.username = espn["team_name"]
+        actuals_loader = espn["actuals_loader"]
+        host_points = load_host_points(c, f, season, week, players)
+    else:
+        # league
+        if not f.fetch_json("league", "%s/league/%s" % (api, c.league_id), "object", "-", 0, False):
+            die(EX_DATA, "League %s could not be loaded or is not a JSON object. Check the league id." % c.league_id)
+        league = f.data["league"]
+        if json_length(alt(league.get("roster_positions"), [])) <= 0:
+            die(EX_DATA, "League %s has no roster_positions; cannot build a lineup." % c.league_id)
+        if not truthy(league.get("scoring_settings")):
+            f.add_warning("League has no scoring_settings; projections will fall back to provider aggregate points.")
+        if not f.fetch_json("rosters", "%s/league/%s/rosters" % (api, c.league_id), "array", "-", 0, False):
+            die(EX_DATA, "League rosters unavailable or empty for league %s." % c.league_id)
+        if not f.fetch_json("users", "%s/league/%s/users" % (api, c.league_id), "array", "-", 0, False):
+            die(EX_DATA, "League users unavailable or empty for league %s." % c.league_id)
+        if not f.fetch_json("matchups", "%s/league/%s/matchups/%d" % (api, c.league_id, week), "array", "-", 0, False):
+            f.add_warning("Week %d matchups unavailable; matchup context omitted." % week)
+            f.data["matchups"] = []
 
-    # players
-    if not f.fetch_json("players", api + "/players/nfl", "object", "players_nfl", int(c.players_ttl), True):
-        die(EX_DATA, "Player database unavailable (network and cache). Retry later or run with --fixtures.")
-    players_source, players_age = f.source, f.age
-    players = slim_players(f.data["players"])
-    LOG.info("Player database: %d players (source %s)" % (len(players), players_source))
+        # user and roster
+        if not f.fetch_json("user", "%s/user/%s" % (api, c.username), "object", "-", 0, False):
+            die(EX_DATA, "Sleeper user '%s' could not be resolved. Check --username." % c.username)
+        uid_raw = f.data["user"].get("user_id")
+        user_id = ts(uid_raw) if truthy(uid_raw) else ""
+        if not user_id:
+            die(EX_DATA, "Sleeper user '%s' has no user_id in the API response." % c.username)
+        rosters = f.data["rosters"]
+        mine = next((r for r in rosters if isinstance(r, dict) and r.get("owner_id") == user_id), None)
+        if mine is None or not truthy(mine.get("roster_id")):
+            mine = next((r for r in rosters if isinstance(r, dict)
+                         and user_id in (alt(r.get("co_owners"), []) or [])), None)
+        if mine is None or not truthy(mine.get("roster_id")):
+            die(EX_DATA, "User '%s' (id %s) does not own a roster in league %s." % (c.username, user_id, c.league_id))
+        my_roster_id = mine["roster_id"]
+        if isinstance(my_roster_id, str) and is_uint(my_roster_id):
+            my_roster_id = int(my_roster_id)
+        LOG.info("User %s -> user_id %s, roster_id %s" % (c.username, user_id, ts(my_roster_id)))
+
+        players, players_source, players_age = load_players()
 
     # projections (this week)
     proj_url = "%s/%s/%d?season_type=%s&order_by=pts_ppr" % (c.projections_base, season, week, c.season_type)
@@ -964,7 +996,9 @@ def run_pipeline(c: Config) -> dict:
     else:
         f.data["trending_add"] = []
         f.add_warning("Trending add data unavailable; the add-trend component is omitted from waiver scoring.")
-    if f.fetch_json("transactions", "%s/league/%s/transactions/%d" % (api, c.league_id, week), "array", "-", 0, False):
+    if c.platform == "espn":
+        f.data["transactions"] = []
+    elif f.fetch_json("transactions", "%s/league/%s/transactions/%d" % (api, c.league_id, week), "array", "-", 0, False):
         transactions_available = True
     else:
         f.data["transactions"] = []
@@ -973,11 +1007,21 @@ def run_pipeline(c: Config) -> dict:
     providers = load_second_source(c, f, season, week, future_weeks, players)
 
     store = open_history(c, f)
-    history, week_flags = load_history(c, f, store, season, week, players)
+    history_key = c.league_id if c.platform == "sleeper" else "%s:%s" % (c.platform, c.league_id)
+    history, week_flags = load_history(c, f, store, season, week, players, history_key, actuals_loader)
+    if host_points is not None:
+        for w in future_weeks:
+            add_host_week(c, f, season, w, players, host_points)
+        missing_host = [w for w in [week] + future_weeks if str(w) not in host_points["weeks"]]
+        if missing_host:
+            f.add_warning("ESPN's league-scored kicker and defense projections are unavailable for week(s) %s; "
+                          "those weeks use the projected stats that match the league's scoring."
+                          % ", ".join(str(w) for w in missing_host))
 
     bundle = {
         "config": {
             "tool_version": TOOL_VERSION, "generated_at": now_iso(),
+            "platform": c.platform,
             "league_id": c.league_id, "username": c.username, "user_id": user_id,
             "season": season, "season_type": c.season_type, "week": week,
             "my_roster_id": my_roster_id, "top_n": int(c.top_n),
@@ -1011,6 +1055,7 @@ def run_pipeline(c: Config) -> dict:
         "future_projections": future,
         "history": history,
         "providers": providers,
+        "host_points": host_points,
         "diagnostics": f.diagnostics,
     }
 
@@ -1020,7 +1065,7 @@ def run_pipeline(c: Config) -> dict:
         updates = dict(getattr(analyzer, "history_updates", None) or {})
         updates["weeks"] = week_flags
         try:
-            store.save(c.league_id, season, updates)
+            store.save(history_key, season, updates)
         except Exception as exc:  # noqa: BLE001
             LOG.warn("Could not save history: %s" % exc)
         finally:
@@ -1046,13 +1091,14 @@ def open_history(c: Config, f: Fetcher) -> Optional[fm_history.HistoryStore]:
 
 
 def load_history(c: Config, f: Fetcher, store: Optional[fm_history.HistoryStore], season: str,
-                 week: int, players: Dict[str, Any]) -> Tuple[Optional[dict], Dict[int, dict]]:
+                 week: int, players: Dict[str, Any], league_key: str,
+                 actuals_loader: Any = None) -> Tuple[Optional[dict], Dict[int, dict]]:
     """Stored rows plus raw data for past weeks not yet in the database.
     Each past week is fetched once; parts that failed are retried at most
     once a day (--refresh retries now and refetches last week's results)."""
     if store is None:
         return None, {}
-    status = store.week_status(c.league_id, season)
+    status = store.week_status(league_key, season)
     now = time.time()
     raw: Dict[str, dict] = {}
     flags: Dict[int, dict] = {}
@@ -1080,7 +1126,10 @@ def load_history(c: Config, f: Fetcher, store: Optional[fm_history.HistoryStore]
                 entry["projections"] = value
                 week_flag["projections_ok"] = True
         if need_act:
-            value = f.fetch_quiet("matchups_w%d" % w, "%s/league/%s/matchups/%d" % (c.api, c.league_id, w), "array")
+            if actuals_loader is not None:
+                value = actuals_loader(w)
+            else:
+                value = f.fetch_quiet("matchups_w%d" % w, "%s/league/%s/matchups/%d" % (c.api, c.league_id, w), "array")
             if value is not None and any(isinstance(m, dict) and isinstance(m.get("players_points"), dict)
                                          for m in value):
                 entry["matchups"] = value
@@ -1097,7 +1146,7 @@ def load_history(c: Config, f: Fetcher, store: Optional[fm_history.HistoryStore]
         if entry:
             raw[str(w)] = entry
             fetched += 1
-    data = store.load(c.league_id, season)
+    data = store.load(league_key, season)
     note = "%s; %d stored, %d fetched" % (
         "weeks 1-%d" % (week - 1) if week > 2 else ("week 1" if week == 2 else "no past weeks"), stored, fetched)
     if stats_missing:
@@ -1166,10 +1215,83 @@ def load_second_source(c: Config, f: Fetcher, season: str, week: int, future_wee
     return out
 
 
+# --------------------------------------------------------------------------
+# ESPN leagues
+# --------------------------------------------------------------------------
+def load_espn_league(c: Config, f: Fetcher, season: str, week: int, players: Dict[str, Any]) -> dict:
+    """An ESPN league as the league, rosters, users and matchups the analysis
+    reads (left in f.data like the Sleeper ones)."""
+    base = c.espn_base
+    url = fm_espn.league_url(base, season, c.league_id, fm_espn.LEAGUE_VIEWS, week)
+    if not f.fetch_json("espn_league", url, "object", "-", 0, False) or not fm_espn.looks_like_league(f.data["espn_league"]):
+        die(EX_DATA, "ESPN league %s could not be loaded for season %s. Check the league id. A league that is not "
+                     "viewable to the public can't be read (League Manager Tools > Basic Settings > Make League "
+                     "Viewable to Public)." % (c.league_id, season))
+    doc = f.data["espn_league"]
+    team, names = fm_espn.find_team(doc, c.team)
+    if team is None:
+        die(EX_DATA, "Team '%s' was not found (or matches several teams) in ESPN league %s. Teams: %s."
+            % (c.team, c.league_id, "; ".join(names)))
+    league, notes = fm_espn.convert_league(doc)
+    for note in notes:
+        f.add_warning(note)
+    if not league["roster_positions"]:
+        die(EX_DATA, "ESPN league %s has no lineup slots; cannot build a lineup." % c.league_id)
+    index = fm_espn.PlayerIndex(players)
+    rosters, users = fm_espn.convert_teams(doc, index)
+    if not any(r["players"] for r in rosters):
+        die(EX_DATA, "ESPN league %s returned no rosters (has it drafted yet?)." % c.league_id)
+
+    def matchups_for(w: int, key: str, quiet: bool) -> Optional[List[dict]]:
+        m_url = fm_espn.league_url(base, season, c.league_id, fm_espn.MATCHUP_VIEWS, w)
+        if quiet:
+            value = f.fetch_quiet(key, m_url, "object")
+        else:
+            value = f.data[key] if f.fetch_json(key, m_url, "object", "-", 0, False) else None
+        if not isinstance(value, dict) or not isinstance(value.get("schedule"), list):
+            return None
+        return fm_espn.convert_matchups(value, doc, w, index) or None
+
+    matchups = matchups_for(week, "espn_matchups", False)
+    if matchups is None:
+        f.add_warning("Week %d matchups unavailable; matchup context omitted." % week)
+    if index.added:
+        f.add_warning("%d ESPN player(s) are not in the player database and have no projection: %s."
+                      % (len(index.added), ", ".join(index.added[:10])))
+    f.data.update({"league": league, "rosters": rosters, "users": users, "matchups": matchups or []})
+    name = str(team.get("name") or team.get("abbrev") or team["id"]).strip()
+    LOG.info("ESPN league '%s': team %s -> roster_id %s" % (s(league.get("name")), name, ts(team["id"])))
+    return {"league": league, "rosters": rosters, "my_roster_id": team["id"], "team_name": name,
+            "user_id": fm_espn.owner_id(team["id"]),
+            "actuals_loader": lambda w: matchups_for(w, "espn_matchups_w%d" % w, True)}
+
+
+def add_host_week(c: Config, f: Fetcher, season: str, w: int, players: Dict[str, Any], out: dict) -> None:
+    key = "espn_host" if w == out["week"] else "espn_host_w%d" % w
+    url = fm_espn.league_url(c.espn_base, season, c.league_id, fm_espn.HOST_VIEWS, w)
+    if f.fetch_json(key, url, ("object", "array"), "espn_host_%s_%s_%d" % (c.league_id, season, w),
+                    int(c.projections_ttl), True, headers={"X-Fantasy-Filter": fm_espn.host_filter(season, w)}):
+        points = fm_espn.host_points(f.data[key], w, players, season)
+        if points:
+            out["weeks"][str(w)] = points
+        LOG.info("ESPN league-scored projections, week %d: %d kickers and defenses" % (w, len(points)))
+
+
+def load_host_points(c: Config, f: Fetcher, season: str, week: int, players: Dict[str, Any]) -> dict:
+    """ESPN's own projections for kickers and team defenses, already scored
+    with the league's rules (their scoring has no full stat equivalent)."""
+    out: Dict[str, Any] = {"provider": "espn", "positions": list(fm_espn.HOST_POSITIONS), "weeks": {}, "week": week}
+    add_host_week(c, f, season, week, players, out)
+    return out
+
+
 def fantasy_last_week(league: dict) -> int:
     """The league's last fantasy week: the end of its playoffs (Sleeper
     settings playoff_week_start / playoff_teams / playoff_round_type), else 17."""
     settings = league.get("settings") or {}
+    last = settings.get("last_scoring_week")
+    if isinstance(last, int) and not isinstance(last, bool) and 1 <= last <= 18:
+        return last
     start = settings.get("playoff_week_start")
     if not isinstance(start, int) or isinstance(start, bool) or start <= 0:
         return 17
@@ -1265,13 +1387,32 @@ def grades_markdown(t: dict, a: str, b: str) -> List[str]:
             + "/wk) | " + win["their_grade"] + " (" + signed(win.get("their_gain_per_week")) + "/wk) |", ""]
 
 
+PLATFORM_NAMES = {"sleeper": "Sleeper", "espn": "ESPN"}
+
+
+def manager_text(m: dict, sep: str) -> str:
+    """Sleeper: the manager's username and team. Other platforms identify
+    the team only."""
+    team = "Team: " + alt(m.get("team_name"), "n/a")
+    if alt(m.get("platform"), "sleeper") == "sleeper":
+        return "Manager: " + m["username"] + sep + team
+    return PLATFORM_NAMES.get(m["platform"], s(m["platform"])) + " league " + ts(m.get("league_id")) + sep + team
+
+
+def host_scored_text(m: dict) -> str:
+    host = m["scoring"].get("host_scored")
+    if not host:
+        return ""
+    return "; " + " and ".join(host["positions"]) + ": " + PLATFORM_NAMES.get(host.get("provider"), "host")         + "'s league-scored projections"
+
+
 def render_text(r: dict) -> str:
     m = r["metadata"]
     out: List[str] = [
         "=" * 72,
         "FANTASY MANAGER - " + alt(m.get("league_name"), "league") + " - Week " + ts(m["week"]) + " ("
         + m["season"] + " " + m["season_type"] + ")",
-        "Manager: " + m["username"] + "   Team: " + alt(m.get("team_name"), "n/a"),
+        manager_text(m, "   "),
         "Generated: " + m["generated_at"] + "   Tool: fantasy_manager " + m["tool_version"],
         "=" * 72,
         "",
@@ -1281,7 +1422,7 @@ def render_text(r: dict) -> str:
                 + ts(m["week"]) + " (pass --week to override).", ""]
     p = m["projections"]
     out += [
-        "SCORING: " + m["scoring"]["mode"] + " (source: " + m["scoring"]["source"] + ")",
+        "SCORING: " + m["scoring"]["mode"] + " (source: " + m["scoring"]["source"] + ")" + host_scored_text(m),
         "PROJECTIONS: " + p["source"] + " | " + p["url"],
         "  fetched " + alt(p.get("fetched_at"), "n/a")
         + " | cache age " + ("n/a" if p.get("cache_age_seconds") is None else minutes(p["cache_age_seconds"]) + "m")
@@ -1466,9 +1607,9 @@ def render_markdown(r: dict) -> str:
         "- Season: " + m["season"] + " (" + m["season_type"] + ")"
         + ("" if m.get("week_rolled_from") is None
            else " - week " + ts(m["week_rolled_from"]) + " is final, showing week " + ts(m["week"])),
-        "- Manager: " + m["username"] + " - Team: " + alt(m.get("team_name"), "n/a"),
+        "- " + manager_text(m, " - "),
         "- Generated: " + m["generated_at"] + " by fantasy_manager " + m["tool_version"],
-        "- Scoring: " + m["scoring"]["mode"] + " (source: " + m["scoring"]["source"] + ")",
+        "- Scoring: " + m["scoring"]["mode"] + " (source: " + m["scoring"]["source"] + ")" + host_scored_text(m),
         "- Projections: " + p["source"] + " - `" + p["url"] + "` - " + ts(p.get("record_count")) + " records"
         + (" - **STALE**" if truthy(p.get("stale")) else ""),
         "",
@@ -1862,7 +2003,7 @@ def write_stdout(text: str) -> None:
 
 
 def print_config(c: Config) -> None:
-    keys = ("config_file", "league_id", "username", "week", "season", "season_type", "horizon", "top_n",
+    keys = ("config_file", "platform", "league_id", "username", "team", "week", "season", "season_type", "horizon", "top_n",
             "threshold", "fairness", "scoring", "teams", "locked", "format", "output", "cache_dir")
     out = {k: getattr(c, k) for k in keys}
     out["log_level"] = LOG.level

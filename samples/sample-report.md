@@ -1,7 +1,7 @@
 # Fantasy Manager - Test League - Week 5
 
 - Season: 2025 (regular)
-- Manager: MaTrasaMaae - Team: Trasa Titans
+- Manager: TestManager - Team: Test Titans
 - Generated: 2026-11-11T20:19:31Z by fantasy_manager 2.12.0
 - Scoring: league scoring_settings (source: league.scoring_settings x projected stats)
 - Projections: fixture - `https://api.sleeper.app/projections/nfl/2025/5?season_type=regular&order_by=pts_ppr` - 62 records
@@ -37,7 +37,7 @@
 
 | Team | Projected (current lineup) | Live points |
 | --- | ---: | ---: |
-| Trasa Titans | 96 | 0 |
+| Test Titans | 96 | 0 |
 | Team 2 | 100.7 | 0 |
 
 Differential: -4.7

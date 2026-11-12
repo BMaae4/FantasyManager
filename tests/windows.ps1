@@ -16,6 +16,8 @@ $compare = Join-Path $root 'tests\compare_reports.py'
 $hostExe = (Get-Process -Id $PID).Path
 $work = Join-Path ([IO.Path]::GetTempPath()) ('fm_win_' + [Guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Path $work | Out-Null
+# No built-in league or user: supply the test league's.
+$env:FM_LEAGUE_ID = '100000000000000001'; $env:FM_USERNAME = 'TestManager'
 $pass = 0; $fail = 0; $failed = @()
 
 function Run-Script([string[]]$arguments) {
@@ -39,6 +41,7 @@ foreach ($case in $cases) {
     if ($parts.Count -gt 1 -and $parts[1] -eq 'locked') { $extra = @('-Locked', '"Wes Charlie"') }
     if ($parts.Count -gt 1 -and $parts[1] -eq 'value') { $extra = @('-ValueTrade', '"Team2 RB1 for Team3 RB2, Team4 WR3; Alpha for Team2 TE1"', '-Scoring', 'half', '-Teams', '4') }
     if ($parts.Count -gt 1 -and $parts[1] -eq 'trade') { $extra = @('-Trade', '"Wes Delta, Ryan Echo for Team2 RB1; Bravo for Team2 TE1"') }
+    if ($parts.Count -gt 1 -and $parts[1] -eq 'espn') { $extra = @('-Platform', 'espn', '-LeagueId', '555001', '-Team', '"Test Titans"') }
     $actual = Join-Path $work "$case.json"
     if (Test-Path $actual) { Remove-Item $actual }
     $r = Run-Script (@('-NoGui', '-Offline', '-Fixtures', "`"$fixture`"", '-NoCache', '-Quiet', '-OutFile', "`"$actual`"") + $extra)
@@ -50,7 +53,7 @@ foreach ($case in $cases) {
 }
 
 $r = Run-Script @('-NoGui', '-Offline', '-Fixtures', "`"$(Join-Path $fixtures 'ppr_basic')`"", '-NoCache', '-Quiet', '-Format', 'text')
-Check '-Format text prints the text report' ($r.Code -eq 0 -and $r.Out -match 'LINEUP - week 5' -and $r.Out -match 'Trasa Titans') ("$($r.Err)")
+Check '-Format text prints the text report' ($r.Code -eq 0 -and $r.Out -match 'LINEUP - week 5' -and $r.Out -match 'Test Titans') ("$($r.Err)")
 $r = Run-Script @('-NoGui', '-Offline', '-Fixtures', "`"$(Join-Path $fixtures 'ppr_basic')`"", '-NoCache', '-Quiet')
 $printed = $null; try { $printed = $r.Out | ConvertFrom-Json } catch { }
 Check '-NoGui prints JSON by default' ($r.Code -eq 0 -and $null -ne $printed -and @($printed.lineup.slots).Count -gt 0) ("$($r.Err)")
@@ -83,7 +86,7 @@ Check 'second run uses cache' ($r.Code -eq 0 -and @($c2.diagnostics.fetches | Wh
 
 # Hand-written config file: spaces around "=", quotes, CRLF.
 $cfgPath = Join-Path $work 'config.env'
-[IO.File]::WriteAllText($cfgPath, "# saved from Notepad`r`nleague_id = 1400680781302525952`r`n  top_n = 6 `r`nusername = `"MaTrasaMaae`"`r`n")
+[IO.File]::WriteAllText($cfgPath, "# saved from Notepad`r`nleague_id = 100000000000000001`r`n  top_n = 6 `r`nusername = `"TestManager`"`r`n")
 $r = Run-Script @('-NoGui', '-Offline', '-Fixtures', "`"$(Join-Path $fixtures 'ppr_basic')`"", '-NoCache', '-Quiet', '-Config', "`"$cfgPath`"", '-OutFile', "`"$(Join-Path $work 'cfg.json')`"")
 $cfgReport = $null
 if ($r.Code -eq 0) { $cfgReport = Get-Content -Raw (Join-Path $work 'cfg.json') | ConvertFrom-Json }
@@ -96,7 +99,7 @@ $fn = $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.Fun
 $savePath = Join-Path $work 'saved\config.env'
 [void](New-Item -ItemType Directory -Force (Split-Path $savePath))
 [IO.File]::WriteAllText($savePath, "# mine`r`nFM_LEAGUE_ID = 999`r`ntop_n = 6`r`n")
-[void](Save-Defaults $savePath ([ordered]@{ league_id = '1400680781302525952'; username = 'MaTrasaMaae'; horizon = '2' }))
+[void](Save-Defaults $savePath ([ordered]@{ league_id = '100000000000000001'; username = 'TestManager'; horizon = '2' }))
 $saved = [IO.File]::ReadAllText($savePath)
 $r = Run-Script @('-NoGui', '-Offline', '-Fixtures', "`"$(Join-Path $fixtures 'ppr_basic')`"", '-NoCache', '-Quiet', '-Config', "`"$savePath`"", '-OutFile', "`"$(Join-Path $work 'saved.json')`"")
 $savedReport = $null
@@ -121,6 +124,10 @@ $espnReport = Join-Path $work 'espn.json'
 $null = Run-Script @('-NoGui', '-Offline', '-Fixtures', "`"$(Join-Path $fixtures 'espn_compare')`"", '-NoCache', '-Quiet', '-Projections', 'blend', '-OutFile', "`"$espnReport`"")
 $r = Run-Script @('-ReportFile', "`"$espnReport`"", '-GuiSmokeTest')
 Check 'GUI sources tab lists disagreements (blend run)' ($r.Code -eq 0 -and $r.Out -match 'sources 2,') ("$($r.Out) $($r.Err)")
+$r = Run-Script @('-ReportFile', "`"$(Join-Path $Expected 'espn_league__espn.json')`"", '-GuiSmokeTest')
+Check 'GUI loads an ESPN league report' ($r.Code -eq 0 -and $r.Out -match 'GUI smoke test ok: lineup rows 9') ("$($r.Out) $($r.Err)")
+$r = Run-Script @('-NoGui', '-Platform', 'espn', '-LeagueId', '555001', '-Quiet')
+Check 'ESPN league without -Team exits 2 and explains' ($r.Code -eq 2 -and $r.Err -match 'needs your team')
 $r = Run-Script @('-GuiSmokeTest')
 Check 'GUI builds with no report' ($r.Code -eq 0 -and $r.Out -match 'GUI smoke test ok.*remember True') ("$($r.Out) $($r.Err)")
 

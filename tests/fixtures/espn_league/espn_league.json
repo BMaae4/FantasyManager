@@ -1,0 +1,971 @@
+{
+ "id": 555001,
+ "scoringPeriodId": 5,
+ "seasonId": 2025,
+ "settings": {
+  "acquisitionSettings": {
+   "acquisitionBudget": 100,
+   "isUsingAcquisitionBudget": false
+  },
+  "isPublic": true,
+  "name": "ESPN Test League",
+  "rosterSettings": {
+   "lineupSlotCounts": {
+    "0": 1,
+    "1": 0,
+    "10": 0,
+    "11": 0,
+    "12": 0,
+    "13": 0,
+    "14": 0,
+    "15": 0,
+    "16": 1,
+    "17": 1,
+    "18": 0,
+    "19": 0,
+    "2": 2,
+    "20": 6,
+    "21": 1,
+    "22": 0,
+    "23": 1,
+    "24": 0,
+    "3": 0,
+    "4": 2,
+    "5": 0,
+    "6": 1,
+    "7": 0,
+    "8": 0,
+    "9": 0
+   }
+  },
+  "scheduleSettings": {
+   "matchupPeriods": {
+    "1": [
+     1
+    ],
+    "10": [
+     10
+    ],
+    "11": [
+     11
+    ],
+    "12": [
+     12
+    ],
+    "13": [
+     13
+    ],
+    "14": [
+     14
+    ],
+    "15": [
+     15
+    ],
+    "16": [
+     16
+    ],
+    "2": [
+     2
+    ],
+    "3": [
+     3
+    ],
+    "4": [
+     4
+    ],
+    "5": [
+     5
+    ],
+    "6": [
+     6
+    ],
+    "7": [
+     7
+    ],
+    "8": [
+     8
+    ],
+    "9": [
+     9
+    ]
+   },
+   "playoffTeamCount": 4
+  },
+  "scoringSettings": {
+   "scoringItems": [
+    {
+     "points": 0.04,
+     "pointsOverrides": {},
+     "statId": 3
+    },
+    {
+     "points": 4.0,
+     "pointsOverrides": {},
+     "statId": 4
+    },
+    {
+     "points": -2.0,
+     "pointsOverrides": {},
+     "statId": 20
+    },
+    {
+     "points": 0.1,
+     "pointsOverrides": {},
+     "statId": 24
+    },
+    {
+     "points": 6.0,
+     "pointsOverrides": {},
+     "statId": 25
+    },
+    {
+     "points": 0.1,
+     "pointsOverrides": {},
+     "statId": 42
+    },
+    {
+     "points": 6.0,
+     "pointsOverrides": {},
+     "statId": 43
+    },
+    {
+     "points": 1.0,
+     "pointsOverrides": {},
+     "statId": 53
+    },
+    {
+     "points": -2.0,
+     "pointsOverrides": {},
+     "statId": 72
+    },
+    {
+     "points": 3.0,
+     "pointsOverrides": {},
+     "statId": 37
+    },
+    {
+     "points": 1.0,
+     "pointsOverrides": {},
+     "statId": 86
+    },
+    {
+     "points": 3.0,
+     "pointsOverrides": {},
+     "statId": 80
+    },
+    {
+     "points": 0.0,
+     "pointsOverrides": {
+      "16": 5.0
+     },
+     "statId": 89
+    },
+    {
+     "points": 0.0,
+     "pointsOverrides": {
+      "16": 1.0
+     },
+     "statId": 92
+    },
+    {
+     "points": 0.0,
+     "pointsOverrides": {
+      "16": 1.0
+     },
+     "statId": 99
+    }
+   ]
+  },
+  "size": 4,
+  "tradeSettings": {
+   "deadlineDate": 1700000000000
+  }
+ },
+ "status": {
+  "currentMatchupPeriod": 5,
+  "finalScoringPeriod": 16,
+  "isActive": true
+ },
+ "teams": [
+  {
+   "abbrev": "TT",
+   "id": 1,
+   "name": "Test Titans",
+   "roster": {
+    "entries": [
+     {
+      "lineupSlotId": 0,
+      "playerId": 4013,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 1,
+        "fullName": "Quinn Alpha",
+        "id": 4013,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 2,
+      "playerId": 4015,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 2,
+        "fullName": "Ryan Alpha",
+        "id": 4015,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 2,
+      "playerId": 4016,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 2,
+        "fullName": "Ryan Bravo",
+        "id": 4016,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 4,
+      "playerId": 4058,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 3,
+        "fullName": "Wes Alpha",
+        "id": 4058,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 4,
+      "playerId": 4059,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 3,
+        "fullName": "Wes Bravo",
+        "id": 4059,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 6,
+      "playerId": 4056,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 4,
+        "fullName": "Tom Alpha",
+        "id": 4056,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 23,
+      "playerId": 4057,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 4,
+        "fullName": "Tom Bravo",
+        "id": 4057,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 17,
+      "playerId": 4012,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 5,
+        "fullName": "Kai Alpha",
+        "id": 4012,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 16,
+      "playerId": 4000,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 16,
+        "fullName": "Alpha Defense",
+        "id": 4000,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 4014,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 1,
+        "fullName": "Quinn Bravo",
+        "id": 4014,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 4017,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 2,
+        "fullName": "Ryan Charlie",
+        "id": 4017,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 770060,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 3,
+        "fullName": "Wes Charlie",
+        "id": 770060,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 2
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 4018,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 2,
+        "fullName": "Ryan Delta",
+        "id": 4018,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 4061,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 3,
+        "fullName": "Wes Delta",
+        "id": 4061,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 4019,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 2,
+        "fullName": "Ryan Echo",
+        "id": 4019,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     }
+    ]
+   },
+   "transactionCounter": {
+    "acquisitionBudgetSpent": 0
+   },
+   "waiverRank": 1
+  },
+  {
+   "abbrev": "T2",
+   "id": 2,
+   "name": "Team 2",
+   "roster": {
+    "entries": [
+     {
+      "lineupSlotId": 0,
+      "playerId": 4022,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 1,
+        "fullName": "Team2 QB1",
+        "id": 4022,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 2,
+      "playerId": 4024,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 2,
+        "fullName": "Team2 RB1",
+        "id": 4024,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 2,
+      "playerId": 4025,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 2,
+        "fullName": "Team2 RB2",
+        "id": 4025,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 4,
+      "playerId": 4029,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 3,
+        "fullName": "Team2 WR1",
+        "id": 4029,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 4,
+      "playerId": 4030,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 3,
+        "fullName": "Team2 WR2",
+        "id": 4030,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 6,
+      "playerId": 4027,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 4,
+        "fullName": "Team2 TE1",
+        "id": 4027,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 23,
+      "playerId": 4026,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 2,
+        "fullName": "Team2 RB3",
+        "id": 4026,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 17,
+      "playerId": 4021,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 5,
+        "fullName": "Team2 K1",
+        "id": 4021,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 16,
+      "playerId": 4020,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 16,
+        "fullName": "Team2 DEF1",
+        "id": 4020,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 4023,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 1,
+        "fullName": "Team2 QB2",
+        "id": 4023,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 4031,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 3,
+        "fullName": "Team2 WR3",
+        "id": 4031,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 4028,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 4,
+        "fullName": "Team2 TE2",
+        "id": 4028,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 999001,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 3,
+        "fullName": "Espn Only",
+        "id": 999001,
+        "injuryStatus": "QUESTIONABLE",
+        "proTeamId": 2
+       }
+      }
+     }
+    ]
+   },
+   "transactionCounter": {
+    "acquisitionBudgetSpent": 0
+   },
+   "waiverRank": 2
+  },
+  {
+   "abbrev": "T3",
+   "id": 3,
+   "name": "Team 3",
+   "roster": {
+    "entries": [
+     {
+      "lineupSlotId": 0,
+      "playerId": 4034,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 1,
+        "fullName": "Team3 QB1",
+        "id": 4034,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 2,
+      "playerId": 4036,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 2,
+        "fullName": "Team3 RB1",
+        "id": 4036,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 2,
+      "playerId": 4037,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 2,
+        "fullName": "Team3 RB2",
+        "id": 4037,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 4,
+      "playerId": 4041,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 3,
+        "fullName": "Team3 WR1",
+        "id": 4041,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 4,
+      "playerId": 4042,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 3,
+        "fullName": "Team3 WR2",
+        "id": 4042,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 6,
+      "playerId": 4039,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 4,
+        "fullName": "Team3 TE1",
+        "id": 4039,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 23,
+      "playerId": 4038,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 2,
+        "fullName": "Team3 RB3",
+        "id": 4038,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 17,
+      "playerId": 4033,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 5,
+        "fullName": "Team3 K1",
+        "id": 4033,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 16,
+      "playerId": 4032,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 16,
+        "fullName": "Team3 DEF1",
+        "id": 4032,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 4035,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 1,
+        "fullName": "Team3 QB2",
+        "id": 4035,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 4043,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 3,
+        "fullName": "Team3 WR3",
+        "id": 4043,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 4040,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 4,
+        "fullName": "Team3 TE2",
+        "id": 4040,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     }
+    ]
+   },
+   "transactionCounter": {
+    "acquisitionBudgetSpent": 0
+   },
+   "waiverRank": 3
+  },
+  {
+   "abbrev": "T4",
+   "id": 4,
+   "name": "Team 4",
+   "roster": {
+    "entries": [
+     {
+      "lineupSlotId": 0,
+      "playerId": 4046,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 1,
+        "fullName": "Team4 QB1",
+        "id": 4046,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 2,
+      "playerId": 4048,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 2,
+        "fullName": "Team4 RB1",
+        "id": 4048,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 2,
+      "playerId": 4049,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 2,
+        "fullName": "Team4 RB2",
+        "id": 4049,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 4,
+      "playerId": 4053,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 3,
+        "fullName": "Team4 WR1",
+        "id": 4053,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 4,
+      "playerId": 4054,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 3,
+        "fullName": "Team4 WR2",
+        "id": 4054,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 6,
+      "playerId": 4051,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 4,
+        "fullName": "Team4 TE1",
+        "id": 4051,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 23,
+      "playerId": 4050,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 2,
+        "fullName": "Team4 RB3",
+        "id": 4050,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 17,
+      "playerId": 4045,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 5,
+        "fullName": "Team4 K1",
+        "id": 4045,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 16,
+      "playerId": 4044,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 16,
+        "fullName": "Team4 DEF1",
+        "id": 4044,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 4047,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 1,
+        "fullName": "Team4 QB2",
+        "id": 4047,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 4055,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 3,
+        "fullName": "Team4 WR3",
+        "id": 4055,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     },
+     {
+      "lineupSlotId": 20,
+      "playerId": 4052,
+      "playerPoolEntry": {
+       "appliedStatTotal": 0.0,
+       "player": {
+        "defaultPositionId": 4,
+        "fullName": "Team4 TE2",
+        "id": 4052,
+        "injuryStatus": "ACTIVE",
+        "proTeamId": 99
+       }
+      }
+     }
+    ]
+   },
+   "transactionCounter": {
+    "acquisitionBudgetSpent": 0
+   },
+   "waiverRank": 4
+  }
+ ]
+}

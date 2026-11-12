@@ -1,6 +1,6 @@
 ========================================================================
 FANTASY MANAGER - Test League - Week 5 (2025 regular)
-Manager: MaTrasaMaae   Team: Trasa Titans
+Manager: TestManager   Team: Test Titans
 Generated: 2026-11-11T20:19:30Z   Tool: fantasy_manager 2.12.0
 ========================================================================
 
@@ -32,7 +32,7 @@ LINEUP - week 5
 
 MATCHUP
 ------------------------------------------------------------------------
-  Trasa Titans  vs  Team 2
+  Test Titans  vs  Team 2
   Projected (current lineups): 96  vs  100.7
   Differential: -4.7
   Live/final points: 0  vs  0

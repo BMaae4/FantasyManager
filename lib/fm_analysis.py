@@ -17,6 +17,7 @@ import math
 import os
 import random
 import sys
+import time
 from itertools import combinations
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
@@ -24,7 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fm_history  # noqa: E402
 import fm_providers  # noqa: E402
 
-SCHEMA_VERSION = "1.5"
+SCHEMA_VERSION = "2.0"
 
 # Slots that do not start.
 NON_STARTING_SLOTS = {"BN", "BE", "IR", "TAXI", "RESERVE"}
@@ -275,6 +276,11 @@ class Analyzer:
                 self.rostered[pid] = roster.get("roster_id")
 
         self.position_fallback: Dict[str, str] = {}
+        # Positions the league's host projects in league scoring (ESPN
+        # leagues: kickers and team defenses), by week.
+        self.host = bundle.get("host_points") if isinstance(bundle.get("host_points"), dict) else {}
+        self.host_positions = set(self.host.get("positions") or []) if self.host.get("weeks") else set()
+        self.host_scored: Dict[str, int] = {}
         self._init_locks()
 
     # -- locks (games already started) -----------------------------------
@@ -489,6 +495,11 @@ class Analyzer:
                 and weight != 0
                 and key not in stats_keys_seen
             )
+            if self.host_positions:
+                unsupported = [
+                    key for key in unsupported
+                    if not any(in_family(key, POSITION_SCORING_FAMILIES.get(pos, ())) for pos in self.host_positions)
+                ]
             self.unsupported_scoring_keys = unsupported
             self._apply_position_fallback(unsupported, stats_keys_seen)
             if unsupported:
@@ -531,6 +542,19 @@ class Analyzer:
                 "using provider aggregate field '%s' as a labelled fallback." % field
             )
 
+    def apply_host_points(self, points: Dict[str, float], week: Any, count: bool = False) -> None:
+        """Replace the projections of host-scored positions with the league
+        host's own league-scored numbers for `week`."""
+        by_pid = (self.host.get("weeks") or {}).get(str(week))
+        if not self.host_positions or not isinstance(by_pid, dict):
+            return
+        for pid, value in by_pid.items():
+            position = self.primary_position(pid)
+            if position in self.host_positions and isinstance(value, (int, float)) and not isinstance(value, bool):
+                points[str(pid)] = float(value)
+                if count:
+                    self.host_scored[position] = self.host_scored.get(position, 0) + 1
+
     def score_stats(self, pid: str, stats: dict) -> Optional[float]:
         """Score one projected stat line with the rules chosen for this week
         (league scoring, per-position fallback, or provider aggregate)."""
@@ -571,6 +595,7 @@ class Analyzer:
                 value = self.score_stats(str(pid), record["stats"])
                 if value is not None:
                     points[str(pid)] = value
+            self.apply_host_points(points, week)
             if points:
                 self.week_points.append(points)
                 self.week_stats.append(stats_by_pid)
@@ -1662,8 +1687,12 @@ class Analyzer:
         }
 
     def trade_deadline_flag(self) -> Optional[str]:
-        deadline = (self.league.get("settings") or {}).get("trade_deadline")
+        settings = self.league.get("settings") or {}
+        deadline = settings.get("trade_deadline")
         week = int(self.config.get("week") or 0)
+        at = settings.get("trade_deadline_at")
+        if isinstance(at, (int, float)) and not isinstance(at, bool) and 0 < at < time.time():
+            return "The league's trade deadline (%s) has passed." % time.strftime("%b %d, %Y", time.gmtime(at)).replace(" 0", " ")
         if isinstance(deadline, int) and not isinstance(deadline, bool) and 0 < deadline < 99 and week > deadline:
             return "The league's trade deadline (week %d) has passed." % deadline
         return None
@@ -2561,6 +2590,7 @@ class Analyzer:
         if not self.starting_slots:
             raise SystemExit("league has no starting slots in roster_positions")
         self.calculate_league_scoring()
+        self.apply_host_points(self.projection_points, self.config.get("week"), count=True)
         if int(self.config.get("horizon") or 0) > 0:
             self.score_future_weeks()
         else:
@@ -2596,6 +2626,7 @@ class Analyzer:
             "metadata": {
                 "tool_version": self.config.get("tool_version"),
                 "generated_at": self.config.get("generated_at"),
+                "platform": self.config.get("platform") or "sleeper",
                 "league_id": self.config.get("league_id"),
                 "league_name": self.league.get("name"),
                 "username": self.config.get("username"),
@@ -2622,6 +2653,10 @@ class Analyzer:
                     "source": self.scoring_source,
                     "unsupported_keys": self.unsupported_scoring_keys,
                     "position_fallback": self.position_fallback,
+                    "host_scored": (
+                        {"provider": self.host.get("provider"), "positions": sorted(self.host_scored)}
+                        if self.host_scored else None
+                    ),
                 },
                 "projections": {
                     "url": projections_provenance.get("url"),

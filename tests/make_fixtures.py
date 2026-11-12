@@ -190,7 +190,7 @@ def build_base() -> dict:
         {
             "roster_id": 1,
             "owner_id": "u1",
-            "league_id": "1400680781302525952",
+            "league_id": "100000000000000001",
             "players": my_players,
             "starters": my_starters,
             "reserve": None,
@@ -203,7 +203,7 @@ def build_base() -> dict:
             {
                 "roster_id": team_index,
                 "owner_id": "u%d" % team_index,
-                "league_id": "1400680781302525952",
+                "league_id": "100000000000000001",
                 "players": players,
                 "starters": starters,
                 "reserve": None,
@@ -220,8 +220,8 @@ def build_base() -> dict:
     users = [
         {
             "user_id": "u1",
-            "display_name": "MaTrasaMaae",
-            "metadata": {"team_name": "Trasa Titans"},
+            "display_name": "TestManager",
+            "metadata": {"team_name": "Test Titans"},
         }
     ]
     for team_index in range(2, 5):
@@ -259,7 +259,7 @@ def build_base() -> dict:
     ]
 
     league = {
-        "league_id": "1400680781302525952",
+        "league_id": "100000000000000001",
         "name": "Test League",
         "season": "2025",
         "season_type": "regular",
@@ -279,7 +279,7 @@ def build_base() -> dict:
         "rosters": rosters,
         "users": users,
         "matchups": matchups,
-        "user": {"user_id": "u1", "username": "matrasamaae", "display_name": "MaTrasaMaae"},
+        "user": {"user_id": "u1", "username": "testmanager", "display_name": "TestManager"},
         "players": b.players,
         "projections": b.projections,
         "trending_add": [
@@ -481,6 +481,93 @@ def espn_files(data: dict, weeks, overrides: dict) -> dict:
         files[("espn" if week == 5 else "espn_w%d" % week) + ".json"] = json.dumps(
             espn_payload(data, week, values), indent=1, sort_keys=True) + "\n"
     return files
+
+
+ESPN_SLOT_IDS = {"QB": 0, "RB": 2, "WR": 4, "TE": 6, "FLEX": 23, "K": 17, "DEF": 16}
+ESPN_LEAGUE_ID = 555001
+# PPR in ESPN's scoring items, plus a bonus with no projected stat (37) and
+# defense items that only apply to the D/ST slot.
+ESPN_SCORING_ITEMS = [
+    {"statId": 3, "points": 0.04, "pointsOverrides": {}}, {"statId": 4, "points": 4.0, "pointsOverrides": {}},
+    {"statId": 20, "points": -2.0, "pointsOverrides": {}}, {"statId": 24, "points": 0.1, "pointsOverrides": {}},
+    {"statId": 25, "points": 6.0, "pointsOverrides": {}}, {"statId": 42, "points": 0.1, "pointsOverrides": {}},
+    {"statId": 43, "points": 6.0, "pointsOverrides": {}}, {"statId": 53, "points": 1.0, "pointsOverrides": {}},
+    {"statId": 72, "points": -2.0, "pointsOverrides": {}}, {"statId": 37, "points": 3.0, "pointsOverrides": {}},
+    {"statId": 86, "points": 1.0, "pointsOverrides": {}}, {"statId": 80, "points": 3.0, "pointsOverrides": {}},
+    {"statId": 89, "points": 0.0, "pointsOverrides": {"16": 5.0}},
+    {"statId": 92, "points": 0.0, "pointsOverrides": {"16": 1.0}},
+    {"statId": 99, "points": 0.0, "pointsOverrides": {"16": 1.0}},
+]
+
+
+def espn_league_files(data: dict, weeks, host_bonus: float = 2.5) -> dict:
+    """The league as ESPN serves it: espn_league.json (settings, teams and
+    rosters), espn_matchups.json (the week's box scores) and espn_host*.json
+    (league-scored kicker / defense projections, `host_bonus` above the
+    PPR ones). Players need espn_id set; one is left to match by name, and
+    one bench player exists only on ESPN."""
+    data = with_future(data)
+    players = data["players"]
+    slots = [p for p in data["league"]["roster_positions"] if p != "BN"]
+    team_names = {u["user_id"]: u["metadata"]["team_name"] for u in data["users"]}
+
+    def entry(pid: str, slot_id: int) -> dict:
+        info = players[pid]
+        espn_id = info.get("espn_id") or 770000 + sorted(players).index(pid)
+        return {"lineupSlotId": slot_id, "playerId": espn_id, "playerPoolEntry": {
+            "appliedStatTotal": 0.0,
+            "player": {"id": espn_id, "fullName": info["full_name"], "defaultPositionId": ESPN_POS[info["position"]],
+                       "proTeamId": ESPN_TEAM_IDS.get(info["team"], 99),
+                       "injuryStatus": (info.get("injury_status") or "ACTIVE").upper()}}}
+
+    def entries(roster: dict) -> list:
+        starters = [pid for pid in roster["starters"] if pid in players]
+        out = [entry(pid, ESPN_SLOT_IDS[slots[i]]) for i, pid in enumerate(roster["starters"]) if pid in players]
+        out += [entry(pid, 20) for pid in roster["players"] if pid in players and pid not in starters]
+        return out
+
+    counts = {str(i): 0 for i in range(25)}
+    for slot in slots:
+        counts[str(ESPN_SLOT_IDS[slot])] += 1
+    counts["20"], counts["21"] = 6, 1
+    teams, games = [], {}
+    for roster in data["rosters"]:
+        rid = roster["roster_id"]
+        name = team_names[roster["owner_id"]]
+        rows = entries(roster)
+        if rid == 2:
+            rows.append({"lineupSlotId": 20, "playerId": 999001, "playerPoolEntry": {"appliedStatTotal": 0.0, "player": {
+                "id": 999001, "fullName": "Espn Only", "defaultPositionId": 3, "proTeamId": 2,
+                "injuryStatus": "QUESTIONABLE"}}})
+        teams.append({"id": rid, "name": name, "abbrev": "".join(w[0] for w in name.split()).upper(),
+                      "waiverRank": rid, "transactionCounter": {"acquisitionBudgetSpent": 0},
+                      "roster": {"entries": rows}})
+        matchup = next(m for m in data["matchups"] if m["roster_id"] == rid)
+        side = {"teamId": rid, "totalPoints": 0.0, "pointsByScoringPeriod": {"5": 0.0},
+                "rosterForCurrentScoringPeriod": {"entries": rows}}
+        games.setdefault(matchup["matchup_id"], []).append(side)
+    league = {
+        "id": ESPN_LEAGUE_ID, "seasonId": 2025, "scoringPeriodId": 5,
+        "status": {"currentMatchupPeriod": 5, "finalScoringPeriod": 16, "isActive": True},
+        "settings": {
+            "name": "ESPN Test League", "size": len(teams), "isPublic": True,
+            "acquisitionSettings": {"acquisitionBudget": 100, "isUsingAcquisitionBudget": False},
+            "rosterSettings": {"lineupSlotCounts": counts},
+            "scheduleSettings": {"playoffTeamCount": 4, "matchupPeriods": {str(w): [w] for w in range(1, 17)}},
+            "scoringSettings": {"scoringItems": ESPN_SCORING_ITEMS},
+            "tradeSettings": {"deadlineDate": 1700000000000},
+        },
+        "teams": teams,
+    }
+    schedule = [{"id": mid, "matchupPeriodId": 5, "home": sides[0], "away": sides[1]}
+                for mid, sides in sorted(games.items())]
+    files = {"espn_league.json": league, "espn_matchups.json": {"id": ESPN_LEAGUE_ID, "schedule": schedule}}
+    for week in weeks:
+        key = "projections" if week == 5 else "projections_w%d" % week
+        values = {r["player_id"]: round(r["stats"]["pts_ppr"] + host_bonus, 2) for r in data[key]
+                  if players.get(r["player_id"], {}).get("position") in ("K", "DEF")}
+        files[("espn_host" if week == 5 else "espn_host_w%d" % week) + ".json"] = espn_payload(data, week, values)
+    return {name: json.dumps(value, indent=1, sort_keys=True) + "\n" for name, value in files.items()}
 
 
 def write_case(out_dir: str, name: str, data: dict, raw: dict | None = None) -> None:
@@ -798,6 +885,15 @@ def main() -> int:
     espn = with_future(espn)
     write_case(out_dir, "espn_compare", espn,
                raw=espn_files(espn, (5,) + FUTURE_WEEKS, {"wr1": 8.0, "fa_rb1": 18.0}))
+
+    # 34. the same league hosted on ESPN: rosters, lineup slots, scoring and
+    #     matchups in ESPN's format. Kickers and defenses use ESPN's
+    #     league-scored projections (2.5 above the PPR ones); the trade
+    #     deadline has passed; week 8 has no ESPN kicker/defense projections.
+    espn_lg = copy.deepcopy(espn)
+    espn_lg_raw = espn_files(espn_lg, (5,) + FUTURE_WEEKS, {})
+    espn_lg_raw.update(espn_league_files(espn_lg, (5, 6, 7)))
+    write_case(out_dir, "espn_league", espn_lg, raw=espn_lg_raw)
 
     print("fixtures written to %s" % out_dir)
     return 0
