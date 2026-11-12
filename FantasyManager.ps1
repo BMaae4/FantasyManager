@@ -1,7 +1,8 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Sleeper weekly decision support (lineup / waivers / trades) for Windows,
+    Weekly decision support (lineup / waivers / trades) for Sleeper and ESPN
+    fantasy football leagues on Windows,
     with a WPF window for the report.
 
 .DESCRIPTION
@@ -19,7 +20,11 @@
 
 .EXAMPLE
     .\FantasyManager.ps1
-    Opens the window for the default league and user.
+    Opens the window for the league saved in your config file (blank the first time).
+
+.EXAMPLE
+    .\FantasyManager.ps1 -Platform espn -LeagueId 12345678 -Team "My Team Name"
+    Opens the window for an ESPN league (the league must be viewable to the public).
 
 .EXAMPLE
     .\FantasyManager.ps1 -NoGui -OutFile report.json
@@ -39,8 +44,10 @@
 #>
 [CmdletBinding()]
 param(
+    [string]$Platform,
     [string]$LeagueId,
     [string]$Username,
+    [string]$Team,
     [string]$Week,
     [string]$Season,
     [string]$SeasonType,
@@ -82,7 +89,7 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '2.12.1'
+$ToolVersion = '3.0.0'
 
 # --------------------------------------------------------------------------
 # Shared application: lib/fm_app.py does configuration, fetching, caching,
@@ -90,8 +97,9 @@ $ToolVersion = '2.12.1'
 # its parameters onto that module and shows the report in a window.
 # --------------------------------------------------------------------------
 $Defaults = [ordered]@{
-    league_id = '1400680781302525952'
-    username  = 'MaTrasaMaae'
+    platform  = 'sleeper'
+    league_id = ''
+    username  = ''
     horizon   = '3'
 }
 
@@ -257,7 +265,7 @@ function ConvertTo-AppArgs($bound, [string[]]$skip = @()) {
     # PowerShell parameters -> fm_app.py options. Settings not given here fall
     # back to FM_* variables, the config file and defaults inside fm_app.py.
     $map = [ordered]@{
-        LeagueId = '--league-id'; Username = '--username'; Week = '--week'; Season = '--season'
+        Platform = '--platform'; LeagueId = '--league-id'; Username = '--username'; Team = '--team'; Week = '--week'; Season = '--season'
         SeasonType = '--season-type'; Top = '--top'; Threshold = '--threshold'; Fairness = '--fairness'
         Horizon = '--horizon'; Locked = '--locked'; Trade = '--trade'; ValueTrade = '--value-trade'
         Scoring = '--scoring'; Teams = '--teams'; Format = '--format'; CacheDir = '--cache-dir'
@@ -365,10 +373,13 @@ $script:WindowXaml = @'
     <Border Grid.Row="0" Style="{StaticResource Card}" Padding="12,8">
       <DockPanel LastChildFill="True">
         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+          <ComboBox x:Name="PlatformBox" Width="84" Margin="0,0,10,0" ToolTip="Where the league is hosted">
+            <ComboBoxItem Content="Sleeper"/><ComboBoxItem Content="ESPN"/>
+          </ComboBox>
           <TextBlock Text="League" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,6,0"/>
-          <TextBox x:Name="LeagueBox" Width="170" Padding="4,3"/>
-          <TextBlock Text="User" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="14,0,6,0"/>
-          <TextBox x:Name="UserBox" Width="130" Padding="4,3"/>
+          <TextBox x:Name="LeagueBox" Width="150" Padding="4,3" ToolTip="League id: the number in the league's web address"/>
+          <TextBlock x:Name="UserLabel" Text="User" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="14,0,6,0"/>
+          <TextBox x:Name="UserBox" Width="130" Padding="4,3" ToolTip="Sleeper: your username. ESPN: your team's name, abbreviation or id"/>
           <TextBlock Text="Week" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="14,0,6,0"/>
           <TextBox x:Name="WeekBox" Width="44" Padding="4,3" ToolTip="Blank = current week (next week once every game is final)"/>
           <TextBlock Text="Horizon" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="14,0,6,0"/>
@@ -378,7 +389,7 @@ $script:WindowXaml = @'
             <ComboBoxItem Content="ROS"/>
           </ComboBox>
           <CheckBox x:Name="RememberBox" Content="Remember" VerticalAlignment="Center" Margin="14,0,0,0" IsChecked="True"
-                    ToolTip="After a successful refresh, save the league, user and horizon as your defaults (config.env)"/>
+                    ToolTip="After a successful refresh, save the platform, league, user or team and horizon as your defaults (config.env)"/>
           <CheckBox x:Name="FreshBox" Content="Bypass cache" VerticalAlignment="Center" Margin="14,0,0,0"/>
           <Button x:Name="RefreshButton" Content="Refresh" Margin="14,0,0,0" Padding="16,4"
                   Background="{StaticResource Accent}" Foreground="White" BorderThickness="0" FontWeight="SemiBold"/>
@@ -1313,7 +1324,7 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
     [xml]$xaml = $script:WindowXaml
     $window = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
     $ui = @{ Window = $window }
-    foreach ($name in @('LeagueBox', 'UserBox', 'WeekBox', 'HorizonBox', 'FreshBox', 'RememberBox', 'RefreshButton', 'OpenButton', 'SaveButton',
+    foreach ($name in @('PlatformBox', 'UserLabel', 'LeagueBox', 'UserBox', 'WeekBox', 'HorizonBox', 'FreshBox', 'RememberBox', 'RefreshButton', 'OpenButton', 'SaveButton',
             'Busy', 'StatusText', 'TitleText', 'SubtitleText', 'NoticeText', 'MyTeamText', 'MyScoreText', 'MyProjText',
             'OppTeamText', 'OppScoreText', 'OppProjText', 'WarningsExpander', 'WarningsHeader', 'WarningsList',
             'LineupSummary', 'LineupGrid', 'RiskGrid', 'WaiverSummary', 'WaiverGrid', 'TradeSummary', 'TradeGrid',
@@ -1333,16 +1344,26 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
     if ($cfg) {
         $script:ConfigPath = $cfg.config_file
         $ui.LeagueBox.Text = $cfg.league_id
-        $ui.UserBox.Text = $cfg.username
+        $isEspn = ((Get-Prop $cfg 'platform') -eq 'espn')
+        $ui.PlatformBox.SelectedIndex = $(if ($isEspn) { 1 } else { 0 })
+        $ui.UserBox.Text = $(if ($isEspn) { [string](Get-Prop $cfg 'team') } else { $cfg.username })
         $ui.WeekBox.Text = $cfg.week
         $ui.HorizonBox.SelectedIndex = ConvertTo-HorizonIndex $cfg.horizon
     } else {
         $script:ConfigPath = Join-Path (Get-DefaultDir 'config') 'config.env'
         if ($script:BoundParams.ContainsKey('Config')) { $script:ConfigPath = [string]$script:BoundParams['Config'] }
         $ui.LeagueBox.Text = $Defaults.league_id
+        $ui.PlatformBox.SelectedIndex = 0
         $ui.UserBox.Text = $Defaults.username
         $ui.HorizonBox.SelectedIndex = [int]$Defaults.horizon
     }
+
+    # The second box is a Sleeper username or an ESPN team, by platform.
+    $ui.UserLabel.Text = $(if ($ui.PlatformBox.SelectedIndex -eq 1) { 'Team' } else { 'User' })
+    $ui.PlatformBox.Add_SelectionChanged({
+        $ui = $script:Ui
+        $ui.UserLabel.Text = $(if ($ui.PlatformBox.SelectedIndex -eq 1) { 'Team' } else { 'User' })
+    })
 
     $loadReport = {
         param([string]$path)
@@ -1418,7 +1439,10 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
 
     $ui.RefreshButton.Add_Click({
         $ui = $script:Ui
-        $extra = @('-LeagueId', $ui.LeagueBox.Text.Trim(), '-Username', $ui.UserBox.Text.Trim())
+        $espn = ($ui.PlatformBox.SelectedIndex -eq 1)
+        $who = $ui.UserBox.Text.Trim()
+        $extra = @('-Platform', $(if ($espn) { 'espn' } else { 'sleeper' }), '-LeagueId', $ui.LeagueBox.Text.Trim())
+        if ($who) { $extra += @($(if ($espn) { '-Team' } else { '-Username' }), $who) }
         if ($ui.WeekBox.Text.Trim()) { $extra += @('-Week', $ui.WeekBox.Text.Trim()) }
         if ($ui.HorizonBox.SelectedIndex -ge 0) { $extra += @('-Horizon', (ConvertFrom-HorizonIndex $ui.HorizonBox.SelectedIndex)) }
         if ($ui.FreshBox.IsChecked) { $extra += '-Refresh' }
@@ -1426,9 +1450,10 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         $script:PendingDefaults = $null
         if ($ui.RememberBox.IsChecked) {
             $script:PendingDefaults = [ordered]@{
-                league_id = $ui.LeagueBox.Text.Trim(); username = $ui.UserBox.Text.Trim()
-                horizon = ConvertFrom-HorizonIndex ([Math]::Max(0, $ui.HorizonBox.SelectedIndex))
+                platform = $(if ($espn) { 'espn' } else { 'sleeper' }); league_id = $ui.LeagueBox.Text.Trim()
             }
+            $script:PendingDefaults[$(if ($espn) { 'team' } else { 'username' })] = $who
+            $script:PendingDefaults['horizon'] = ConvertFrom-HorizonIndex ([Math]::Max(0, $ui.HorizonBox.SelectedIndex))
         }
         & $script:StartJob $extra {
             param($path)
@@ -1444,7 +1469,7 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
                 }
             }
             $script:Ui.StatusText.Text = $status
-        } 'Fetching from Sleeper...' 'Update failed'
+        } 'Fetching league data...' 'Update failed'
     })
 
     # Trade Analyzer state before any report is loaded.
@@ -1492,8 +1517,10 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         # Grade against the same league, week and window as the loaded report.
         $meta = $report.metadata
         $gradeHorizon = $(if ((Get-Prop $meta 'horizon_mode') -eq 'ros') { 'ros' } else { [string]([Math]::Max(0, [Math]::Min(6, @($meta.window_weeks).Count - 1))) })
-        $extra = @('-LeagueId', [string]$meta.league_id, '-Username', [string]$meta.username, '-Week', [string]$meta.week,
+        $extra = @('-LeagueId', [string]$meta.league_id, '-Week', [string]$meta.week,
             '-Horizon', $gradeHorizon, '-SkipWaivers', '-SkipTrades')
+        if ((Get-Prop $meta 'platform') -eq 'espn') { $extra += @('-Platform', 'espn', '-Team', [string]$meta.roster_id) }
+        else { $extra += @('-Platform', 'sleeper', '-Username', [string]$meta.username) }
         if (Test-OpenMode $ui) {
             $teams = $ui.TeamsBox.Text.Trim()
             if ($teams -notmatch '^\d+$' -or [int]$teams -lt 4 -or [int]$teams -gt 32) { $ui.VerdictText.Text = 'League size must be 4 to 32.'; return }

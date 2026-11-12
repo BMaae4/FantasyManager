@@ -11,6 +11,9 @@ FIXTURES="$HERE/fixtures"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/fm_tests.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
+# The tool has no built-in league or user; the suite supplies the test league's.
+export FM_LEAGUE_ID=100000000000000001 FM_USERNAME=testmanager
+
 PASS=0
 FAIL=0
 FAILED_NAMES=()
@@ -87,7 +90,7 @@ section() { printf '\n== %s ==\n' "$1"; }
 section "static checks"
 # --------------------------------------------------------------------------
 if bash -n "$SCRIPT"; then pass "bash -n fantasy_manager.sh"; else fail "bash -n fantasy_manager.sh"; fi
-for py in fm_app fm_analysis; do
+for py in fm_app fm_analysis fm_espn; do
     if python3 -m py_compile "$ROOT/lib/$py.py"; then
         pass "python3 -m py_compile lib/$py.py"
     else
@@ -116,13 +119,19 @@ done
 # --------------------------------------------------------------------------
 section "defaults and CLI validation"
 # --------------------------------------------------------------------------
-assert_match "default league id preserved" "$(grep -m1 "^DEFAULT_LEAGUE_ID = " "$ROOT/lib/fm_app.py")" '1400680781302525952'
-assert_match "default username preserved" "$(grep -m1 "^DEFAULT_USERNAME = " "$ROOT/lib/fm_app.py")" 'MaTrasaMaae'
+assert_match "no built-in league id" "$(grep -m1 "^DEFAULT_LEAGUE_ID = " "$ROOT/lib/fm_app.py")" '^DEFAULT_LEAGUE_ID = ""$'
+assert_match "no built-in username" "$(grep -m1 "^DEFAULT_USERNAME = " "$ROOT/lib/fm_app.py")" '^DEFAULT_USERNAME = ""$'
+STDOUT="$(env -u FM_LEAGUE_ID -u FM_USERNAME "$SCRIPT" --config "$WORK/none.env" --offline --fixtures "$FIXTURES/ppr_basic" 2>"$WORK/stderr")"
+STATUS=$?; STDERR="$(cat "$WORK/stderr")"
+assert_status "no league configured exits 2" 2
+assert_match "no league configured is explained" "$STDERR" 'No league set'
+STDOUT="$(env -u FM_LEAGUE_ID -u FM_USERNAME "$SCRIPT" --config "$WORK/none.env" --print-config 2>/dev/null)"
+assert_match "--print-config works before a league is chosen" "$STDOUT" '"league_id": ""'
 assert_match "api base is plain text" "$(grep -m1 "^DEFAULT_API = " "$ROOT/lib/fm_app.py")" 'https://api\.sleeper\.app/v1'
 
 run_case "" --help
 assert_status "--help exits 0" 0
-assert_match "--help mentions defaults" "$STDOUT" '1400680781302525952'
+assert_match "--help says the league is required" "$STDOUT" 'League id \(required'
 
 run_case "" --version
 assert_status "--version exits 0" 0
@@ -189,12 +198,12 @@ STATUS=$?
 assert_json "cli overrides environment" '.metadata.top_n == 4'
 
 # Hand-written config files: spaces around "=", quotes, Windows line endings.
-printf '# saved from Notepad\r\nleague_id = 1400680781302525952\r\n  top_n = 6 \r\nusername = "MaTrasaMaae"\r\nformat=json\r\n' > "$WORK/config_crlf"
+printf '# saved from Notepad\r\nleague_id = 100000000000000001\r\n  top_n = 6 \r\nusername = "TestManager"\r\nformat=json\r\n' > "$WORK/config_crlf"
 STDOUT="$(FM_OFFLINE=1 FM_FIXTURES="$FIXTURES/ppr_basic" \
     "$SCRIPT" --cache-dir "$WORK/c4" --config "$WORK/config_crlf" 2>"$WORK/stderr")"
 STATUS=$?
 assert_status "config with spaces and CRLF accepted" 0
-assert_json "config values are trimmed" '.metadata.top_n == 6 and .metadata.username == "MaTrasaMaae"'
+assert_json "config values are trimmed" '.metadata.top_n == 6 and .metadata.username == "TestManager"'
 
 # --------------------------------------------------------------------------
 section "lineup optimisation"
@@ -403,7 +412,7 @@ assert_match "markdown has headings" "$STDOUT" '^## Lineup'
 assert_match "markdown has table" "$STDOUT" '^\| Slot \|'
 
 run_case ppr_basic --format json
-assert_json "json has metadata" '.metadata.league_id == "1400680781302525952"'
+assert_json "json has metadata" '.metadata.league_id == "100000000000000001"'
 assert_json "json has diagnostics" '(.diagnostics.fetches | length) > 0'
 assert_json "json keys stable" \
     '[keys[]] == ["custom_trades","diagnostics","history","lineup","matchup","metadata","opportunity","player_pool","projection_sources","rosters","schema_version","trades","value_trades","waivers","warnings"]'
@@ -530,7 +539,7 @@ section "shared python application"
 # --------------------------------------------------------------------------
 # The window pre-fills from --print-config: CLI > FM_* > config file > defaults.
 printf 'league_id = 555\r\ntop_n=4\nhorizon=1\n' > "$WORK/pc.env"
-STDOUT="$(FM_TOP_N=8 "$SCRIPT" --config "$WORK/pc.env" --horizon 2 --print-config 2>"$WORK/stderr")"
+STDOUT="$(FM_TOP_N=8 env -u FM_LEAGUE_ID "$SCRIPT" --config "$WORK/pc.env" --horizon 2 --print-config 2>"$WORK/stderr")"
 STATUS=$?
 assert_status "--print-config exits 0" 0
 assert_json "--print-config reads the config file" '.league_id == "555" and .config_file != null'
@@ -1071,6 +1080,90 @@ assert_match "parser: blend limits and disagreement rule" "$PARSED" '1\.5 None F
 FILTER="$(python3 -c "import sys; sys.path.insert(0, '$ROOT/lib'); import fm_providers as p; print(p.espn_filter('2026', 10))")"
 assert_match "ESPN filter asks for the week's projections by period code" "$FILTER" '"additionalValue":\["002026","102026","11202610","01202610"\]'
 assert_no_match "ESPN filter has no stat filters that drop weekly rows" "$FILTER" 'filterStatsForSourceIds|filterStatsForSplitTypeIds|filterStatsForExternalIds'
+
+# --------------------------------------------------------------------------
+section "ESPN leagues"
+# --------------------------------------------------------------------------
+ESPN_ARGS=(--platform espn --league-id 555001)
+run_case espn_league "${ESPN_ARGS[@]}" --team "Test Titans" --format json
+assert_status "ESPN league exits 0" 0
+assert_json "ESPN league: platform, team and roster" \
+    '.metadata.platform == "espn" and .metadata.team_name == "Test Titans" and .metadata.roster_id == 1 and .metadata.league_name == "ESPN Test League"'
+assert_json "ESPN lineup slots converted (D/ST and K included)" \
+    '.metadata.starting_slots == ["QB","RB","RB","WR","WR","TE","FLEX","DEF","K"]'
+assert_json "ESPN roster and current lineup read" \
+    '.lineup.current_points == 101 and ([.lineup.slots[] | select(.slot == "QB") | .current.player_id] == ["qb1"])'
+assert_json "kickers and defenses use ESPN's league-scored projections" \
+    '.metadata.scoring.host_scored == {"provider": "espn", "positions": ["DEF","K"]}
+     and ([.lineup.slots[] | select(.slot == "K" or .slot == "DEF") | .recommended.points] == [8.5, 9.5])'
+assert_json "offense scored with the converted ESPN rules" '.lineup.optimal_points == 114'
+assert_json "a player with no ESPN id is matched by name" \
+    '[.lineup.slots[] | select(.recommended.player_id == "wr3")] | length == 1'
+assert_json "ESPN waiver settings converted" '.waivers.waiver.type == "waiver priority" and .waivers.waiver.budget == null'
+assert_json "ESPN matchup and opponent" '.matchup.my_team == "Test Titans" and .matchup.opponent_team == "Team 2"'
+assert_json "unmapped ESPN scoring item reported" \
+    '[.warnings[] | select(test("1 ESPN scoring item\\(s\\) have no projected stat.*100-199 yard rushing game"))] | length == 1'
+assert_json "ESPN-only player reported, still on the roster" \
+    '([.warnings[] | select(test("not in the player database.*Espn Only"))] | length == 1)
+     and ([.rosters[] | select(.roster_id == 2) | .players[] | select(.name == "Espn Only")] | length == 1)'
+assert_json "missing ESPN kicker/defense week reported" \
+    '[.warnings[] | select(test("unavailable for week\\(s\\) 8"))] | length == 1'
+assert_json "ESPN league data in the diagnostics, no Sleeper league calls" \
+    '([.diagnostics.fetches[] | select(.key == "espn_league" or .key == "espn_matchups" or .key == "espn_host") | .source] == ["fixture","fixture","fixture"])
+     and ([.diagnostics.fetches[] | select(.key == "league" or .key == "rosters" or .key == "user")] | length == 0)'
+run_case espn_league "${ESPN_ARGS[@]}" --team tt --format text
+assert_match "team found by abbreviation; text header names the platform" "$STDOUT" 'ESPN league 555001 +Team: Test Titans'
+assert_match "text scoring line names the host-scored positions" "$STDOUT" "DEF and K: ESPN's league-scored projections"
+run_case espn_league "${ESPN_ARGS[@]}" --team 2 --format markdown
+assert_match "team found by id; markdown header" "$STDOUT" '^- ESPN league 555001 - Team: Team 2$'
+run_case espn_league "${ESPN_ARGS[@]}" --team "titans" --format json --trade "Wes Bravo for id:t2_rb1"
+assert_json "team found by part of its name; trade graded with the deadline flagged" \
+    '.custom_trades[0].my_grade != null and ([.custom_trades[0].flags[] | select(test("trade deadline .* has passed"))] | length == 1)'
+run_case espn_league "${ESPN_ARGS[@]}" --team "Test Titans" --format json --horizon ros
+assert_json "rest of season runs to ESPN's final scoring period" '.metadata.horizon_mode == "ros" and .metadata.window_weeks[0] == 5'
+run_case espn_league "${ESPN_ARGS[@]}" --team team
+assert_status "ambiguous team name rejected" 4
+assert_match "ambiguous team: the teams are listed" "$STDERR" 'Teams: Test Titans; Team 2; Team 3; Team 4'
+run_case espn_league "${ESPN_ARGS[@]}"
+assert_status "ESPN league without --team rejected" 2
+assert_match "missing team explained" "$STDERR" 'needs your team'
+run_case espn_league --platform yahoo
+assert_status "unknown platform rejected" 2
+run_case ppr_basic --platform espn --league-id 555001 --team x
+assert_status "ESPN league that can't be read exits 4" 4
+assert_match "unreadable ESPN league explained" "$STDERR" 'ESPN league 555001 could not be loaded'
+STDOUT="$("$SCRIPT" --platform espn --team "My Team" --print-config 2>/dev/null)"
+assert_json "--print-config shows platform and team" '.platform == "espn" and .team == "My Team"'
+run_case ppr_basic --format json
+assert_json "Sleeper leagues report their platform" '.metadata.platform == "sleeper" and .metadata.scoring.host_scored == null'
+# The ESPN converter on its own: scoring items, slots and team lookup.
+CONVERTED="$(python3 - "$ROOT/lib" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import fm_espn as e
+items = [{"statId": 53, "points": 0.5, "pointsOverrides": {"6": 1.0}}, {"statId": 3, "points": 0.04},
+         {"statId": 80, "points": 3.0}, {"statId": 198, "points": 5.0}, {"statId": 99, "points": 0.0, "pointsOverrides": {"16": 1.0}},
+         {"statId": 17, "points": 2.0}, {"statId": 92, "points": 0.0, "pointsOverrides": {"16": 1.0}}, {"statId": 4, "points": 0}]
+scoring, unmapped = e.convert_scoring(items)
+print(sorted(scoring.items()))
+print(unmapped)
+doc = {"id": 9, "status": {"finalScoringPeriod": 17},
+       "settings": {"name": "L", "size": 2, "rosterSettings": {"lineupSlotCounts": {"0": 1, "7": 1, "5": 1, "19": 1, "20": 2, "21": 1}},
+                    "acquisitionSettings": {"isUsingAcquisitionBudget": True, "acquisitionBudget": 200}},
+       "teams": [{"id": 3, "name": "Alpha Dogs", "abbrev": "AD"}, {"id": 4, "name": "Beta Dogs", "abbrev": "BD"}]}
+league, notes = e.convert_league(doc)
+print(league["roster_positions"], league["settings"]["waiver_type"], league["settings"]["waiver_budget"],
+      league["settings"]["last_scoring_week"], len(notes))
+find = lambda text: (e.find_team(doc, text)[0] or {}).get("id")
+print(find("4"), find("alpha dogs"), find("bd"), find("beta"), find("dogs"), find(""))
+PY
+)"
+assert_match "converter: TE premium, FG buckets, 50-59 as 50+, D/ST slot points" "$CONVERTED" \
+    "\('bonus_rec_te', 0\.5\), \('fgm_0_19', 3\.0\), \('fgm_20_29', 3\.0\), \('fgm_30_39', 3\.0\), \('fgm_50p', 5\.0\), \('pass_yd', 0\.04\), \('rec', 0\.5\), \('sack', 1\.0\)\]"
+assert_match "converter: only offensive items without a stat are reported" "$CONVERTED" "\['300-399 yard passing game \(\+2\)'\]"
+assert_match "converter: slots, FAAB, final week and an unsupported slot" "$CONVERTED" \
+    "\['QB', 'REC_FLEX', 'SUPER_FLEX', 'BN', 'BN', 'IR'\] 2 200 17 1"
+assert_match "converter: team by id, name, abbreviation or unique part" "$CONVERTED" '4 3 4 4 None None'
 
 # --------------------------------------------------------------------------
 printf '\n%s\n' "------------------------------------------------------------"

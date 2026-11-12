@@ -1,0 +1,394 @@
+{
+ "players": [
+  {
+   "id": 4000,
+   "player": {
+    "defaultPositionId": 16,
+    "fullName": "Alpha Defense",
+    "id": 4000,
+    "proTeamId": 99,
+    "stats": [
+     {
+      "appliedTotal": 8.5,
+      "externalId": "20257",
+      "scoringPeriodId": 7,
+      "seasonId": 2025,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {
+       "53": 4.0
+      }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20247",
+      "scoringPeriodId": 7,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
+     },
+     {
+      "appliedTotal": 99.0,
+      "scoringPeriodId": 6,
+      "seasonId": 2025,
+      "statSourceId": 0,
+      "statSplitTypeId": 1,
+      "stats": {}
+     }
+    ]
+   }
+  },
+  {
+   "id": 4001,
+   "player": {
+    "defaultPositionId": 16,
+    "fullName": "Hotel Defense",
+    "id": 4001,
+    "proTeamId": 99,
+    "stats": [
+     {
+      "appliedTotal": 10.0,
+      "externalId": "20257",
+      "scoringPeriodId": 7,
+      "seasonId": 2025,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {
+       "53": 4.0
+      }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20247",
+      "scoringPeriodId": 7,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
+     },
+     {
+      "appliedTotal": 99.0,
+      "scoringPeriodId": 6,
+      "seasonId": 2025,
+      "statSourceId": 0,
+      "statSplitTypeId": 1,
+      "stats": {}
+     }
+    ]
+   }
+  },
+  {
+   "id": 4003,
+   "player": {
+    "defaultPositionId": 5,
+    "fullName": "Free Kick One",
+    "id": 4003,
+    "proTeamId": 99,
+    "stats": [
+     {
+      "appliedTotal": 11.0,
+      "externalId": "20257",
+      "scoringPeriodId": 7,
+      "seasonId": 2025,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {
+       "53": 4.0
+      }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20247",
+      "scoringPeriodId": 7,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
+     },
+     {
+      "appliedTotal": 99.0,
+      "scoringPeriodId": 6,
+      "seasonId": 2025,
+      "statSourceId": 0,
+      "statSplitTypeId": 1,
+      "stats": {}
+     }
+    ]
+   }
+  },
+  {
+   "id": 4012,
+   "player": {
+    "defaultPositionId": 5,
+    "fullName": "Kai Alpha",
+    "id": 4012,
+    "proTeamId": 99,
+    "stats": [
+     {
+      "appliedTotal": 9.5,
+      "externalId": "20257",
+      "scoringPeriodId": 7,
+      "seasonId": 2025,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {
+       "53": 4.0
+      }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20247",
+      "scoringPeriodId": 7,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
+     },
+     {
+      "appliedTotal": 99.0,
+      "scoringPeriodId": 6,
+      "seasonId": 2025,
+      "statSourceId": 0,
+      "statSplitTypeId": 1,
+      "stats": {}
+     }
+    ]
+   }
+  },
+  {
+   "id": 4020,
+   "player": {
+    "defaultPositionId": 16,
+    "fullName": "Team2 DEF1",
+    "id": 4020,
+    "proTeamId": 99,
+    "stats": [
+     {
+      "appliedTotal": 8.5,
+      "externalId": "20257",
+      "scoringPeriodId": 7,
+      "seasonId": 2025,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {
+       "53": 4.0
+      }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20247",
+      "scoringPeriodId": 7,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
+     },
+     {
+      "appliedTotal": 99.0,
+      "scoringPeriodId": 6,
+      "seasonId": 2025,
+      "statSourceId": 0,
+      "statSplitTypeId": 1,
+      "stats": {}
+     }
+    ]
+   }
+  },
+  {
+   "id": 4021,
+   "player": {
+    "defaultPositionId": 5,
+    "fullName": "Team2 K1",
+    "id": 4021,
+    "proTeamId": 99,
+    "stats": [
+     {
+      "appliedTotal": 9.5,
+      "externalId": "20257",
+      "scoringPeriodId": 7,
+      "seasonId": 2025,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {
+       "53": 4.0
+      }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20247",
+      "scoringPeriodId": 7,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
+     },
+     {
+      "appliedTotal": 99.0,
+      "scoringPeriodId": 6,
+      "seasonId": 2025,
+      "statSourceId": 0,
+      "statSplitTypeId": 1,
+      "stats": {}
+     }
+    ]
+   }
+  },
+  {
+   "id": 4032,
+   "player": {
+    "defaultPositionId": 16,
+    "fullName": "Team3 DEF1",
+    "id": 4032,
+    "proTeamId": 99,
+    "stats": [
+     {
+      "appliedTotal": 8.75,
+      "externalId": "20257",
+      "scoringPeriodId": 7,
+      "seasonId": 2025,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {
+       "53": 4.0
+      }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20247",
+      "scoringPeriodId": 7,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
+     },
+     {
+      "appliedTotal": 99.0,
+      "scoringPeriodId": 6,
+      "seasonId": 2025,
+      "statSourceId": 0,
+      "statSplitTypeId": 1,
+      "stats": {}
+     }
+    ]
+   }
+  },
+  {
+   "id": 4033,
+   "player": {
+    "defaultPositionId": 5,
+    "fullName": "Team3 K1",
+    "id": 4033,
+    "proTeamId": 99,
+    "stats": [
+     {
+      "appliedTotal": 9.75,
+      "externalId": "20257",
+      "scoringPeriodId": 7,
+      "seasonId": 2025,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {
+       "53": 4.0
+      }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20247",
+      "scoringPeriodId": 7,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
+     },
+     {
+      "appliedTotal": 99.0,
+      "scoringPeriodId": 6,
+      "seasonId": 2025,
+      "statSourceId": 0,
+      "statSplitTypeId": 1,
+      "stats": {}
+     }
+    ]
+   }
+  },
+  {
+   "id": 4044,
+   "player": {
+    "defaultPositionId": 16,
+    "fullName": "Team4 DEF1",
+    "id": 4044,
+    "proTeamId": 99,
+    "stats": [
+     {
+      "appliedTotal": 9.0,
+      "externalId": "20257",
+      "scoringPeriodId": 7,
+      "seasonId": 2025,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {
+       "53": 4.0
+      }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20247",
+      "scoringPeriodId": 7,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
+     },
+     {
+      "appliedTotal": 99.0,
+      "scoringPeriodId": 6,
+      "seasonId": 2025,
+      "statSourceId": 0,
+      "statSplitTypeId": 1,
+      "stats": {}
+     }
+    ]
+   }
+  },
+  {
+   "id": 4045,
+   "player": {
+    "defaultPositionId": 5,
+    "fullName": "Team4 K1",
+    "id": 4045,
+    "proTeamId": 99,
+    "stats": [
+     {
+      "appliedTotal": 10.0,
+      "externalId": "20257",
+      "scoringPeriodId": 7,
+      "seasonId": 2025,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {
+       "53": 4.0
+      }
+     },
+     {
+      "appliedTotal": 77.0,
+      "externalId": "20247",
+      "scoringPeriodId": 7,
+      "seasonId": 2024,
+      "statSourceId": 1,
+      "statSplitTypeId": 1,
+      "stats": {}
+     },
+     {
+      "appliedTotal": 99.0,
+      "scoringPeriodId": 6,
+      "seasonId": 2025,
+      "statSourceId": 0,
+      "statSplitTypeId": 1,
+      "stats": {}
+     }
+    ]
+   }
+  }
+ ]
+}

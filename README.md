@@ -1,7 +1,7 @@
 # FantasyManager
 
-Weekly decision support for a **Sleeper** fantasy football team. Point it at
-your league and it tells you:
+Weekly decision support for a **Sleeper** or **ESPN** fantasy football team.
+Point it at your league and it tells you:
 
 - **Lineup:** who to start and bench this week (and who is locked because
   their game has started).
@@ -19,15 +19,15 @@ your league and it tells you:
 - **Second opinion:** where ESPN's projections disagree with Sleeper's, with
   an optional 50/50 blend.
 
-It is **read-only**: it reads public Sleeper data and never changes anything
-in your league. It can't set lineups, make claims or send trades.
+It is **read-only**: it reads public Sleeper and ESPN data and never changes
+anything in your league. It can't set lineups, make claims or send trades.
 
 It runs as a **Windows app**, or from the command line on **Windows, macOS
 and Linux**. Both use the same analysis and give the same results.
 
-> Only Sleeper leagues can be loaded. The [any-player trade
-> grader](#any-player-trades-another-league) works for trades from any
-> platform.
+> Sleeper and ESPN leagues can be loaded ([ESPN setup](#espn-leagues)). The
+> [any-player trade grader](#any-player-trades-another-league) works for
+> trades from any platform.
 
 ---
 
@@ -38,6 +38,7 @@ and Linux**. Both use the same analysis and give the same results.
   - [2a. Windows](#2a-windows)
   - [2b. macOS and Linux](#2b-macos-and-linux)
   - [3. Save your league as the default](#3-save-your-league-as-the-default)
+  - [ESPN leagues](#espn-leagues)
 - [Using it each week](#using-it-each-week)
 - [Reading the report](#reading-the-report)
 - [Trade analyzer](#trade-analyzer)
@@ -59,7 +60,7 @@ You need two things:
 - **League ID:** a long number (about 18 digits). On
   [sleeper.com](https://sleeper.com), open your league; the number in the
   address bar after `/leagues/` is the league ID:
-  `https://sleeper.com/leagues/`**`1400680781302525952`**`/team`
+  `https://sleeper.com/leagues/`**`1234567890123456789`**`/team`
 - **Username:** your Sleeper username (the one you sign in with), not your
   team name.
 
@@ -71,8 +72,8 @@ from your username in a browser:
 2. Open `https://api.sleeper.app/v1/user/USER_ID/leagues/nfl/2026` (use the
    current season). Each league in the list has its `name` and `league_id`.
 
-> The built-in defaults point at the author's league. Everyone else needs to
-> set their own league ID and username, once, as shown below.
+> There is no built-in league. Set your league ID and username once, as
+> shown below.
 
 ### 2a. Windows
 
@@ -85,7 +86,8 @@ from your username in a browser:
    extract it anywhere, for example `Documents\FantasyManager`.
 3. **Double-click `FantasyManager.cmd`.** The window opens.
 4. Type your **league ID** and **username** in the toolbar and press
-   **Refresh**.
+   **Refresh**. For an ESPN league, choose **ESPN** in the first box and type
+   your **team name** instead of a username ([ESPN leagues](#espn-leagues)).
 
 That's it. With **Remember** ticked (the default), a successful refresh saves
 your league, username and horizon, so next time the app opens straight to
@@ -97,7 +99,8 @@ PowerShell 7 works too. Python is the only other thing you need.
 
 **The window**
 
-- **Toolbar:** league, user, week (leave blank for automatic), horizon (how
+- **Toolbar:** platform (Sleeper or ESPN), league, user (ESPN: team), week
+  (leave blank for automatic), horizon (how
   many future weeks count; 3 is a good default, **ROS** = the rest of the
   season), **Remember** (save these as
   your defaults after a successful refresh), **Bypass cache**, **Refresh**,
@@ -183,9 +186,53 @@ username=yourname
 The file holds `key=value` lines, and lines starting with `#` are comments.
 Spaces around `=`, quotes and Windows line endings are all fine. Any setting
 in [the table below](#settings) can go here, for example `horizon=2` or
-`top_n=15`. **Remember** updates only `league_id`, `username` and `horizon`,
-and leaves anything else you've added in place. The Windows app and the
+`top_n=15`. **Remember** updates only `platform`, `league_id`, `username` (or
+`team`) and `horizon`, and leaves anything else you've added in place. The Windows app and the
 command line share the same file.
+
+### ESPN leagues
+
+1. **League ID:** on [fantasy.espn.com](https://fantasy.espn.com), open your
+   league; the number after `leagueId=` in the address bar is the league ID:
+   `https://fantasy.espn.com/football/league?leagueId=`**`12345678`**
+2. **Team:** your team's name. A unique part of the name, its abbreviation or
+   its ESPN team id (`teamId=` in your team page's address) also work.
+3. **The league must be viewable to the public.** No ESPN sign-in is used, so
+   a league that only members can see can't be read. The league manager
+   turns this on under **League Manager Tools > Basic Settings > Make League
+   Viewable to Public**.
+
+```bash
+./fantasy_manager.sh --platform espn --league-id 12345678 --team "My Team Name"
+```
+
+```powershell
+.\FantasyManager.ps1 -Platform espn -LeagueId 12345678 -Team "My Team Name"
+```
+
+Or in `config.env`:
+
+```ini
+platform=espn
+league_id=12345678
+team=My Team Name
+```
+
+Everything in the report works the same way. What is different for an ESPN
+league:
+
+- **Scoring:** the league's ESPN scoring is converted and applied to the
+  projected stats. A scoring item with no projected stat (for example a
+  100-yard-game bonus) is left out and listed in a warning.
+- **Kickers and defenses** use ESPN's own projections, which ESPN scores
+  with your league's rules. The report's scoring line says so.
+- **Players** are matched to the player database by ESPN id, then by name. A
+  rostered player who can't be matched is listed in a warning and has no
+  projection.
+- **Waivers:** the free-agent pool is everyone not on a roster in your
+  league. The add-trend part of the ranking still comes from Sleeper's
+  platform-wide trending adds.
+- **Trades:** the trade deadline is flagged by its date.
 
 ---
 
@@ -361,6 +408,7 @@ by name, team or position, and click players onto each side.
 Run `./fantasy_manager.sh --help` for the full list. The most useful options:
 
 ```
+    --platform NAME        --team NAME (ESPN)
 -l, --league-id ID     -u, --username NAME    -w, --week N       -s, --season YYYY
 -n, --top N            -f, --format text|json|markdown           -o, --output PATH
     --horizon N            --threshold X      --fairness X           --locked LIST
@@ -380,8 +428,10 @@ default.**
 
 | Setting | Command line | PowerShell | Config key / env var | Default |
 | --- | --- | --- | --- | --- |
-| League | `--league-id` | `-LeagueId` | `league_id` / `FM_LEAGUE_ID` | author's league |
-| User | `--username` | `-Username` | `username` / `FM_USERNAME` | author |
+| Platform | `--platform` | `-Platform` | `platform` / `FM_PLATFORM` | `sleeper` (or `espn`) |
+| League | `--league-id` | `-LeagueId` | `league_id` / `FM_LEAGUE_ID` | none; required |
+| User (Sleeper) | `--username` | `-Username` | `username` / `FM_USERNAME` | none; needed for Sleeper |
+| Team (ESPN) | `--team` | `-Team` | `team` / `FM_TEAM` | none; needed for ESPN |
 | Week | `--week` | `-Week` | `week` / `FM_WEEK` | current week (next week once it's over) |
 | Season | `--season` | `-Season` | `season` / `FM_SEASON` | current season |
 | Season type | `--season-type` | `-SeasonType` | `season_type` / `FM_SEASON_TYPE` | `regular` |
@@ -541,6 +591,9 @@ when the move clearly improves your lineup.
 - Sleeper's read-only API: `https://api.sleeper.app/v1`
 - Projections: `https://api.sleeper.app/projections/nfl/<season>/<week>`. This
   is **not** part of Sleeper's documented API and could change without notice.
+- ESPN leagues: `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/<season>/segments/0/leagues/<league id>`
+  (settings, teams, rosters, box scores, and league-scored kicker and defense
+  projections). Unofficial, and only for leagues viewable to the public.
 - ESPN projections (second source): `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/<season>/segments/0/leaguedefaults/3?view=kona_player_info`.
   Unofficial and optional. If it fails, the comparison is marked unavailable
   and nothing else changes.
@@ -577,7 +630,8 @@ to stdout.
 | Message | What to do |
 | --- | --- |
 | `Sleeper user 'X' could not be resolved. Check --username.` | Use your Sleeper **username**, not your team or display name. Check it at `https://api.sleeper.app/v1/user/X`. |
-| `User 'X' (id ...) does not own a roster in league N.` | The league ID and username don't match: you are not in that league, or one of them is still the built-in default. Set both. |
+| `User 'X' (id ...) does not own a roster in league N.` | The league ID and username don't match: you are not in that league. Check both. |
+| `No league set ...` | Give your league ID and username (or ESPN team), on the command line or in the config file. In the Windows app, type them in the toolbar. |
 | `League N could not be loaded ... Check the league id.` | The league ID is wrong. It's the long number from the league's sleeper.com address. |
 | `No valid projections for season S week W ...` | Sleeper has no projections for that week yet (offseason, or very early in the week), or the feed is down. Try later, or pass `--week`. |
 | Warning: `Game schedule unavailable ...` | Locks come from live points only. If the week's games are over, pass `--week N+1`. |
@@ -588,6 +642,9 @@ to stdout.
 | `Python 3.8 or newer is required` | Install Python 3 (see [macOS and Linux](#2b-macos-and-linux)), or point `FM_PYTHON` at one. |
 | `PROJECTION SOURCES: ESPN unavailable` | ESPN's projections couldn't be loaded. Nothing else is affected. Use `--compare none` to stop trying. |
 | `HISTORY: unavailable` / `OPPORTUNITY: unavailable` | Normal in week 1, or before 3 weeks of usage data exist. Otherwise the past-week data couldn't be fetched; it's retried the next day, or now with `--refresh`. |
+| `ESPN league N could not be loaded ...` | Check the league ID (the number after `leagueId=`). The league must be viewable to the public; see [ESPN leagues](#espn-leagues). |
+| `Team 'X' was not found (or matches several teams) ...` | The message lists the league's teams. Use a full team name, or the team id. |
+| Warning: `N ESPN player(s) are not in the player database ...` | Those players couldn't be matched to a projection. They stay on the roster with no projected points. |
 | Ambiguous player name in a trade | Use more of the name, add a team or position (`Josh Allen BUF`), or use the Sleeper id (`id:4984`). |
 
 For more detail, run with `--debug` (Windows: `-DebugLog`). Diagnostics then
@@ -601,11 +658,12 @@ include the effective configuration and every request.
 | --- | --- |
 | `lib/fm_app.py` | The application: command line, configuration, fetching, caching, validation, text/Markdown/JSON output |
 | `lib/fm_analysis.py` | All analysis: scoring, lineup optimisation, waivers, trades, trade grading, history |
+| `lib/fm_espn.py` | ESPN leagues: reads a league from ESPN's API and converts slots, scoring, rosters and matchups to the form the analysis uses |
 | `lib/fm_providers.py` | Projection providers: the ESPN reader, matching to Sleeper players, blend and disagreement rules |
 | `lib/fm_history.py` | The history database (SQLite), accuracy / recent-form statistics, usage trends and the nflverse usage reader |
 | `fantasy_manager.sh` | macOS/Linux launcher: finds Python and runs `lib/fm_app.py` |
 | `FantasyManager.ps1` / `.cmd` | Windows: the WPF window, `-NoGui` mapped onto `lib/fm_app.py`, and a launcher |
-| `tests/run.sh` | Offline test suite (360 checks, no network) |
+| `tests/run.sh` | Offline test suite (no network) |
 | `tests/make_fixtures.py` | Generates the synthetic test leagues in `tests/fixtures/` |
 | `tests/parity.sh` | Runs every fixture through both front ends and compares the reports (needs `pwsh`) |
 | `tests/windows.ps1`, `tests/make_expected.sh`, `tests/compare_reports.py` | Windows checks, including a GUI smoke test |
@@ -642,6 +700,9 @@ The suite covers:
   shapes, D/ST, name matching), the comparison, and blending.
 - Rest of season and the two trade grades, including a bye week and a
   passed trade deadline.
+- ESPN leagues: a league in ESPN's format (slots, scoring, rosters,
+  matchups, league-scored kicker and defense projections), team lookup, and
+  the converter on its own.
 - Win probability: checked against the closed-form normal result,
   reproducible, locked players, and the underdog swap.
 
@@ -652,7 +713,9 @@ entry.
 
 ## Limitations
 
-- Sleeper leagues only (the any-player grader works for any platform).
+- Sleeper and ESPN leagues only (the any-player grader works for any
+  platform). ESPN leagues must be viewable to the public: there is no ESPN
+  sign-in.
 - Value beyond the window isn't modelled (use `--horizon ros` for the rest of
   the season). Strength of schedule, correlation and game script aren't
   modelled either. What's left out is disclosed in the report rather than

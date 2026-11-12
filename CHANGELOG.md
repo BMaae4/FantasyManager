@@ -2,6 +2,65 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 3.0.0
+
+ESPN leagues.
+
+### Added
+
+- **ESPN leagues load natively**: `--platform espn --league-id ID --team
+  NAME` (PowerShell `-Platform espn -Team`, config `platform=` and `team=`,
+  a platform box in the Windows toolbar).
+  - The team is given by name, a unique part of the name, its abbreviation
+    or its ESPN team id. An unknown or ambiguous name lists the league's
+    teams.
+  - The league must be viewable to the public. No ESPN sign-in is used.
+- A new module, `lib/fm_espn.py`, converts the league to the form the
+  analysis already uses:
+  - lineup slots, including RB/WR, WR/TE, FLEX, OP (superflex), IR and IDP
+    slots
+  - scoring items to projected stats, with a TE-premium style reception
+    bonus; an item with no projected stat is left out and listed in a
+    warning
+  - rosters and current lineups, with players matched by ESPN id, then by
+    name; an unmatched rostered player is kept and listed in a warning
+  - waiver type and budget, the trade deadline (by date) and the last
+    fantasy week
+  - the week's box scores for the matchup, live points and past results
+- Kickers and team defenses in an ESPN league use ESPN's own projections,
+  scored by ESPN with the league's rules, for every window week ESPN
+  covers. A week ESPN doesn't cover is listed in a warning.
+- JSON: `metadata.platform` and `metadata.scoring.host_scored`. Schema
+  version 2.0.
+
+### Removed
+
+- The built-in default league id and username. A league and user (or ESPN
+  team) must now be given on the command line, in `FM_*` variables or in
+  the config file; without them the run stops with exit code 2 and says
+  what to set. The Windows window opens with empty boxes the first time.
+- The author's league id and username no longer appear in the code,
+  tests, fixtures or samples; the test league uses made-up ones.
+
+### Changed
+
+- The history database keys an ESPN league as `espn:<league id>`; Sleeper
+  leagues are unchanged.
+- ESPN reports show `ESPN league <id>` and the team in the header instead
+  of a manager name.
+- The Windows **Remember** box also saves the platform, and the team for an
+  ESPN league.
+- Reports for Sleeper leagues are unchanged apart from the new JSON fields.
+
+### Tests
+
+- New fixture `espn_league` in ESPN's format, with a player matched by
+  name, an ESPN-only player, a scoring item with no stat, a passed trade
+  deadline and a week without ESPN kicker and defense projections.
+- Checks for the conversion, team lookup, validation and the converter on
+  its own, a bash/PowerShell parity case, and Windows checks including the
+  window loading an ESPN report.
+
 ## 2.12.1
 
 Fixes from the first live run.
@@ -451,9 +510,9 @@ Fixes from the first live run.
 
 ## 2.0.0
 
-Rewrite against the implementation brief. The hardcoded defaults
-(league `1400680781302525952`, username `MaTrasaMaae`) are preserved, so the
-script still runs with no arguments.
+Rewrite against the implementation brief. The hardcoded default league
+and username are preserved, so the script still runs with no arguments
+(removed in 3.0.0).
 
 ### Fixed
 

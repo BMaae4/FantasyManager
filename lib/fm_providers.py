@@ -64,15 +64,16 @@ def _norm(name: str) -> str:
     return " ".join(w for w in text.split() if w not in ("jr", "sr", "ii", "iii", "iv", "v"))
 
 
-def parse_espn(payload, week: int, players: Dict[str, dict],
-               season: Optional[str] = None) -> Tuple[Dict[str, float], int, List[str]]:
+def parse_espn(payload, week: int, players: Dict[str, dict], season: Optional[str] = None,
+               defense_by_id: bool = False) -> Tuple[Dict[str, float], int, List[str]]:
     """ESPN kona_player_info -> ({sleeper_pid: PPR points}, matched, unmatched names).
 
     Accepts the full response ({"players": [...]}) or the list itself; an
     entry is {"player": {...}} or the player object. Only weekly projections
     (statSourceId 1, statSplitTypeId 1) for `week` are used, and with
     `season` only rows for that season (externalId "<season><week>", or
-    seasonId): ESPN can also return last season's row for the same week."""
+    seasonId): ESPN can also return last season's row for the same week.
+    Defenses are matched by team; `defense_by_id` also tries the ESPN id."""
     entries = payload.get("players") if isinstance(payload, dict) else payload
     if not isinstance(entries, list):
         return {}, 0, []
@@ -101,9 +102,8 @@ def parse_espn(payload, week: int, players: Dict[str, dict],
         if points is None:
             continue
         team = ESPN_TEAMS.get(player.get("proTeamId"))
-        if position == "DEF":
-            pid = team if team in players else None
-        else:
+        pid = team if position == "DEF" and team in players else None
+        if pid is None and (position != "DEF" or defense_by_id):
             pid = by_espn.get(str(player.get("id"))) or by_name.get((_norm(player.get("fullName") or ""), team or "", position))
         if pid is None:
             unmatched.append(str(player.get("fullName") or player.get("id")))

@@ -3,6 +3,8 @@
 # <case>.json plus <case>.status (exit code). The Windows CI job compares
 # FantasyManager.ps1 against these.
 set -uo pipefail
+# No built-in league or user: supply the test league's.
+export FM_LEAGUE_ID=100000000000000001 FM_USERNAME=testmanager
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd -- "$HERE/.." && pwd)"
 OUT="${1:?usage: make_expected.sh DIR}"
@@ -22,4 +24,5 @@ FM_OFFLINE=1 FM_FIXTURES="$ROOT/tests/fixtures/ppr_basic" "$ROOT/fantasy_manager
 FM_OFFLINE=1 FM_FIXTURES="$ROOT/tests/fixtures/ppr_basic" "$ROOT/fantasy_manager.sh" --no-cache -q -f json \
     --value-trade "Team2 RB1 for Team3 RB2, Team4 WR3; Alpha for Team2 TE1" --scoring half --teams 4 \
     > "$OUT/ppr_basic__value.json" 2>/dev/null; echo $? > "$OUT/ppr_basic__value.status"
+FM_OFFLINE=1 FM_FIXTURES="$ROOT/tests/fixtures/espn_league" "$ROOT/fantasy_manager.sh" --no-cache -q -f json     --platform espn --league-id 555001 --team "Test Titans"     > "$OUT/espn_league__espn.json" 2>/dev/null; echo $? > "$OUT/espn_league__espn.status"
 echo "expected reports written to $OUT"

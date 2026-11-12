@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# fantasy_manager.sh - Sleeper weekly decision support (lineup / waivers / trades)
+# fantasy_manager.sh - weekly decision support for Sleeper and ESPN leagues (lineup / waivers / trades)
 #
 # Launcher for macOS and Linux. The application itself is lib/fm_app.py
 # (command line, configuration, fetching, caching, analysis and reports);
