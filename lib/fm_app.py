@@ -33,7 +33,7 @@ import fm_history  # noqa: E402
 import fm_providers  # noqa: E402
 
 TOOL_NAME = "fantasy_manager"
-TOOL_VERSION = "3.1.0"
+TOOL_VERSION = "3.2.0"
 
 # --------------------------------------------------------------------------
 # Defaults. There is no built-in league or user: they come from the command
