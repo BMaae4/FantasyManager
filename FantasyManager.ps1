@@ -89,7 +89,7 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '3.0.0'
+$ToolVersion = '3.1.0'
 
 # --------------------------------------------------------------------------
 # Shared application: lib/fm_app.py does configuration, fetching, caching,
@@ -137,7 +137,8 @@ function Save-Defaults([string]$path, $values) {
     # Writes key=value settings into a config file, keeping everything else
     # in it (comments, other keys). Existing lines for the same key, with or
     # without the FM_ prefix, are replaced; duplicates are dropped; new keys
-    # are appended. Written atomically as UTF-8 without a BOM.
+    # are appended. A key whose value is $null is removed. Written atomically
+    # as UTF-8 without a BOM.
     $full = [IO.Path]::GetFullPath($path)
     $dir = Split-Path -Parent $full
     if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
@@ -151,6 +152,7 @@ function Save-Defaults([string]$path, $values) {
             $key = ($line.Substring(0, $idx) -replace '\s', '').ToLowerInvariant()
             if ($key.StartsWith('fm_')) { $key = $key.Substring(3) }
             if ($values.Contains($key)) {
+                if ($null -eq $values[$key]) { continue }
                 if (-not $written.ContainsKey($key)) { [void]$out.Add("$key=$($values[$key])"); $written[$key] = $true }
                 continue
             }
@@ -159,7 +161,7 @@ function Save-Defaults([string]$path, $values) {
     }
     if ($existing.Count -eq 0) { [void]$out.Add('# Saved by FantasyManager (Remember). Any setting from the README can go here.') }
     foreach ($key in $values.Keys) {
-        if (-not $written.ContainsKey($key)) { [void]$out.Add("$key=$($values[$key])") }
+        if ($null -ne $values[$key] -and -not $written.ContainsKey($key)) { [void]$out.Add("$key=$($values[$key])") }
     }
     $tmp = "$full.tmp.$PID"
     [IO.File]::WriteAllText($tmp, (($out -join [Environment]::NewLine) + [Environment]::NewLine), (New-Object System.Text.UTF8Encoding $false))
@@ -373,7 +375,7 @@ $script:WindowXaml = @'
     <Border Grid.Row="0" Style="{StaticResource Card}" Padding="12,8">
       <DockPanel LastChildFill="True">
         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
-          <ComboBox x:Name="PlatformBox" Width="84" Margin="0,0,10,0" ToolTip="Where the league is hosted">
+          <ComboBox x:Name="PlatformBox" Width="84" Margin="0,0,10,0" ToolTip="Where the league is hosted. Each platform remembers its own league and user or team">
             <ComboBoxItem Content="Sleeper"/><ComboBoxItem Content="ESPN"/>
           </ComboBox>
           <TextBlock Text="League" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,6,0"/>
@@ -389,7 +391,7 @@ $script:WindowXaml = @'
             <ComboBoxItem Content="ROS"/>
           </ComboBox>
           <CheckBox x:Name="RememberBox" Content="Remember" VerticalAlignment="Center" Margin="14,0,0,0" IsChecked="True"
-                    ToolTip="After a successful refresh, save the platform, league, user or team and horizon as your defaults (config.env)"/>
+                    ToolTip="After a successful refresh, save this platform's league and user or team, and the horizon, as your defaults (config.env). Sleeper and ESPN are saved separately"/>
           <CheckBox x:Name="FreshBox" Content="Bypass cache" VerticalAlignment="Center" Margin="14,0,0,0"/>
           <Button x:Name="RefreshButton" Content="Refresh" Margin="14,0,0,0" Padding="16,4"
                   Background="{StaticResource Accent}" Foreground="White" BorderThickness="0" FontWeight="SemiBold"/>
@@ -1338,6 +1340,10 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
     $script:Ui = $ui
     $script:CurrentReportPath = $null
 
+    # Each platform keeps its own league and user/team; switching the
+    # platform box swaps them in and out of the toolbar.
+    $script:Leagues = @{ sleeper = @{ League = ''; Who = '' }; espn = @{ League = ''; Who = '' } }
+
     # Defaults for the inputs follow the normal precedence (CLI > env > config > defaults).
     $cfg = $null
     try { $cfg = Get-EffectiveConfig } catch { $cfg = $null }
@@ -1347,6 +1353,11 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         $isEspn = ((Get-Prop $cfg 'platform') -eq 'espn')
         $ui.PlatformBox.SelectedIndex = $(if ($isEspn) { 1 } else { 0 })
         $ui.UserBox.Text = $(if ($isEspn) { [string](Get-Prop $cfg 'team') } else { $cfg.username })
+        $savedCfg = Get-Prop $cfg 'saved'
+        if ($savedCfg) {
+            $script:Leagues.sleeper.League = [string]$savedCfg.sleeper.league_id; $script:Leagues.sleeper.Who = [string]$savedCfg.sleeper.username
+            $script:Leagues.espn.League = [string]$savedCfg.espn.league_id; $script:Leagues.espn.Who = [string]$savedCfg.espn.team
+        }
         $ui.WeekBox.Text = $cfg.week
         $ui.HorizonBox.SelectedIndex = ConvertTo-HorizonIndex $cfg.horizon
     } else {
@@ -1360,9 +1371,18 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
 
     # The second box is a Sleeper username or an ESPN team, by platform.
     $ui.UserLabel.Text = $(if ($ui.PlatformBox.SelectedIndex -eq 1) { 'Team' } else { 'User' })
+    $script:PlatformName = $(if ($ui.PlatformBox.SelectedIndex -eq 1) { 'espn' } else { 'sleeper' })
     $ui.PlatformBox.Add_SelectionChanged({
         $ui = $script:Ui
-        $ui.UserLabel.Text = $(if ($ui.PlatformBox.SelectedIndex -eq 1) { 'Team' } else { 'User' })
+        $now = $(if ($ui.PlatformBox.SelectedIndex -eq 1) { 'espn' } else { 'sleeper' })
+        if ($now -eq $script:PlatformName) { return }
+        # Keep what was typed for the platform being left, show the other one's.
+        $script:Leagues[$script:PlatformName].League = $ui.LeagueBox.Text.Trim()
+        $script:Leagues[$script:PlatformName].Who = $ui.UserBox.Text.Trim()
+        $script:PlatformName = $now
+        $ui.LeagueBox.Text = $script:Leagues[$now].League
+        $ui.UserBox.Text = $script:Leagues[$now].Who
+        $ui.UserLabel.Text = $(if ($now -eq 'espn') { 'Team' } else { 'User' })
     })
 
     $loadReport = {
@@ -1449,10 +1469,15 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         # Saved only after the refresh succeeds, so a typo is never remembered.
         $script:PendingDefaults = $null
         if ($ui.RememberBox.IsChecked) {
-            $script:PendingDefaults = [ordered]@{
-                platform = $(if ($espn) { 'espn' } else { 'sleeper' }); league_id = $ui.LeagueBox.Text.Trim()
+            # Each platform's league is saved under its own keys, so both are
+            # kept. The plain keys from earlier versions are folded into them.
+            $name = $(if ($espn) { 'espn' } else { 'sleeper' })
+            $script:Leagues[$name].League = $ui.LeagueBox.Text.Trim(); $script:Leagues[$name].Who = $who
+            $script:PendingDefaults = [ordered]@{ platform = $name; league_id = $null; username = $null; team = $null }
+            foreach ($entry in @(@('sleeper_league_id', $script:Leagues.sleeper.League), @('sleeper_username', $script:Leagues.sleeper.Who),
+                                 @('espn_league_id', $script:Leagues.espn.League), @('espn_team', $script:Leagues.espn.Who))) {
+                if ($entry[1]) { $script:PendingDefaults[$entry[0]] = $entry[1] }
             }
-            $script:PendingDefaults[$(if ($espn) { 'team' } else { 'username' })] = $who
             $script:PendingDefaults['horizon'] = ConvertFrom-HorizonIndex ([Math]::Max(0, $ui.HorizonBox.SelectedIndex))
         }
         & $script:StartJob $extra {
@@ -1593,6 +1618,13 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         $openText = Get-TradeText $ui
         $pickedCount = @($ui.PickedA.ItemsSource).Count + @($ui.PickedB.ItemsSource).Count
         $script:OpenPicks = $savedPicks; Update-OpenPicked $ui
+        # Switch the platform and back: each one shows its own league and user/team.
+        $startIndex = $ui.PlatformBox.SelectedIndex
+        $ui.PlatformBox.SelectedIndex = 1 - $startIndex
+        $toggled = '{0} {1}/{2}' -f $script:PlatformName, $ui.LeagueBox.Text, $ui.UserBox.Text
+        $ui.PlatformBox.SelectedIndex = $startIndex
+        $toggled += ', back {0} {1}/{2}' -f $script:PlatformName, $ui.LeagueBox.Text, $ui.UserBox.Text
+        [Console]::Out.WriteLine('platform toggle: ' + $toggled)
         [Console]::Out.WriteLine(('GUI smoke test ok: lineup rows {0}, waiver rows {1}, trade rows {2}, warnings {3}, give list {4}, get list {5}, trade grade {6}, mode {7}, pool results {8}, picked {9}' -f
             @($ui.LineupGrid.ItemsSource).Count, @($ui.WaiverGrid.ItemsSource).Count, @($ui.TradeGrid.ItemsSource).Count,
             @($ui.WarningsList.ItemsSource).Count, @($ui.GiveList.ItemsSource).Count, @($ui.GetList.ItemsSource).Count, $ui.YouGrade.Text,

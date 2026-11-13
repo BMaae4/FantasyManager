@@ -107,6 +107,24 @@ if ($r.Code -eq 0) { $savedReport = Get-Content -Raw (Join-Path $work 'saved.jso
 Check 'Remember saves defaults and keeps other settings' ($r.Code -eq 0 -and $saved -match '# mine' -and $saved -notmatch '999' -and
     $savedReport.metadata.top_n -eq 6 -and @($savedReport.metadata.window_weeks).Count -eq 3) ("$saved $($r.Err)")
 
+# Each platform's league is saved under its own keys; the plain keys are removed.
+[IO.File]::WriteAllText($savePath, "# mine`r`nplatform=espn`r`nleague_id=222`r`nteam=Old Team`r`ntop_n = 6`r`n")
+[void](Save-Defaults $savePath ([ordered]@{ platform = 'sleeper'; league_id = $null; username = $null; team = $null
+    sleeper_league_id = '111'; sleeper_username = 'me'; espn_league_id = '222'; espn_team = 'My Team' }))
+$saved = [IO.File]::ReadAllText($savePath)
+Check 'Remember keeps a league per platform and drops the plain keys' ($saved -match '(?m)^platform=sleeper\r?$' -and
+    $saved -match '(?m)^sleeper_league_id=111\r?$' -and $saved -match '(?m)^espn_team=My Team\r?$' -and
+    $saved -notmatch '(?m)^(league_id|team|username)=' -and $saved -match 'top_n = 6' -and $saved -match '# mine') ($saved)
+$envLeague = $env:FM_LEAGUE_ID; $envUser = $env:FM_USERNAME
+$env:FM_LEAGUE_ID = ''; $env:FM_USERNAME = ''
+$r = Run-Script @('-Config', "`"$savePath`"", '-GuiSmokeTest')
+Check 'GUI: switching platform swaps the saved league and user/team' ($r.Code -eq 0 -and
+    $r.Out -match 'platform toggle: espn 222/My Team, back sleeper 111/me') ("$($r.Out) $($r.Err)")
+$r = Run-Script @('-Config', "`"$savePath`"", '-Platform', 'espn', '-GuiSmokeTest')
+Check 'GUI: opens on the other platform with its own league' ($r.Code -eq 0 -and
+    $r.Out -match 'platform toggle: sleeper 111/me, back espn 222/My Team') ("$($r.Out) $($r.Err)")
+$env:FM_LEAGUE_ID = $envLeague; $env:FM_USERNAME = $envUser
+
 # GUI: builds, lays out and fills from a report without being shown.
 $r = Run-Script @('-ReportFile', "`"$(Join-Path $Expected 'locked_players.json')`"", '-GuiSmokeTest')
 Check 'GUI builds and loads a report' ($r.Code -eq 0 -and $r.Out -match 'GUI smoke test ok: lineup rows 9') ("$($r.Out) $($r.Err)")
@@ -126,7 +144,7 @@ $r = Run-Script @('-ReportFile', "`"$espnReport`"", '-GuiSmokeTest')
 Check 'GUI sources tab lists disagreements (blend run)' ($r.Code -eq 0 -and $r.Out -match 'sources 2,') ("$($r.Out) $($r.Err)")
 $r = Run-Script @('-ReportFile', "`"$(Join-Path $Expected 'espn_league__espn.json')`"", '-GuiSmokeTest')
 Check 'GUI loads an ESPN league report' ($r.Code -eq 0 -and $r.Out -match 'GUI smoke test ok: lineup rows 9') ("$($r.Out) $($r.Err)")
-$r = Run-Script @('-NoGui', '-Platform', 'espn', '-LeagueId', '555001', '-Quiet')
+$r = Run-Script @('-NoGui', '-Platform', 'espn', '-LeagueId', '555001', '-Quiet', '-Config', "`"$(Join-Path $work 'no-such.env')`"")
 Check 'ESPN league without -Team exits 2 and explains' ($r.Code -eq 2 -and $r.Err -match 'needs your team')
 $r = Run-Script @('-GuiSmokeTest')
 Check 'GUI builds with no report' ($r.Code -eq 0 -and $r.Out -match 'GUI smoke test ok.*remember True') ("$($r.Out) $($r.Err)")

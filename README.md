@@ -99,7 +99,8 @@ PowerShell 7 works too. Python is the only other thing you need.
 
 **The window**
 
-- **Toolbar:** platform (Sleeper or ESPN), league, user (ESPN: team), week
+- **Toolbar:** platform (Sleeper or ESPN; each remembers its own league and
+  user or team, and switching swaps them in), league, user (ESPN: team), week
   (leave blank for automatic), horizon (how
   many future weeks count; 3 is a good default, **ROS** = the rest of the
   season), **Remember** (save these as
@@ -186,8 +187,25 @@ username=yourname
 The file holds `key=value` lines, and lines starting with `#` are comments.
 Spaces around `=`, quotes and Windows line endings are all fine. Any setting
 in [the table below](#settings) can go here, for example `horizon=2` or
-`top_n=15`. **Remember** updates only `platform`, `league_id`, `username` (or
-`team`) and `horizon`, and leaves anything else you've added in place. The Windows app and the
+`top_n=15`. **Remember** updates only the platform, that platform's league
+and user or team, and `horizon`, and leaves anything else you've added in
+place.
+
+**A league on each platform.** Sleeper and ESPN are saved separately, so you
+can switch between them without retyping anything:
+
+```ini
+platform=sleeper
+sleeper_league_id=1234567890123456789
+sleeper_username=yourname
+espn_league_id=12345678
+espn_team=My Team Name
+```
+
+`platform` says which one opens by default; `--platform espn` (or the
+platform box in the Windows app) switches to the other. The Windows app
+writes these keys itself when **Remember** is ticked. The plain `league_id`,
+`username` and `team` keys still work for a single league. The Windows app and the
 command line share the same file.
 
 ### ESPN leagues
@@ -429,9 +447,9 @@ default.**
 | Setting | Command line | PowerShell | Config key / env var | Default |
 | --- | --- | --- | --- | --- |
 | Platform | `--platform` | `-Platform` | `platform` / `FM_PLATFORM` | `sleeper` (or `espn`) |
-| League | `--league-id` | `-LeagueId` | `league_id` / `FM_LEAGUE_ID` | none; required |
-| User (Sleeper) | `--username` | `-Username` | `username` / `FM_USERNAME` | none; needed for Sleeper |
-| Team (ESPN) | `--team` | `-Team` | `team` / `FM_TEAM` | none; needed for ESPN |
+| League | `--league-id` | `-LeagueId` | `sleeper_league_id` or `espn_league_id` (or `league_id`) / `FM_LEAGUE_ID` | none; required |
+| User (Sleeper) | `--username` | `-Username` | `sleeper_username` (or `username`) / `FM_USERNAME` | none; needed for Sleeper |
+| Team (ESPN) | `--team` | `-Team` | `espn_team` (or `team`) / `FM_TEAM` | none; needed for ESPN |
 | Week | `--week` | `-Week` | `week` / `FM_WEEK` | current week (next week once it's over) |
 | Season | `--season` | `-Season` | `season` / `FM_SEASON` | current season |
 | Season type | `--season-type` | `-SeasonType` | `season_type` / `FM_SEASON_TYPE` | `regular` |
