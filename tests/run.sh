@@ -1166,6 +1166,32 @@ assert_match "converter: slots, FAAB, final week and an unsupported slot" "$CONV
 assert_match "converter: team by id, name, abbreviation or unique part" "$CONVERTED" '4 3 4 4 None None'
 
 # --------------------------------------------------------------------------
+section "a league per platform"
+# --------------------------------------------------------------------------
+printf 'platform=sleeper\nsleeper_league_id=111\nsleeper_username=me\nespn_league_id=222\nespn_team=My Team\n' > "$WORK/both.env"
+printf 'platform=espn\nleague_id=222\nteam=My Team\nusername=olduser\n' > "$WORK/legacy.env"
+pc() { env -u FM_LEAGUE_ID -u FM_USERNAME "$SCRIPT" "$@" --print-config 2>/dev/null; }
+STDOUT="$(pc --config "$WORK/both.env")"
+assert_json "saved platform's league and user are used" '.platform == "sleeper" and .league_id == "111" and .username == "me"'
+assert_json "--print-config lists what is saved for each platform" \
+    '.saved == {"sleeper": {"league_id": "111", "username": "me"}, "espn": {"league_id": "222", "team": "My Team"}}'
+STDOUT="$(pc --config "$WORK/both.env" --platform espn)"
+assert_json "switching platform switches league and team" '.platform == "espn" and .league_id == "222" and .team == "My Team"'
+STDOUT="$(pc --config "$WORK/both.env" --platform espn --league-id 999)"
+assert_json "command line league beats the saved one, for this platform only" \
+    '.league_id == "999" and .saved.espn.league_id == "999" and .saved.sleeper.league_id == "111"'
+STDOUT="$(FM_ESPN_LEAGUE_ID=333 pc --config "$WORK/both.env" --platform espn)"
+assert_json "FM_ESPN_LEAGUE_ID beats the config file" '.league_id == "333"'
+STDOUT="$(pc --config "$WORK/legacy.env")"
+assert_json "plain league_id belongs to the saved platform" '.platform == "espn" and .league_id == "222" and .team == "My Team"'
+STDOUT="$(pc --config "$WORK/legacy.env" --platform sleeper)"
+assert_json "plain league_id is not carried to the other platform" \
+    '.league_id == "" and .username == "olduser" and .saved.espn.league_id == "222"'
+STDOUT="$(env -u FM_LEAGUE_ID -u FM_USERNAME FM_OFFLINE=1 FM_FIXTURES="$FIXTURES/espn_league" "$SCRIPT" --no-cache -q -f json \
+    --config "$WORK/both.env" --platform sleeper 2>/dev/null)"
+assert_json "report runs from the per-platform keys" '.metadata.league_id == "111" and .metadata.username == "me"'
+
+# --------------------------------------------------------------------------
 printf '\n%s\n' "------------------------------------------------------------"
 printf 'passed: %d   failed: %d\n' "$PASS" "$FAIL"
 if [ "$FAIL" -gt 0 ]; then

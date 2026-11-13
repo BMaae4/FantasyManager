@@ -2,6 +2,29 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 3.1.0
+
+### Added
+
+- A league per platform. Sleeper and ESPN each keep their own league and
+  user or team, so switching platform no longer carries the other
+  platform's league id across.
+  - Config keys `sleeper_league_id`, `sleeper_username`, `espn_league_id`
+    and `espn_team` (also as `FM_` variables); `platform` picks which one
+    is used.
+  - In the Windows app, switching the platform box swaps the league and
+    user or team boxes to that platform's saved values, and keeps what was
+    typed for the other one.
+  - **Remember** saves each platform under its own keys and keeps the
+    other platform's.
+
+### Changed
+
+- The plain `league_id`, `username` and `team` keys still work. A plain
+  `league_id` in the config file now belongs to the `platform` saved next
+  to it and is not used for the other platform. **Remember** replaces the
+  plain keys with the per-platform ones.
+
 ## 3.0.0
 
 ESPN leagues.

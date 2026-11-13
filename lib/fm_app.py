@@ -33,7 +33,7 @@ import fm_history  # noqa: E402
 import fm_providers  # noqa: E402
 
 TOOL_NAME = "fantasy_manager"
-TOOL_VERSION = "3.0.0"
+TOOL_VERSION = "3.1.0"
 
 # --------------------------------------------------------------------------
 # Defaults. There is no built-in league or user: they come from the command
@@ -150,6 +150,8 @@ Other:
 
 Configuration precedence: CLI options > environment (FM_*) > config file > defaults.
 Config file: ~/.config/fantasy_manager/config.env (KEY=VALUE lines), override with FM_CONFIG_FILE.
+To keep a league on each platform, save sleeper_league_id + sleeper_username and
+espn_league_id + espn_team there; --platform (or platform=) then picks one.
 
 This tool is read-only. It cannot submit lineups, waivers or trades.
 """
@@ -424,10 +426,40 @@ def load_configuration(cli: Dict[str, str]) -> Config:
     c.config_file = resolve("config_file", "FM_CONFIG_FILE", DEFAULT_CONFIG_FILE)
     file_values.update(load_config_file(c.config_file))
 
-    c.league_id = resolve("league_id", "FM_LEAGUE_ID", DEFAULT_LEAGUE_ID)
-    c.username = resolve("username", "FM_USERNAME", DEFAULT_USERNAME)
+    # Each platform keeps its own league: sleeper_league_id / sleeper_username
+    # and espn_league_id / espn_team. The plain keys (league_id, username,
+    # team) still work; a plain league_id in the config file belongs to the
+    # platform saved next to it.
     c.platform = resolve("platform", "FM_PLATFORM", "sleeper").lower()
-    c.team = resolve("team", "FM_TEAM", "").strip()
+    file_platform = (file_values.get("platform") or "sleeper").lower()
+
+    def saved(platform: str, key: str, explicit: bool = True) -> str:
+        """`key` for `platform`. `explicit` also honours the plain option and
+        FM_ variable, which are meant for this run's platform."""
+        specific = "%s_%s" % (platform, key)
+        if explicit and key in cli:
+            return cli[key]
+        if os.environ.get("FM_" + specific.upper()):
+            return os.environ["FM_" + specific.upper()]
+        if explicit and os.environ.get("FM_" + key.upper()):
+            return os.environ["FM_" + key.upper()]
+        if specific in file_values:
+            return file_values[specific]
+        if key in file_values and (key != "league_id" or platform == file_platform):
+            return file_values[key]
+        return ""
+
+    c.league_id = saved(c.platform, "league_id") or DEFAULT_LEAGUE_ID
+    c.username = saved("sleeper", "username") or DEFAULT_USERNAME
+    c.team = saved("espn", "team").strip()
+    # What is saved for each platform (the window fills its boxes from this
+    # when the platform is switched).
+    c.saved = {
+        "sleeper": {"league_id": c.league_id if c.platform == "sleeper" else saved("sleeper", "league_id", False),
+                    "username": c.username},
+        "espn": {"league_id": c.league_id if c.platform == "espn" else saved("espn", "league_id", False),
+                 "team": c.team},
+    }
     c.api = resolve("api", "FM_API", DEFAULT_API)
     c.projections_base = resolve("projections_base", "FM_PROJECTIONS_BASE", DEFAULT_PROJECTIONS_BASE)
     c.schedule_base = resolve("schedule_base", "FM_SCHEDULE_BASE", DEFAULT_SCHEDULE_BASE)
@@ -2007,6 +2039,7 @@ def print_config(c: Config) -> None:
             "threshold", "fairness", "scoring", "teams", "locked", "format", "output", "cache_dir")
     out = {k: getattr(c, k) for k in keys}
     out["log_level"] = LOG.level
+    out["saved"] = c.saved
     write_stdout(json.dumps(out, indent=2) + "\n")
 
 
