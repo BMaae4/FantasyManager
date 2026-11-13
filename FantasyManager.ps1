@@ -89,7 +89,7 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '3.1.0'
+$ToolVersion = '3.2.0'
 
 # --------------------------------------------------------------------------
 # Shared application: lib/fm_app.py does configuration, fetching, caching,
@@ -328,16 +328,119 @@ $script:WindowXaml = @'
       <Setter Property="RowBackground" Value="White"/>
       <Setter Property="CanUserAddRows" Value="False"/>
       <Setter Property="SelectionMode" Value="Single"/>
-      <Setter Property="RowHeight" Value="26"/>
+      <Setter Property="RowHeight" Value="28"/>
+      <Setter Property="AlternatingRowBackground" Value="#FAFBFC"/>
+      <Setter Property="CanUserResizeRows" Value="False"/>
     </Style>
     <Style TargetType="DataGridColumnHeader">
-      <Setter Property="Background" Value="#EEF1F4"/>
-      <Setter Property="Foreground" Value="#3A434C"/>
+      <Setter Property="Background" Value="#F6F8FA"/>
+      <Setter Property="Foreground" Value="#5B6570"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
-      <Setter Property="Padding" Value="8,5"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Padding" Value="8,7"/>
       <Setter Property="BorderBrush" Value="#D5DAE0"/>
-      <Setter Property="BorderThickness" Value="0,0,1,1"/>
+      <Setter Property="BorderThickness" Value="0,0,0,1"/>
     </Style>
+    <Style x:Key="NumHead" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+      <Setter Property="HorizontalContentAlignment" Value="Right"/>
+    </Style>
+    <Style TargetType="DataGridCell">
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="DataGridCell">
+            <Border Background="{TemplateBinding Background}" Padding="8,0">
+              <ContentPresenter VerticalAlignment="Center"/>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsSelected" Value="True">
+          <Setter Property="Background" Value="#DCE9FD"/>
+          <Setter Property="Foreground" Value="#1B1F24"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="Num" TargetType="TextBlock">
+      <Setter Property="HorizontalAlignment" Value="Right"/>
+    </Style>
+    <Style x:Key="Trim" TargetType="TextBlock">
+      <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+      <Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+    </Style>
+    <Style TargetType="Button">
+      <Setter Property="Background" Value="White"/>
+      <Setter Property="Foreground" Value="#1B1F24"/>
+      <Setter Property="BorderBrush" Value="#C9D0D7"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="12,5"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5" SnapsToDevicePixels="True">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="BorderBrush" Value="#1F6FEB"/>
+                <Setter TargetName="Bd" Property="Opacity" Value="0.9"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True"><Setter TargetName="Bd" Property="Opacity" Value="0.75"/></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Opacity" Value="0.45"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style TargetType="TextBox">
+      <Setter Property="Background" Value="White"/>
+      <Setter Property="BorderBrush" Value="#C9D0D7"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TextBox">
+            <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="1" CornerRadius="4" SnapsToDevicePixels="True">
+              <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#1F6FEB"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style TargetType="ComboBox">
+      <Setter Property="Padding" Value="6,4"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+    <Style TargetType="TabItem">
+      <Setter Property="FontSize" Value="13.5"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TabItem">
+            <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent" BorderThickness="0,0,0,2" Padding="14,8" Margin="0,0,2,0">
+              <ContentPresenter x:Name="Hd" ContentSource="Header" HorizontalAlignment="Center" TextElement.Foreground="#5B6570"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Hd" Property="TextElement.Foreground" Value="#1B1F24"/></Trigger>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="Bd" Property="BorderBrush" Value="#1F6FEB"/>
+                <Setter TargetName="Hd" Property="TextElement.Foreground" Value="#1F6FEB"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style TargetType="ListBoxItem">
+      <Setter Property="Padding" Value="8,4"/>
+    </Style>
+    <DataTemplate x:Key="LabelItem">
+      <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Label}"/>
+    </DataTemplate>
     <Style x:Key="Card" TargetType="Border">
       <Setter Property="Background" Value="White"/>
       <Setter Property="BorderBrush" Value="#D5DAE0"/>
@@ -374,33 +477,32 @@ $script:WindowXaml = @'
     <!-- toolbar -->
     <Border Grid.Row="0" Style="{StaticResource Card}" Padding="12,8">
       <DockPanel LastChildFill="True">
-        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="10,0,0,0">
+          <Button x:Name="OpenButton" Content="Open..." ToolTip="Open a saved report (JSON)"/>
+          <Button x:Name="SaveButton" Content="Save..." ToolTip="Save this report as JSON, text or Markdown" Margin="8,0,0,0" IsEnabled="False"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
           <ComboBox x:Name="PlatformBox" Width="84" Margin="0,0,10,0" ToolTip="Where the league is hosted. Each platform remembers its own league and user or team">
             <ComboBoxItem Content="Sleeper"/><ComboBoxItem Content="ESPN"/>
           </ComboBox>
           <TextBlock Text="League" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,6,0"/>
-          <TextBox x:Name="LeagueBox" Width="150" Padding="4,3" ToolTip="League id: the number in the league's web address"/>
-          <TextBlock x:Name="UserLabel" Text="User" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="14,0,6,0"/>
-          <TextBox x:Name="UserBox" Width="130" Padding="4,3" ToolTip="Sleeper: your username. ESPN: your team's name, abbreviation or id"/>
-          <TextBlock Text="Week" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="14,0,6,0"/>
-          <TextBox x:Name="WeekBox" Width="44" Padding="4,3" ToolTip="Blank = current week (next week once every game is final)"/>
-          <TextBlock Text="Horizon" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="14,0,6,0"/>
+          <TextBox x:Name="LeagueBox" Width="164" Padding="6,4" ToolTip="League id: the number in the league's web address"/>
+          <TextBlock x:Name="UserLabel" Text="User" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="10,0,6,0"/>
+          <TextBox x:Name="UserBox" Width="116" Padding="6,4" ToolTip="Sleeper: your username. ESPN: your team's name, abbreviation or id"/>
+          <TextBlock Text="Week" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="10,0,6,0"/>
+          <TextBox x:Name="WeekBox" Width="44" Padding="6,4" ToolTip="Blank = current week (next week once every game is final)"/>
+          <TextBlock Text="Horizon" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="10,0,6,0"/>
           <ComboBox x:Name="HorizonBox" Width="64" ToolTip="Future weeks valued for waivers, drops and trades (ROS = rest of the fantasy season)">
             <ComboBoxItem Content="0"/><ComboBoxItem Content="1"/><ComboBoxItem Content="2"/>
             <ComboBoxItem Content="3"/><ComboBoxItem Content="4"/><ComboBoxItem Content="5"/><ComboBoxItem Content="6"/>
             <ComboBoxItem Content="ROS"/>
           </ComboBox>
-          <CheckBox x:Name="RememberBox" Content="Remember" VerticalAlignment="Center" Margin="14,0,0,0" IsChecked="True"
+          <CheckBox x:Name="RememberBox" Content="Remember" VerticalAlignment="Center" Margin="12,0,0,0" IsChecked="True"
                     ToolTip="After a successful refresh, save this platform's league and user or team, and the horizon, as your defaults (config.env). Sleeper and ESPN are saved separately"/>
-          <CheckBox x:Name="FreshBox" Content="Bypass cache" VerticalAlignment="Center" Margin="14,0,0,0"/>
-          <Button x:Name="RefreshButton" Content="Refresh" Margin="14,0,0,0" Padding="16,4"
+          <CheckBox x:Name="FreshBox" Content="Bypass cache" VerticalAlignment="Center" Margin="10,0,0,0"
+                    ToolTip="Fetch everything again instead of using cached data"/>
+          <Button x:Name="RefreshButton" Content="Refresh" Margin="12,0,0,0" Padding="16,5"
                   Background="{StaticResource Accent}" Foreground="White" BorderThickness="0" FontWeight="SemiBold"/>
-          <Button x:Name="OpenButton" Content="Open report..." Margin="8,0,0,0" Padding="10,4"/>
-          <Button x:Name="SaveButton" Content="Save report..." Margin="8,0,0,0" Padding="10,4" IsEnabled="False"/>
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-          <ProgressBar x:Name="Busy" Width="90" Height="6" IsIndeterminate="True" Visibility="Collapsed" Margin="0,0,10,0"/>
-          <TextBlock x:Name="StatusText" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" MaxWidth="260"/>
         </StackPanel>
       </DockPanel>
     </Border>
@@ -417,6 +519,7 @@ $script:WindowXaml = @'
         <TextBlock x:Name="NoticeText" Foreground="#9A6700" Margin="0,4,0,0" TextWrapping="Wrap" Visibility="Collapsed"/>
       </StackPanel>
       <Border Grid.Column="1" Style="{StaticResource Card}" MinWidth="380">
+        <StackPanel>
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
@@ -433,6 +536,14 @@ $script:WindowXaml = @'
             <TextBlock x:Name="OppProjText" Text="" Foreground="{StaticResource Muted}" HorizontalAlignment="Center"/>
           </StackPanel>
         </Grid>
+        <Grid x:Name="WinBar" Height="5" Margin="0,8,0,0" Visibility="Collapsed" ToolTip="Chance to win with the recommended lineup">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="WinBarMine" Width="*"/><ColumnDefinition x:Name="WinBarOpp" Width="*"/>
+          </Grid.ColumnDefinitions>
+          <Border Grid.Column="0" Background="{StaticResource Accent}" CornerRadius="2.5,0,0,2.5"/>
+          <Border Grid.Column="1" Background="#D5DAE0" CornerRadius="0,2.5,2.5,0"/>
+        </Grid>
+        </StackPanel>
       </Border>
     </Grid>
 
@@ -451,33 +562,47 @@ $script:WindowXaml = @'
     </Expander>
 
     <!-- tabs -->
-    <TabControl x:Name="Tabs" Grid.Row="3" Margin="0,10,0,0" Padding="10" Background="White">
+    <TabControl x:Name="Tabs" Grid.Row="3" Margin="0,10,0,0" Padding="12" Background="White" BorderBrush="#D5DAE0">
       <TabItem x:Name="LineupTab" Header="Lineup">
-        <Grid>
-          <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/><RowDefinition Height="2*"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/>
-          </Grid.RowDefinitions>
-          <TextBlock x:Name="LineupSummary" Grid.Row="0" Margin="2,0,0,8" TextWrapping="Wrap"/>
-          <DataGrid x:Name="LineupGrid" Grid.Row="1" RowStyle="{StaticResource ActionRows}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+          <TextBlock x:Name="LineupSummary" Margin="2,0,0,8" TextWrapping="Wrap"/>
+          <DataGrid x:Name="LineupGrid" RowStyle="{StaticResource ActionRows}">
             <DataGrid.Columns>
-              <DataGridTextColumn Header="Slot" Binding="{Binding Slot}" Width="80"/>
-              <DataGridTextColumn Header="Current" Binding="{Binding Current}" Width="*"/>
-              <DataGridTextColumn Header="Recommended" Binding="{Binding Recommended}" Width="*"/>
-              <DataGridTextColumn Header="Action" Binding="{Binding Action}" Width="100"/>
-              <DataGridTextColumn Header="Gain" Binding="{Binding Gain}" Width="70"/>
-              <DataGridTextColumn Header="Note" Binding="{Binding Note}" Width="90"/>
+              <DataGridTextColumn Header="Slot" Binding="{Binding Slot}" Width="70" FontWeight="SemiBold"/>
+              <DataGridTextColumn Header="Current" Binding="{Binding Current}" Width="*" ElementStyle="{StaticResource Trim}"/>
+              <DataGridTextColumn Header="Recommended" Binding="{Binding Recommended}" Width="*" ElementStyle="{StaticResource Trim}"/>
+              <DataGridTemplateColumn Header="Action" Width="110">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <Border x:Name="Pill" CornerRadius="9" Padding="8,1" HorizontalAlignment="Left" VerticalAlignment="Center" Background="#EEF1F4">
+                      <TextBlock x:Name="PillText" Text="{Binding Action}" FontSize="11" FontWeight="SemiBold" Foreground="#5B6570"/>
+                    </Border>
+                    <DataTemplate.Triggers>
+                      <DataTrigger Binding="{Binding Action}" Value="START"><Setter TargetName="Pill" Property="Background" Value="#1A7F37"/><Setter TargetName="PillText" Property="Foreground" Value="White"/></DataTrigger>
+                      <DataTrigger Binding="{Binding Action}" Value="MOVE"><Setter TargetName="Pill" Property="Background" Value="#1F6FEB"/><Setter TargetName="PillText" Property="Foreground" Value="White"/></DataTrigger>
+                      <DataTrigger Binding="{Binding Action}" Value="BENCH"><Setter TargetName="Pill" Property="Background" Value="#BF8700"/><Setter TargetName="PillText" Property="Foreground" Value="White"/></DataTrigger>
+                      <DataTrigger Binding="{Binding Action}" Value="EMPTY SLOT"><Setter TargetName="Pill" Property="Background" Value="#CF222E"/><Setter TargetName="PillText" Property="Foreground" Value="White"/></DataTrigger>
+                      <DataTrigger Binding="{Binding Action}" Value="LOCKED"><Setter TargetName="Pill" Property="Background" Value="#EEF1F4"/><Setter TargetName="PillText" Property="Foreground" Value="#8A939C"/></DataTrigger>
+                    </DataTemplate.Triggers>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTextColumn Header="Gain" Binding="{Binding Gain}" Width="70" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Note" Binding="{Binding Note}" Width="90" ElementStyle="{StaticResource Trim}"/>
             </DataGrid.Columns>
           </DataGrid>
-          <TextBlock Grid.Row="2" Text="Risk / availability" FontWeight="SemiBold" Margin="2,12,0,6"/>
-          <DataGrid x:Name="RiskGrid" Grid.Row="3">
+          <TextBlock Text="Risk / availability" FontWeight="SemiBold" Margin="2,12,0,6"/>
+          <DataGrid x:Name="RiskGrid" >
             <DataGrid.Columns>
               <DataGridTextColumn Header="Player" Binding="{Binding Player}" Width="200"/>
-              <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="220"/>
+              <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="220" ElementStyle="{StaticResource Trim}"/>
               <DataGridTextColumn Header="Excluded" Binding="{Binding Excluded}" Width="80"/>
-              <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="*"/>
+              <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="*" ElementStyle="{StaticResource Trim}"/>
             </DataGrid.Columns>
           </DataGrid>
-        </Grid>
+        </StackPanel>
+        </ScrollViewer>
       </TabItem>
       <TabItem Header="Waivers">
         <Grid>
@@ -485,17 +610,30 @@ $script:WindowXaml = @'
           <TextBlock x:Name="WaiverSummary" Grid.Row="0" Margin="2,0,0,8" TextWrapping="Wrap"/>
           <DataGrid x:Name="WaiverGrid" Grid.Row="1" RowStyle="{StaticResource GroupRows}">
             <DataGrid.Columns>
-              <DataGridTextColumn Header="Group" Binding="{Binding Group}" Width="120"/>
+              <DataGridTemplateColumn Header="Group" Width="124">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <Border x:Name="Pill" CornerRadius="9" Padding="8,1" HorizontalAlignment="Left" VerticalAlignment="Center" Background="#EEF1F4">
+                      <TextBlock x:Name="PillText" Text="{Binding Group}" FontSize="11" FontWeight="SemiBold" Foreground="#5B6570"/>
+                    </Border>
+                    <DataTemplate.Triggers>
+                      <DataTrigger Binding="{Binding Group}" Value="Priority"><Setter TargetName="Pill" Property="Background" Value="#1A7F37"/><Setter TargetName="PillText" Property="Foreground" Value="White"/></DataTrigger>
+                      <DataTrigger Binding="{Binding Group}" Value="Streamer"><Setter TargetName="Pill" Property="Background" Value="#DCE9FD"/><Setter TargetName="PillText" Property="Foreground" Value="#1F4E9E"/></DataTrigger>
+                      <DataTrigger Binding="{Binding Group}" Value="Avoid"><Setter TargetName="Pill" Property="Background" Value="#EEF1F4"/><Setter TargetName="PillText" Property="Foreground" Value="#8A939C"/></DataTrigger>
+                    </DataTemplate.Triggers>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
               <DataGridTextColumn Header="Player" Binding="{Binding Player}" Width="180"/>
               <DataGridTextColumn Header="Pos" Binding="{Binding Pos}" Width="48"/>
               <DataGridTextColumn Header="Team" Binding="{Binding Team}" Width="52"/>
-              <DataGridTextColumn Header="Proj" Binding="{Binding Proj}" Width="56"/>
-              <DataGridTextColumn Header="Net" Binding="{Binding Net}" Width="56"/>
-              <DataGridTextColumn Header="Window" Binding="{Binding Window}" Width="66"/>
-              <DataGridTextColumn Header="Score" Binding="{Binding Score}" Width="56"/>
+              <DataGridTextColumn Header="Proj" Binding="{Binding Proj}" Width="56" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Net" Binding="{Binding Net}" Width="56" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Window" Binding="{Binding Window}" Width="66" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Score" Binding="{Binding Score}" Width="56" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
               <DataGridTextColumn Header="Bid" Binding="{Binding Bid}" Width="90"/>
-              <DataGridTextColumn Header="Drop" Binding="{Binding Drop}" Width="150"/>
-              <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="*"/>
+              <DataGridTextColumn Header="Drop" Binding="{Binding Drop}" Width="150" ElementStyle="{StaticResource Trim}"/>
+              <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="*" ElementStyle="{StaticResource Trim}"/>
             </DataGrid.Columns>
           </DataGrid>
         </Grid>
@@ -507,13 +645,13 @@ $script:WindowXaml = @'
           <DataGrid x:Name="TradeGrid" Grid.Row="1">
             <DataGrid.Columns>
               <DataGridTextColumn Header="Partner" Binding="{Binding Partner}" Width="150"/>
-              <DataGridTextColumn Header="Give" Binding="{Binding Give}" Width="*"/>
-              <DataGridTextColumn Header="Get" Binding="{Binding Get}" Width="*"/>
-              <DataGridTextColumn Header="My gain" Binding="{Binding MyGain}" Width="72"/>
-              <DataGridTextColumn Header="Their gain" Binding="{Binding TheirGain}" Width="80"/>
-              <DataGridTextColumn Header="My gain this wk" Binding="{Binding ThisWeek}" Width="110"/>
-              <DataGridTextColumn Header="Fairness gap" Binding="{Binding Gap}" Width="96"/>
-              <DataGridTextColumn Header="Partner needs" Binding="{Binding Needs}" Width="140"/>
+              <DataGridTextColumn Header="Give" Binding="{Binding Give}" Width="*" ElementStyle="{StaticResource Trim}"/>
+              <DataGridTextColumn Header="Get" Binding="{Binding Get}" Width="*" ElementStyle="{StaticResource Trim}"/>
+              <DataGridTextColumn Header="My gain" Binding="{Binding MyGain}" Width="72" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Their gain" Binding="{Binding TheirGain}" Width="80" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="My gain this wk" Binding="{Binding ThisWeek}" Width="110" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Fairness gap" Binding="{Binding Gap}" Width="96" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Partner needs" Binding="{Binding Needs}" Width="140" ElementStyle="{StaticResource Trim}"/>
             </DataGrid.Columns>
           </DataGrid>
         </Grid>
@@ -549,8 +687,8 @@ $script:WindowXaml = @'
               </Grid>
               <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                <ListBox x:Name="GiveList" Grid.Column="0" SelectionMode="Multiple" DisplayMemberPath="Label" BorderBrush="#D5DAE0"/>
-                <ListBox x:Name="GetList" Grid.Column="2" SelectionMode="Multiple" DisplayMemberPath="Label" BorderBrush="#D5DAE0"/>
+                <ListBox x:Name="GiveList" Grid.Column="0" SelectionMode="Multiple" ItemTemplate="{StaticResource LabelItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" BorderBrush="#D5DAE0"/>
+                <ListBox x:Name="GetList" Grid.Column="2" SelectionMode="Multiple" ItemTemplate="{StaticResource LabelItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" BorderBrush="#D5DAE0"/>
               </Grid>
             </Grid>
 
@@ -577,16 +715,16 @@ $script:WindowXaml = @'
                 <Grid Grid.Column="0">
                   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="110"/></Grid.RowDefinitions>
                   <TextBox x:Name="SearchA" Grid.Row="0" Padding="4,3" ToolTip="Type part of a name, a team (BUF) or a position (WR)"/>
-                  <ListBox x:Name="ResultsA" Grid.Row="1" DisplayMemberPath="Label" BorderBrush="#D5DAE0" Margin="0,4,0,0"/>
+                  <ListBox x:Name="ResultsA" Grid.Row="1" ItemTemplate="{StaticResource LabelItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" BorderBrush="#D5DAE0" Margin="0,4,0,0"/>
                   <TextBlock Grid.Row="2" Text="Picked" Foreground="{StaticResource Muted}" Margin="0,6,0,2"/>
-                  <ListBox x:Name="PickedA" Grid.Row="3" DisplayMemberPath="Label" BorderBrush="#D5DAE0" Background="#F6F8FA"/>
+                  <ListBox x:Name="PickedA" Grid.Row="3" ItemTemplate="{StaticResource LabelItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" BorderBrush="#D5DAE0" Background="#F6F8FA"/>
                 </Grid>
                 <Grid Grid.Column="2">
                   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="110"/></Grid.RowDefinitions>
                   <TextBox x:Name="SearchB" Grid.Row="0" Padding="4,3" ToolTip="Type part of a name, a team (BUF) or a position (WR)"/>
-                  <ListBox x:Name="ResultsB" Grid.Row="1" DisplayMemberPath="Label" BorderBrush="#D5DAE0" Margin="0,4,0,0"/>
+                  <ListBox x:Name="ResultsB" Grid.Row="1" ItemTemplate="{StaticResource LabelItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" BorderBrush="#D5DAE0" Margin="0,4,0,0"/>
                   <TextBlock Grid.Row="2" Text="Picked" Foreground="{StaticResource Muted}" Margin="0,6,0,2"/>
-                  <ListBox x:Name="PickedB" Grid.Row="3" DisplayMemberPath="Label" BorderBrush="#D5DAE0" Background="#F6F8FA"/>
+                  <ListBox x:Name="PickedB" Grid.Row="3" ItemTemplate="{StaticResource LabelItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" BorderBrush="#D5DAE0" Background="#F6F8FA"/>
                 </Grid>
               </Grid>
             </Grid>
@@ -625,7 +763,44 @@ $script:WindowXaml = @'
       </TabItem>
       <TabItem Header="Matchup">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-          <TextBlock x:Name="MatchupDetail" Margin="4" TextWrapping="Wrap" FontSize="14" LineHeight="24"/>
+          <StackPanel Margin="4" MaxWidth="900" HorizontalAlignment="Left">
+            <Border x:Name="MatchupBoard" Style="{StaticResource Card}" Padding="24,18" MinWidth="640" Visibility="Collapsed">
+              <StackPanel>
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
+                  </Grid.ColumnDefinitions>
+                  <StackPanel Grid.Column="0">
+                    <TextBlock x:Name="MuMyTeam" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="MuMyScore" FontSize="44" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/>
+                    <TextBlock x:Name="MuMyProj" Foreground="{StaticResource Muted}"/>
+                    <TextBlock x:Name="MuMyRange" Foreground="{StaticResource Muted}"/>
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" Text="vs" VerticalAlignment="Center" Margin="24,0" FontSize="16" Foreground="{StaticResource Muted}"/>
+                  <StackPanel Grid.Column="2">
+                    <TextBlock x:Name="MuOppTeam" FontSize="16" FontWeight="SemiBold" TextAlignment="Right" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="MuOppScore" FontSize="44" FontWeight="SemiBold" TextAlignment="Right"/>
+                    <TextBlock x:Name="MuOppProj" Foreground="{StaticResource Muted}" TextAlignment="Right"/>
+                    <TextBlock x:Name="MuOppRange" Foreground="{StaticResource Muted}" TextAlignment="Right"/>
+                  </StackPanel>
+                </Grid>
+                <StackPanel x:Name="MuWinPanel" Margin="0,16,0,0" Visibility="Collapsed">
+                  <Grid Height="10">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition x:Name="MuWinMine" Width="*"/><ColumnDefinition x:Name="MuWinOpp" Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Background="{StaticResource Accent}" CornerRadius="5,0,0,5"/>
+                    <Border Grid.Column="1" Background="#D5DAE0" CornerRadius="0,5,5,0"/>
+                  </Grid>
+                  <DockPanel Margin="0,6,0,0">
+                    <TextBlock x:Name="MuWinOppText" DockPanel.Dock="Right" Foreground="{StaticResource Muted}"/>
+                    <TextBlock x:Name="MuWinMyText" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/>
+                  </DockPanel>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+            <TextBlock x:Name="MatchupDetail" Margin="2,14,0,0" TextWrapping="Wrap" FontSize="13.5" LineHeight="24"/>
+          </StackPanel>
         </ScrollViewer>
       </TabItem>
       <TabItem Header="Sources">
@@ -638,9 +813,10 @@ $script:WindowXaml = @'
               <DataGridTextColumn Header="Pos" Binding="{Binding Pos}" Width="50"/>
               <DataGridTextColumn Header="Team" Binding="{Binding Team}" Width="60"/>
               <DataGridTextColumn Header="Where" Binding="{Binding Where}" Width="100"/>
-              <DataGridTextColumn Header="Sleeper (PPR)" Binding="{Binding Sleeper}" Width="100"/>
-              <DataGridTextColumn Header="ESPN (PPR)" Binding="{Binding Espn}" Width="90"/>
-              <DataGridTextColumn Header="Difference" Binding="{Binding Diff}" Width="*"/>
+              <DataGridTextColumn Header="Sleeper (PPR)" Binding="{Binding Sleeper}" Width="100" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="ESPN (PPR)" Binding="{Binding Espn}" Width="90" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Difference" Binding="{Binding Diff}" Width="90" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="" Width="*"/>
             </DataGrid.Columns>
           </DataGrid>
         </Grid>
@@ -678,10 +854,11 @@ $script:WindowXaml = @'
           <DataGrid x:Name="HistoryAccGrid" Grid.Row="1" MaxHeight="230">
             <DataGrid.Columns>
               <DataGridTextColumn Header="Position" Binding="{Binding Position}" Width="80"/>
-              <DataGridTextColumn Header="Player-weeks" Binding="{Binding N}" Width="95"/>
-              <DataGridTextColumn Header="Avg miss" Binding="{Binding Mae}" Width="80"/>
-              <DataGridTextColumn Header="Bias" Binding="{Binding Bias}" Width="70"/>
-              <DataGridTextColumn Header="Within 5 pts" Binding="{Binding Within}" Width="*"/>
+              <DataGridTextColumn Header="Player-weeks" Binding="{Binding N}" Width="95" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Avg miss" Binding="{Binding Mae}" Width="80" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Bias" Binding="{Binding Bias}" Width="70" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Within 5 pts" Binding="{Binding Within}" Width="96" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="" Width="*"/>
             </DataGrid.Columns>
           </DataGrid>
           <TextBlock Grid.Row="2" Margin="2,12,0,6" FontWeight="SemiBold" Text="Your roster: recent form (last 4 weeks played)"/>
@@ -689,11 +866,11 @@ $script:WindowXaml = @'
             <DataGrid.Columns>
               <DataGridTextColumn Header="Player" Binding="{Binding Player}" Width="200"/>
               <DataGridTextColumn Header="Pos" Binding="{Binding Pos}" Width="50"/>
-              <DataGridTextColumn Header="GP" Binding="{Binding Games}" Width="45"/>
-              <DataGridTextColumn Header="Avg" Binding="{Binding Avg}" Width="60"/>
-              <DataGridTextColumn Header="Proj" Binding="{Binding Proj}" Width="60"/>
-              <DataGridTextColumn Header="Beat proj" Binding="{Binding Beat}" Width="75"/>
-              <DataGridTextColumn Header="Weekly (actual)" Binding="{Binding Weekly}" Width="*"/>
+              <DataGridTextColumn Header="GP" Binding="{Binding Games}" Width="45" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Avg" Binding="{Binding Avg}" Width="60" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Proj" Binding="{Binding Proj}" Width="60" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Beat proj" Binding="{Binding Beat}" Width="75" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Weekly (actual)" Binding="{Binding Weekly}" Width="*" ElementStyle="{StaticResource Trim}"/>
             </DataGrid.Columns>
           </DataGrid>
         </Grid>
@@ -706,18 +883,24 @@ $script:WindowXaml = @'
             <DataGrid.Columns>
               <DataGridTextColumn Header="Source" Binding="{Binding Key}" Width="130"/>
               <DataGridTextColumn Header="Origin" Binding="{Binding Origin}" Width="100"/>
-              <DataGridTextColumn Header="Cache age" Binding="{Binding Age}" Width="80"/>
-              <DataGridTextColumn Header="Records" Binding="{Binding Records}" Width="70"/>
-              <DataGridTextColumn Header="Note" Binding="{Binding Note}" Width="150"/>
-              <DataGridTextColumn Header="URL" Binding="{Binding Url}" Width="*"/>
+              <DataGridTextColumn Header="Cache age" Binding="{Binding Age}" Width="80" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Records" Binding="{Binding Records}" Width="70" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Note" Binding="{Binding Note}" Width="150" ElementStyle="{StaticResource Trim}"/>
+              <DataGridTextColumn Header="URL" Binding="{Binding Url}" Width="*" ElementStyle="{StaticResource Trim}"/>
             </DataGrid.Columns>
           </DataGrid>
         </Grid>
       </TabItem>
     </TabControl>
 
-    <TextBlock Grid.Row="4" Margin="2,8,0,0" Foreground="{StaticResource Muted}" FontSize="12"
-               Text="Read-only: this tool cannot submit lineups, waiver claims or trades. Projections are advisory; correlation and game script are not modelled."/>
+    <DockPanel Grid.Row="4" Margin="2,8,2,0" LastChildFill="True">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+        <ProgressBar x:Name="Busy" Width="90" Height="6" IsIndeterminate="True" Visibility="Collapsed" Margin="0,0,10,0"/>
+        <TextBlock x:Name="StatusText" Foreground="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="420"/>
+      </StackPanel>
+      <TextBlock Foreground="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis"
+                 Text="Read-only: this tool cannot submit lineups, waiver claims or trades. Projections are advisory; correlation and game script are not modelled."/>
+    </DockPanel>
   </Grid>
 </Window>
 '@
@@ -755,13 +938,32 @@ function Format-Player($ref) {
     return ('{0} ({1}/{2})' -f (Get-Prop $ref 'name'), $pos, $team)
 }
 
+function Format-Slot($slot) {
+    # Lineup slot names as fantasy sites show them.
+    $names = @{ WRRB_FLEX = 'RB/WR'; REC_FLEX = 'WR/TE'; WRRB_WRT = 'FLEX'; SUPER_FLEX = 'SFLEX'; IDP_FLEX = 'IDP'; DEF = 'D/ST'; DST = 'D/ST' }
+    $key = ([string]$slot).ToUpperInvariant()
+    if ($names.ContainsKey($key)) { return $names[$key] }
+    return [string]$slot
+}
+
+function Set-WinBar($mine, $opp, $pct) {
+    # Two star-sized columns: my chance to win against the opponent's.
+    $value = [Math]::Max(0.0, [Math]::Min(100.0, [double]$pct))
+    $mine.Width = New-Object Windows.GridLength $value, ([Windows.GridUnitType]::Star)
+    $opp.Width = New-Object Windows.GridLength (100.0 - $value), ([Windows.GridUnitType]::Star)
+}
+
 function Update-ReportView($ui, $report) {
     $meta = $report.metadata
     $week = Get-Prop $meta 'week'
     $ui.TitleText.Text = ('{0} - Week {1}' -f $(if (Get-Prop $meta 'league_name') { $meta.league_name } else { 'League' }), $week)
-    $ui.SubtitleText.Text = ('{0} ({1})   |   {2} {3}   |   generated {4}   |   {5}' -f `
-        $(if (Get-Prop $meta 'team_name') { $meta.team_name } else { 'n/a' }), $meta.username, $meta.season, $meta.season_type,
-        (Format-Time $meta.generated_at), ('scoring: ' + $meta.scoring.mode))
+    $platform = $(if ((Get-Prop $meta 'platform') -eq 'espn') { 'ESPN' } else { 'Sleeper' })
+    $team = $(if (Get-Prop $meta 'team_name') { [string]$meta.team_name } else { 'n/a' })
+    # A Sleeper report also names the manager; an ESPN team is the identity.
+    if ($platform -eq 'Sleeper' -and $meta.username -and $meta.username -ne $team) { $team += (' ({0})' -f $meta.username) }
+    $scoring = $(if ([string]$meta.scoring.mode -like 'league*') { 'league scoring' } else { 'scoring: ' + $meta.scoring.mode })
+    $season = $(if ($meta.season_type -eq 'regular') { "$($meta.season) season" } else { "$($meta.season) $($meta.season_type)" })
+    $ui.SubtitleText.Text = (@($team, $platform, $season, $scoring, ('updated ' + (Format-Time $meta.generated_at))) -join '   |   ')
     $notices = @()
     if ($null -ne (Get-Prop $meta 'week_rolled_from')) {
         $notices += ('Every week {0} game is final, so this is week {1}.' -f $meta.week_rolled_from, $week)
@@ -788,9 +990,26 @@ function Update-ReportView($ui, $report) {
         $wpLines = @(Get-WinProbabilityLines (Get-Prop $m 'win_probability'))
         $wp = Get-Prop $m 'win_probability'
         if ($wp) { $ui.MyProjText.Text += ('  -  win {0}%' -f (Format-Points $wp.recommended_lineup_pct)) }
+        # scoreboard on the Matchup tab, win-probability bars there and in the header
+        $ui.MatchupBoard.Visibility = 'Visible'
+        $ui.MuMyTeam.Text = $ui.MyTeamText.Text; $ui.MuOppTeam.Text = $ui.OppTeamText.Text
+        $ui.MuMyScore.Text = $ui.MyScoreText.Text; $ui.MuOppScore.Text = $ui.OppScoreText.Text
+        $ui.MuMyProj.Text = 'Projected final ' + (Format-Points (Get-Prop $m 'my_projected_final'))
+        $ui.MuOppProj.Text = 'Projected final ' + (Format-Points (Get-Prop $m 'opponent_projected_final'))
+        $ui.MuMyRange.Text = ''; $ui.MuOppRange.Text = ''
+        if ($wp) {
+            $pct = [double]$wp.recommended_lineup_pct
+            Set-WinBar $ui.WinBarMine $ui.WinBarOpp $pct
+            Set-WinBar $ui.MuWinMine $ui.MuWinOpp $pct
+            $ui.WinBar.Visibility = 'Visible'; $ui.MuWinPanel.Visibility = 'Visible'
+            $ui.MuWinMyText.Text = ('{0}% chance to win' -f (Format-Points $pct))
+            $ui.MuWinOppText.Text = ('{0}%' -f (Format-Points ([Math]::Round(100.0 - $pct, 1))))
+            $ui.MuMyRange.Text = ('Likely {0}-{1}' -f (Format-Points ([Math]::Round([double]$wp.my_range.p10))), (Format-Points ([Math]::Round([double]$wp.my_range.p90))))
+            $ui.MuOppRange.Text = ('Likely {0}-{1}' -f (Format-Points ([Math]::Round([double]$wp.opponent_range.p10))), (Format-Points ([Math]::Round([double]$wp.opponent_range.p90))))
+        } else {
+            $ui.WinBar.Visibility = 'Collapsed'; $ui.MuWinPanel.Visibility = 'Collapsed'
+        }
         $ui.MatchupDetail.Text = (@(
-            ('{0}  vs  {1}' -f $ui.MyTeamText.Text, $ui.OppTeamText.Text),
-            ('Live / final points:  {0}  vs  {1}' -f (Format-Points $m.my_points), (Format-Points $m.opponent_points)),
             ('Projected (current lineups):  {0}  vs  {1}   (differential {2})' -f (Format-Points $m.my_projected), (Format-Points $m.opponent_projected), (Format-Points $m.differential)),
             ('Projected final (live + remaining):  {0}  vs  {1}   ({2})' -f (Format-Points (Get-Prop $m 'my_projected_final')), (Format-Points (Get-Prop $m 'opponent_projected_final')), (Format-Points (Get-Prop $m 'final_differential'))),
             ''
@@ -799,6 +1018,7 @@ function Update-ReportView($ui, $report) {
     } else {
         foreach ($n in 'MyTeamText', 'OppTeamText', 'MyScoreText', 'OppScoreText') { $ui[$n].Text = '-' }
         $ui.MyProjText.Text = ''; $ui.OppProjText.Text = ''
+        $ui.WinBar.Visibility = 'Collapsed'; $ui.MatchupBoard.Visibility = 'Collapsed'
         $ui.MatchupDetail.Text = 'Matchup data unavailable.'
     }
 
@@ -812,7 +1032,7 @@ function Update-ReportView($ui, $report) {
     $ui.LineupSummary.Text = $summary
     $ui.LineupGrid.ItemsSource = @($l.slots | ForEach-Object {
         [pscustomobject]@{
-            Slot = $_.slot; Current = Format-Player $_.current; Recommended = Format-Player $_.recommended
+            Slot = Format-Slot $_.slot; Current = Format-Player $_.current; Recommended = Format-Player $_.recommended
             Action = $_.action; Gain = Format-Points $_.gain
             Note = $(if ($_.below_threshold) { 'optional' } else { '' })
         }
@@ -909,19 +1129,18 @@ function Update-ReportView($ui, $report) {
 function Get-WinProbabilityLines($wp) {
     # Matchup simulation (reports from 2.9.0 on).
     if ($null -eq $wp) { return @() }
-    $lines = @(
-        ('Win probability:  {0}% with your current lineup,  {1}% with the recommended one  ({2} simulations)' -f
-            (Format-Points $wp.current_lineup_pct), (Format-Points $wp.recommended_lineup_pct), $wp.simulations),
-        ('Likely range (10th-90th percentile):  you {0}-{1},  them {2}-{3}' -f
-            (Format-Points ([Math]::Round([double]$wp.my_range.p10))), (Format-Points ([Math]::Round([double]$wp.my_range.p90))),
-            (Format-Points ([Math]::Round([double]$wp.opponent_range.p10))), (Format-Points ([Math]::Round([double]$wp.opponent_range.p90))))
-    )
+    # The chance to win and the likely ranges are on the scoreboard above.
+    $lines = @()
+    if ([double]$wp.current_lineup_pct -ne [double]$wp.recommended_lineup_pct) {
+        $lines += ('Win probability:  {0}% with your current lineup,  {1}% with the recommended one' -f
+            (Format-Points $wp.current_lineup_pct), (Format-Points $wp.recommended_lineup_pct))
+    }
     foreach ($mv in @($wp.moves)) {
         if ($null -eq $mv) { continue }
         $lines += ('To raise your chances: start {0} over {1} ({2}): {3}% ({4}), {5} projected points' -f
-            $mv.in.name, $mv.out.name, $mv.slot, (Format-Points $mv.win_pct), (Format-Signed $mv.win_gain), (Format-Signed $mv.points_change))
+            $mv.in.name, $mv.out.name, (Format-Slot $mv.slot), (Format-Points $mv.win_pct), (Format-Signed $mv.win_gain), (Format-Signed $mv.points_change))
     }
-    $lines += ('Score spreads: ' + $wp.spread_source)
+    $lines += ('Based on {0} simulations. Likely ranges are the 10th-90th percentile. Score spreads: {1}' -f $wp.simulations, $wp.spread_source)
     return $lines + @('')
 }
 
@@ -1330,7 +1549,8 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
             'Busy', 'StatusText', 'TitleText', 'SubtitleText', 'NoticeText', 'MyTeamText', 'MyScoreText', 'MyProjText',
             'OppTeamText', 'OppScoreText', 'OppProjText', 'WarningsExpander', 'WarningsHeader', 'WarningsList',
             'LineupSummary', 'LineupGrid', 'RiskGrid', 'WaiverSummary', 'WaiverGrid', 'TradeSummary', 'TradeGrid',
-            'MatchupDetail', 'HistorySummary', 'HistoryAccGrid', 'HistoryFormGrid', 'TrendsSummary', 'BreakoutGrid', 'DecliningGrid', 'SourcesSummary', 'SourcesGrid', 'DiagSummary', 'DiagGrid', 'Tabs', 'AnalyzerTab', 'PartnerBox', 'GiveList', 'GetList',
+            'MatchupDetail', 'MatchupBoard', 'MuMyTeam', 'MuMyScore', 'MuMyProj', 'MuMyRange', 'MuOppTeam', 'MuOppScore', 'MuOppProj', 'MuOppRange',
+            'MuWinPanel', 'MuWinMine', 'MuWinOpp', 'MuWinMyText', 'MuWinOppText', 'WinBar', 'WinBarMine', 'WinBarOpp', 'HistorySummary', 'HistoryAccGrid', 'HistoryFormGrid', 'TrendsSummary', 'BreakoutGrid', 'DecliningGrid', 'SourcesSummary', 'SourcesGrid', 'DiagSummary', 'DiagGrid', 'Tabs', 'AnalyzerTab', 'PartnerBox', 'GiveList', 'GetList',
             'GradeButton', 'ClearTradeButton', 'TradePickSummary', 'YouGrade', 'ThemGrade', 'ThemLabel', 'AcceptText',
             'VerdictText', 'TradeDetail', 'YouLabel', 'LeagueModeRadio', 'OpenModeRadio', 'LeaguePanel', 'OpenPanel',
             'FromBox', 'GiveHeader', 'GetHeader', 'ScoringBox', 'TeamsBox', 'SearchA', 'SearchB', 'ResultsA', 'ResultsB',

@@ -2,6 +2,29 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 3.2.0
+
+A visual pass over the Windows app. The analysis and the reports are
+unchanged.
+
+### Changed
+
+- Toolbar: everything fits at the default window size (the Save button was
+  cut off). **Open** and **Save** sit on the right, and the status text
+  moved to the bottom line.
+- Flat tabs, buttons and text boxes; calmer tables with more row spacing,
+  right-aligned numbers, and long cells trimmed with a tooltip.
+- Lineup: slot names as fantasy sites show them (RB/WR, WR/TE, SFLEX,
+  D/ST), an action badge per row, and every slot visible without
+  scrolling inside the table.
+- Waivers: a badge for the group (Priority, Streamer, Avoid).
+- Matchup: a scoreboard with both teams, projected finals, likely ranges
+  and a win-probability bar; the header card gets the same bar. Text the
+  scoreboard already shows is no longer repeated below it.
+- Header line: team, platform, season and when the report was updated. An
+  ESPN team is no longer shown twice.
+- Trade Analyzer lists no longer scroll sideways.
+
 ## 3.1.0
 
 ### Added
