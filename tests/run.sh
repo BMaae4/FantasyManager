@@ -415,7 +415,7 @@ run_case ppr_basic --format json
 assert_json "json has metadata" '.metadata.league_id == "100000000000000001"'
 assert_json "json has diagnostics" '(.diagnostics.fetches | length) > 0'
 assert_json "json keys stable" \
-    '[keys[]] == ["custom_trades","diagnostics","history","lineup","matchup","metadata","opportunity","player_pool","projection_sources","rosters","schema_version","trades","value_trades","waivers","warnings"]'
+    '[keys[]] == ["custom_trades","diagnostics","history","lineup","matchup","metadata","opponent_strength","opportunity","player_pool","playoffs","projection_sources","rosters","schema_version","trades","value_trades","waivers","warnings"]'
 
 run_case ppr_basic --format json --quiet
 assert_status "--quiet exits 0" 0
