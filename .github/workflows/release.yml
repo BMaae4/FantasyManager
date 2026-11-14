@@ -1,0 +1,38 @@
+name: release
+
+# Pushing a tag like v3.5.0 builds the Windows download and publishes it on
+# the Releases page.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows-download:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the Windows download
+        id: build
+        shell: powershell
+        run: ./tools/package.ps1
+      - name: The tag matches the app's version
+        shell: powershell
+        run: |
+          if ("v${{ steps.build.outputs.version }}" -ne "${{ github.ref_name }}") {
+            throw "Tag ${{ github.ref_name }} does not match version ${{ steps.build.outputs.version }} in FantasyManager.ps1."
+          }
+      - name: Run it without any other Python
+        shell: powershell
+        run: ./tools/check_package.ps1
+      - name: Publish the release
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" "${{ steps.build.outputs.zip }}" `
+            --title "Fantasy Manager ${{ steps.build.outputs.version }}" `
+            --notes "Windows: download FantasyManager-${{ steps.build.outputs.version }}-windows.zip, unzip it and double-click FantasyManager.cmd. Nothing else needs installing. See CHANGELOG.md for what changed."

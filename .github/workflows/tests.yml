@@ -45,3 +45,21 @@ jobs:
       - name: PowerShell 7
         shell: cmd
         run: pwsh -NoProfile -File tests\windows.ps1 -Expected expected
+
+  package:
+    # The Windows download (the app plus its own Python), built and run with
+    # no other Python reachable. A release attaches the same zip.
+    needs: offline-suite
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the Windows download
+        shell: powershell
+        run: ./tools/package.ps1
+      - name: Run it without any other Python
+        shell: powershell
+        run: ./tools/check_package.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FantasyManager-windows
+          path: dist/FantasyManager-*-windows.zip

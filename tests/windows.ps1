@@ -125,6 +125,16 @@ Check 'GUI: opens on the other platform with its own league' ($r.Code -eq 0 -and
     $r.Out -match 'platform toggle: sleeper 111/me, back espn 222/My Team') ("$($r.Out) $($r.Err)")
 $env:FM_LEAGUE_ID = $envLeague; $env:FM_USERNAME = $envUser
 
+# Shortcuts: one per folder, opening the window through powershell.exe with the app's icon.
+$fn = $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'New-AppShortcuts' }, $true) | Select-Object -First 1
+. ([scriptblock]::Create($fn.Extent.Text))
+$linkDir = Join-Path $work 'links'
+$links = @(New-AppShortcuts $script @($linkDir))
+$link = (New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $linkDir 'Fantasy Manager.lnk'))
+Check 'shortcut opens the window with no console and has the icon' ($links.Count -eq 1 -and (Test-Path -LiteralPath $links[0]) -and
+    $link.TargetPath -match 'powershell\.exe$' -and $link.Arguments -match '-WindowStyle Hidden -File "' -and
+    $link.Arguments.Contains($script) -and $link.IconLocation -match 'FantasyManager\.ico') ("$($link.TargetPath) $($link.Arguments) $($link.IconLocation)")
+
 # GUI: builds, lays out and fills from a report without being shown.
 $r = Run-Script @('-ReportFile', "`"$(Join-Path $Expected 'locked_players.json')`"", '-GuiSmokeTest')
 Check 'GUI builds and loads a report' ($r.Code -eq 0 -and $r.Out -match 'GUI smoke test ok: lineup rows 9') ("$($r.Out) $($r.Err)")

@@ -2,6 +2,23 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 3.5.0
+
+Easier install on Windows.
+
+### Added
+
+- A Windows download that needs nothing else installed:
+  `FantasyManager-<version>-windows.zip` on the Releases page carries its
+  own Python (python.org's embeddable package, in a `python` folder).
+  Unzip and double-click `FantasyManager.cmd`.
+- `Create Shortcut.cmd` (or `-CreateShortcut`) adds a **Fantasy Manager**
+  shortcut, with an icon, to the Desktop and the Start menu.
+- The Windows app uses a `python` folder next to it before any Python on
+  the PATH. `-Python` and `python=` still come first.
+- Workflows: every push builds the Windows download and runs it with no
+  other Python reachable; pushing a `v*` tag publishes it as a release.
+
 ## 3.4.0
 
 ### Added

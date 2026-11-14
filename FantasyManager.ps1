@@ -15,8 +15,10 @@
 
     Read-only: it cannot submit lineups, waiver claims or trades.
 
-    Requirements: Windows PowerShell 5.1 or PowerShell 7+, Python 3.8+
-    (python.org or the "py" launcher). No bash, jq or curl needed.
+    Requirements: Windows PowerShell 5.1 or PowerShell 7+, and Python 3.8+.
+    The Windows download from the Releases page brings its own Python (the
+    "python" folder next to this script); otherwise python.org or the "py"
+    launcher is used. No bash, jq or curl needed.
 
 .EXAMPLE
     .\FantasyManager.ps1
@@ -37,6 +39,10 @@
 .EXAMPLE
     .\FantasyManager.ps1 -NoGui -ValueTrade "Bijan Robinson for Ja'Marr Chase, Jaylen Waddle" -Scoring half -OutFile t.json
     Grades any players for any players, e.g. a friend's offer in another league.
+
+.EXAMPLE
+    .\FantasyManager.ps1 -CreateShortcut
+    Adds Fantasy Manager shortcuts to the Desktop and the Start menu.
 
 .EXAMPLE
     .\FantasyManager.ps1 -ReportFile report.json
@@ -83,6 +89,7 @@ param(
     [switch]$DebugLog,
     [string]$Python,
     [switch]$Version,
+    [switch]$CreateShortcut,
     [switch]$GuiSmokeTest
 )
 
@@ -90,7 +97,7 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '3.4.0'
+$ToolVersion = '3.5.0'
 
 # --------------------------------------------------------------------------
 # Shared application: lib/fm_app.py does configuration, fetching, caching,
@@ -227,9 +234,36 @@ function Get-PythonSetting {
     return ''
 }
 
+function New-AppShortcuts([string]$scriptPath, [string[]]$folders) {
+    # A "Fantasy Manager" shortcut in each folder: opens the window with no
+    # console, whatever the PowerShell execution policy is.
+    $root = Split-Path -Parent $scriptPath
+    $icon = Join-Path $root 'assets\FantasyManager.ico'
+    $shell = New-Object -ComObject WScript.Shell
+    $made = @()
+    foreach ($folder in $folders) {
+        if (-not $folder) { continue }
+        if (-not (Test-Path -LiteralPath $folder)) { New-Item -ItemType Directory -Path $folder -Force | Out-Null }
+        $path = Join-Path $folder 'Fantasy Manager.lnk'
+        $link = $shell.CreateShortcut($path)
+        $link.TargetPath = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+        $link.Arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "{0}"' -f $scriptPath
+        $link.WorkingDirectory = $root
+        $link.Description = 'Fantasy Manager: weekly lineup, waiver and trade advice'
+        $link.WindowStyle = 7
+        if (Test-Path -LiteralPath $icon) { $link.IconLocation = "$icon,0" }
+        $link.Save()
+        $made += $path
+    }
+    return $made
+}
+
 function Find-Python([string]$preferred) {
     $candidates = @()
     if ($preferred) { $candidates += , @($preferred) }
+    # The Windows download carries its own Python in a "python" folder.
+    $bundled = Join-Path $PSScriptRoot 'python\python.exe'
+    if ($IsWindowsHost -and (Test-Path -LiteralPath $bundled -PathType Leaf)) { $candidates += , @($bundled) }
     if ($IsWindowsHost) { $candidates += , @('py', '-3'); $candidates += , @('python'); $candidates += , @('python3') }
     else { $candidates += , @('python3'); $candidates += , @('python') }
     foreach ($cand in $candidates) {
@@ -2086,6 +2120,12 @@ foreach ($kv in $PSBoundParameters.GetEnumerator()) {
 $script:ScriptPath = $MyInvocation.MyCommand.Path
 
 if ($Version) { [Console]::Out.WriteLine("$ToolName $ToolVersion"); exit $EX_OK }
+if ($CreateShortcut) {
+    if (-not $IsWindowsHost) { [Console]::Error.WriteLine('Shortcuts are for Windows.'); exit $EX_USAGE }
+    $folders = @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))
+    foreach ($made in (New-AppShortcuts $script:ScriptPath $folders)) { [Console]::Out.WriteLine("Created $made") }
+    exit $EX_OK
+}
 
 if ($ReportFile -and -not $NoGui) {
     Show-ReportWindow -InitialReport $ReportFile -SmokeTest:$GuiSmokeTest
