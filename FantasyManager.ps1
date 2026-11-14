@@ -66,6 +66,7 @@ param(
     [string]$Compare,
     [string]$Projections,
     [string]$HistoryDb,
+    [string]$AutoRefresh,
     [switch]$NoGui,
     [string]$Format,
     [string]$OutFile,
@@ -89,7 +90,7 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '3.2.0'
+$ToolVersion = '3.3.0'
 
 # --------------------------------------------------------------------------
 # Shared application: lib/fm_app.py does configuration, fetching, caching,
@@ -272,7 +273,7 @@ function ConvertTo-AppArgs($bound, [string[]]$skip = @()) {
         Horizon = '--horizon'; Locked = '--locked'; Trade = '--trade'; ValueTrade = '--value-trade'
         Scoring = '--scoring'; Teams = '--teams'; Format = '--format'; CacheDir = '--cache-dir'
         CacheTtl = '--cache-ttl'; Fixtures = '--fixtures'; Config = '--config'; LogFile = '--log-file'
-        HistoryDb = '--history-db'; Compare = '--compare'; Projections = '--projections'
+        HistoryDb = '--history-db'; Compare = '--compare'; Projections = '--projections'; AutoRefresh = '--auto-refresh'
     }
     $flags = [ordered]@{
         SkipWaivers = '--skip-waivers'; SkipTrades = '--skip-trades'; NoCache = '--no-cache'; Refresh = '--refresh'
@@ -413,8 +414,68 @@ $script:WindowXaml = @'
       </Setter>
     </Style>
     <Style TargetType="ComboBox">
-      <Setter Property="Padding" Value="6,4"/>
-      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="Background" Value="White"/>
+      <Setter Property="BorderBrush" Value="#C9D0D7"/>
+      <Setter Property="Foreground" Value="#1B1F24"/>
+      <Setter Property="Padding" Value="8,4,24,4"/>
+      <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBox">
+            <Grid>
+              <ToggleButton x:Name="Toggle" Focusable="False" ClickMode="Press"
+                            IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                <ToggleButton.Template>
+                  <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Bd" BorderThickness="1" CornerRadius="4" SnapsToDevicePixels="True"
+                            Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                            BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ComboBox}}">
+                      <Path HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,1,9,0"
+                            Data="M 0 0 L 4 4 L 8 0" Stroke="#5B6570" StrokeThickness="1.4"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                      <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#1F6FEB"/></Trigger>
+                      <Trigger Property="IsChecked" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#1F6FEB"/></Trigger>
+                    </ControlTemplate.Triggers>
+                  </ControlTemplate>
+                </ToggleButton.Template>
+              </ToggleButton>
+              <ContentPresenter IsHitTestVisible="False" Margin="{TemplateBinding Padding}" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"/>
+              <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"
+                     IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                <Border Background="White" BorderBrush="#C9D0D7" BorderThickness="1" CornerRadius="5" Margin="0,3,0,6" Padding="0,3"
+                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                        MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                  <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
+                  </ScrollViewer>
+                </Border>
+              </Popup>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="BorderBrush" Value="#1F6FEB"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style TargetType="ComboBoxItem">
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBoxItem">
+            <Border x:Name="Bd" Padding="10,5" Background="Transparent">
+              <ContentPresenter/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsSelected" Value="True"><Setter TargetName="Bd" Property="TextElement.FontWeight" Value="SemiBold"/></Trigger>
+              <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Bd" Property="Background" Value="#EEF3FE"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
     </Style>
     <Style TargetType="TabItem">
       <Setter Property="FontSize" Value="13.5"/>
@@ -676,9 +737,9 @@ $script:WindowXaml = @'
               </Grid.RowDefinitions>
               <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
                 <TextBlock Text="Team A" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                <ComboBox x:Name="FromBox" Width="200" DisplayMemberPath="Label"/>
+                <ComboBox x:Name="FromBox" Width="210" ItemTemplate="{StaticResource LabelItem}"/>
                 <TextBlock Text="trades with" VerticalAlignment="Center" Margin="10,0,6,0"/>
-                <ComboBox x:Name="PartnerBox" Width="200" DisplayMemberPath="Label"/>
+                <ComboBox x:Name="PartnerBox" Width="210" ItemTemplate="{StaticResource LabelItem}"/>
               </StackPanel>
               <Grid Grid.Row="1" Margin="0,0,0,4">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -896,7 +957,14 @@ $script:WindowXaml = @'
     <DockPanel Grid.Row="4" Margin="2,8,2,0" LastChildFill="True">
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
         <ProgressBar x:Name="Busy" Width="90" Height="6" IsIndeterminate="True" Visibility="Collapsed" Margin="0,0,10,0"/>
-        <TextBlock x:Name="StatusText" Foreground="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="420"/>
+        <TextBlock x:Name="StatusText" Foreground="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="420" VerticalAlignment="Center"/>
+        <TextBlock Text="Auto-refresh" Foreground="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center" Margin="18,0,6,0"/>
+        <ComboBox x:Name="AutoBox" Width="86" FontSize="12" Padding="8,3,22,3"
+                  ToolTip="Refresh by itself on a timer (live scores, injuries, lineup changes). It waits while you are in the Trade Analyzer, and never changes your saved defaults">
+          <ComboBoxItem Content="Off" Tag="0"/><ComboBoxItem Content="1 min" Tag="1"/><ComboBoxItem Content="2 min" Tag="2"/>
+          <ComboBoxItem Content="5 min" Tag="5"/><ComboBoxItem Content="10 min" Tag="10"/><ComboBoxItem Content="15 min" Tag="15"/>
+          <ComboBoxItem Content="30 min" Tag="30"/><ComboBoxItem Content="60 min" Tag="60"/>
+        </ComboBox>
       </StackPanel>
       <TextBlock Foreground="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis"
                  Text="Read-only: this tool cannot submit lineups, waiver claims or trades. Projections are advisory; correlation and game script are not modelled."/>
@@ -936,6 +1004,24 @@ function Format-Player($ref) {
     $team = Get-Prop $ref 'team'; if (-not $team) { $team = 'FA' }
     $pos = Get-Prop $ref 'position'; if (-not $pos) { $pos = '?' }
     return ('{0} ({1}/{2})' -f (Get-Prop $ref 'name'), $pos, $team)
+}
+
+function Get-AutoMinutes($ui) {
+    # Minutes between automatic refreshes; 0 = off.
+    $item = $ui.AutoBox.SelectedItem
+    if ($null -eq $item) { return 0 }
+    return [int]$item.Tag
+}
+
+function Select-AutoMinutes($ui, [int]$minutes) {
+    # Picks the entry for `minutes`, adding one for a value set by hand.
+    foreach ($item in $ui.AutoBox.Items) {
+        if ([int]$item.Tag -eq $minutes) { $ui.AutoBox.SelectedItem = $item; return }
+    }
+    $item = New-Object Windows.Controls.ComboBoxItem
+    $item.Content = "$minutes min"; $item.Tag = "$minutes"
+    [void]$ui.AutoBox.Items.Add($item)
+    $ui.AutoBox.SelectedItem = $item
 }
 
 function Format-Slot($slot) {
@@ -1545,7 +1631,7 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
     [xml]$xaml = $script:WindowXaml
     $window = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
     $ui = @{ Window = $window }
-    foreach ($name in @('PlatformBox', 'UserLabel', 'LeagueBox', 'UserBox', 'WeekBox', 'HorizonBox', 'FreshBox', 'RememberBox', 'RefreshButton', 'OpenButton', 'SaveButton',
+    foreach ($name in @('AutoBox', 'PlatformBox', 'UserLabel', 'LeagueBox', 'UserBox', 'WeekBox', 'HorizonBox', 'FreshBox', 'RememberBox', 'RefreshButton', 'OpenButton', 'SaveButton',
             'Busy', 'StatusText', 'TitleText', 'SubtitleText', 'NoticeText', 'MyTeamText', 'MyScoreText', 'MyProjText',
             'OppTeamText', 'OppScoreText', 'OppProjText', 'WarningsExpander', 'WarningsHeader', 'WarningsList',
             'LineupSummary', 'LineupGrid', 'RiskGrid', 'WaiverSummary', 'WaiverGrid', 'TradeSummary', 'TradeGrid',
@@ -1620,7 +1706,7 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
     # runs as a separate process so the window stays responsive.
     $script:Job = $null
     $script:StartJob = {
-        param([string[]]$extraArgs, [scriptblock]$onSuccess, [string]$busyText, [string]$failText)
+        param([string[]]$extraArgs, [scriptblock]$onSuccess, [string]$busyText, [string]$failText, [bool]$quiet = $false)
         $ui = $script:Ui
         if ($script:Job) { return }
         $work = Join-Path ([IO.Path]::GetTempPath()) 'fantasy_manager_gui'
@@ -1641,7 +1727,7 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         $psi.Arguments = (($childArgs | ForEach-Object { ConvertTo-Argument $_ }) -join ' ')
         $psi.UseShellExecute = $false
         $psi.CreateNoWindow = $true
-        $script:Job = @{ Proc = [Diagnostics.Process]::Start($psi); Out = $out; Log = $log; OnSuccess = $onSuccess; FailText = $failText }
+        $script:Job = @{ Proc = [Diagnostics.Process]::Start($psi); Out = $out; Log = $log; OnSuccess = $onSuccess; FailText = $failText; Quiet = $quiet }
         $ui.Busy.Visibility = 'Visible'
         $ui.RefreshButton.IsEnabled = $false
         $ui.GradeButton.IsEnabled = $false
@@ -1667,28 +1753,45 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
                 & $job.OnSuccess $job.Out
             } catch {
                 $ui.StatusText.Text = 'Could not read the report.'
-                [Windows.MessageBox]::Show($_.Exception.Message, 'Fantasy Manager', 'OK', 'Error') | Out-Null
+                if (-not $job.Quiet) { [Windows.MessageBox]::Show($_.Exception.Message, 'Fantasy Manager', 'OK', 'Error') | Out-Null }
             }
         } else {
             $errors = @($logText -split "`n" | Where-Object { $_ -match '\[ERROR\]' } | ForEach-Object { ($_ -replace '^\S+ \[ERROR\] ', '').Trim() })
             $message = $(if ($errors.Count) { $errors -join "`n" } else { "$($job.FailText) (exit code $($job.Proc.ExitCode))." })
-            $ui.StatusText.Text = $job.FailText
-            [Windows.MessageBox]::Show($message, 'Fantasy Manager', 'OK', 'Warning') | Out-Null
+            if ($job.Quiet) {
+                # An unattended refresh never interrupts with a dialog; the report on screen stays.
+                $ui.StatusText.Text = ('{0} at {1}: {2}' -f $job.FailText, (Get-Date).ToString('h:mm tt'), ($message -split "`n")[0])
+                $ui.StatusText.ToolTip = $message
+            } else {
+                $ui.StatusText.Text = $job.FailText
+                [Windows.MessageBox]::Show($message, 'Fantasy Manager', 'OK', 'Warning') | Out-Null
+            }
+        }
+        if ($script:AutoTimer -and $script:AutoTimer.IsEnabled) {
+            # Count the next automatic refresh from the end of this one.
+            $script:AutoTimer.Stop(); $script:AutoTimer.Start()
+            $script:NextAuto = (Get-Date).Add($script:AutoTimer.Interval)
+            if ($ui.StatusText.Text -and $ui.StatusText.Text -notmatch 'next ') { $ui.StatusText.Text += (' - next {0}' -f $script:NextAuto.ToString('h:mm tt')) }
         }
     })
 
-    $ui.RefreshButton.Add_Click({
+    # Refresh with what is in the toolbar. An automatic refresh is quiet: it
+    # uses the cache as usual, saves no defaults and shows no dialogs.
+    $script:DoRefresh = {
+        param([bool]$auto = $false)
         $ui = $script:Ui
+        $ui.StatusText.ToolTip = $null
         $espn = ($ui.PlatformBox.SelectedIndex -eq 1)
         $who = $ui.UserBox.Text.Trim()
         $extra = @('-Platform', $(if ($espn) { 'espn' } else { 'sleeper' }), '-LeagueId', $ui.LeagueBox.Text.Trim())
         if ($who) { $extra += @($(if ($espn) { '-Team' } else { '-Username' }), $who) }
         if ($ui.WeekBox.Text.Trim()) { $extra += @('-Week', $ui.WeekBox.Text.Trim()) }
         if ($ui.HorizonBox.SelectedIndex -ge 0) { $extra += @('-Horizon', (ConvertFrom-HorizonIndex $ui.HorizonBox.SelectedIndex)) }
-        if ($ui.FreshBox.IsChecked) { $extra += '-Refresh' }
+        if ($ui.FreshBox.IsChecked -and -not $auto) { $extra += '-Refresh' }
         # Saved only after the refresh succeeds, so a typo is never remembered.
         $script:PendingDefaults = $null
-        if ($ui.RememberBox.IsChecked) {
+        $script:RefreshWasAuto = $auto
+        if ($ui.RememberBox.IsChecked -and -not $auto) {
             # Each platform's league is saved under its own keys, so both are
             # kept. The plain keys from earlier versions are folded into them.
             $name = $(if ($espn) { 'espn' } else { 'sleeper' })
@@ -1699,11 +1802,12 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
                 if ($entry[1]) { $script:PendingDefaults[$entry[0]] = $entry[1] }
             }
             $script:PendingDefaults['horizon'] = ConvertFrom-HorizonIndex ([Math]::Max(0, $ui.HorizonBox.SelectedIndex))
+            $script:PendingDefaults['auto_refresh'] = [string](Get-AutoMinutes $ui)
         }
         & $script:StartJob $extra {
             param($path)
             & $script:LoadReport $path
-            $status = 'Updated ' + (Get-Date).ToString('h:mm tt')
+            $status = $(if ($script:RefreshWasAuto) { 'Auto-updated ' } else { 'Updated ' }) + (Get-Date).ToString('h:mm tt')
             if ($script:PendingDefaults) {
                 try {
                     [void](Save-Defaults $script:ConfigPath $script:PendingDefaults)
@@ -1714,7 +1818,45 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
                 }
             }
             $script:Ui.StatusText.Text = $status
-        } 'Fetching league data...' 'Update failed'
+        } 'Fetching league data...' $(if ($auto) { 'Auto-refresh failed' } else { 'Update failed' }) $auto
+    }
+    $ui.RefreshButton.Add_Click({ & $script:DoRefresh $false })
+
+    # Auto-refresh: a timer that presses Refresh quietly. It waits while
+    # another job runs or the Trade Analyzer is open (a refresh rebuilds its
+    # lists), and needs a league in the toolbar.
+    $script:AutoTimer = New-Object Windows.Threading.DispatcherTimer
+    $script:NextAuto = $null
+    $script:AutoTimer.Add_Tick({
+        $ui = $script:Ui
+        $script:NextAuto = (Get-Date).Add($script:AutoTimer.Interval)
+        if ($script:Job -or $ui.Tabs.SelectedItem -eq $ui.AnalyzerTab -or -not $ui.LeagueBox.Text.Trim()) { return }
+        & $script:DoRefresh $true
+    })
+    $script:SetAuto = {
+        $ui = $script:Ui
+        $minutes = Get-AutoMinutes $ui
+        $script:AutoTimer.Stop()
+        if ($minutes -gt 0) {
+            $script:AutoTimer.Interval = [TimeSpan]::FromMinutes($minutes)
+            $script:AutoTimer.Start()
+            $script:NextAuto = (Get-Date).Add($script:AutoTimer.Interval)
+        } else {
+            $script:NextAuto = $null
+        }
+    }
+    $autoStart = 0
+    if ($cfg -and "$(Get-Prop $cfg 'auto_refresh')" -match '^\d+$') { $autoStart = [int](Get-Prop $cfg 'auto_refresh') }
+    Select-AutoMinutes $ui $autoStart
+    & $script:SetAuto
+    $ui.AutoBox.Add_SelectionChanged({
+        $ui = $script:Ui
+        & $script:SetAuto
+        $minutes = Get-AutoMinutes $ui
+        $ui.StatusText.Text = $(if ($minutes -gt 0) { 'Auto-refresh every {0} min - next {1}' -f $minutes, $script:NextAuto.ToString('h:mm tt') } else { 'Auto-refresh off' })
+        if ($ui.RememberBox.IsChecked) {
+            try { [void](Save-Defaults $script:ConfigPath ([ordered]@{ auto_refresh = [string]$minutes })) } catch { }
+        }
     })
 
     # Trade Analyzer state before any report is loaded.
@@ -1845,6 +1987,7 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         $ui.PlatformBox.SelectedIndex = $startIndex
         $toggled += ', back {0} {1}/{2}' -f $script:PlatformName, $ui.LeagueBox.Text, $ui.UserBox.Text
         [Console]::Out.WriteLine('platform toggle: ' + $toggled)
+        [Console]::Out.WriteLine(('auto refresh: {0} min, timer {1}' -f (Get-AutoMinutes $ui), $(if ($script:AutoTimer.IsEnabled) { 'on' } else { 'off' })))
         [Console]::Out.WriteLine(('GUI smoke test ok: lineup rows {0}, waiver rows {1}, trade rows {2}, warnings {3}, give list {4}, get list {5}, trade grade {6}, mode {7}, pool results {8}, picked {9}' -f
             @($ui.LineupGrid.ItemsSource).Count, @($ui.WaiverGrid.ItemsSource).Count, @($ui.TradeGrid.ItemsSource).Count,
             @($ui.WarningsList.ItemsSource).Count, @($ui.GiveList.ItemsSource).Count, @($ui.GetList.ItemsSource).Count, $ui.YouGrade.Text,
@@ -1857,6 +2000,7 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         return
     }
     [void]$window.ShowDialog()
+    if ($script:AutoTimer) { $script:AutoTimer.Stop() }
     if ($script:Job -and -not $script:Job.Proc.HasExited) { try { $script:Job.Proc.Kill() } catch { } }
 }
 

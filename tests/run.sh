@@ -1166,6 +1166,19 @@ assert_match "converter: slots, FAAB, final week and an unsupported slot" "$CONV
 assert_match "converter: team by id, name, abbreviation or unique part" "$CONVERTED" '4 3 4 4 None None'
 
 # --------------------------------------------------------------------------
+section "auto-refresh setting (used by the Windows window)"
+# --------------------------------------------------------------------------
+STDOUT="$("$SCRIPT" --print-config 2>/dev/null)"
+assert_json "auto-refresh is off by default" '.auto_refresh == "0"'
+STDOUT="$(FM_AUTO_REFRESH=15 "$SCRIPT" --print-config 2>/dev/null)"
+assert_json "FM_AUTO_REFRESH is read" '.auto_refresh == "15"'
+run_case ppr_basic --auto-refresh 5 --format json
+assert_status "--auto-refresh is accepted and ignored on the command line" 0
+run_case ppr_basic --auto-refresh soon
+assert_status "bad auto-refresh interval rejected" 2
+assert_match "bad auto-refresh interval explained" "$STDERR" 'Auto refresh must be a number of minutes'
+
+# --------------------------------------------------------------------------
 section "a league per platform"
 # --------------------------------------------------------------------------
 printf 'platform=sleeper\nsleeper_league_id=111\nsleeper_username=me\nespn_league_id=222\nespn_team=My Team\n' > "$WORK/both.env"
