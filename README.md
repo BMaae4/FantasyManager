@@ -81,14 +81,17 @@ from your username in a browser:
 
 ### 2a. Windows
 
-1. **Install Python 3.8 or newer** from
-   [python.org](https://www.python.org/downloads/). In the installer, tick
-   **"Add python.exe to PATH"**.
-2. **Download FantasyManager.** On the GitHub page, click **Code → Download
-   ZIP**. Before extracting, right-click the ZIP, choose **Properties**, tick
-   **Unblock**, and click **OK**; this avoids Windows security prompts. Then
-   extract it anywhere, for example `Documents\FantasyManager`.
-3. **Double-click `FantasyManager.cmd`.** The window opens.
+1. **Download FantasyManager.** On the GitHub page, open
+   [**Releases**](https://github.com/BMaae4/FantasyManager/releases) and
+   download `FantasyManager-<version>-windows.zip` from the latest one. It
+   includes everything it needs; **nothing else has to be installed**.
+2. **Unzip it.** Before extracting, right-click the ZIP, choose
+   **Properties**, tick **Unblock**, and click **OK**; this avoids Windows
+   security prompts. Then extract it anywhere, for example
+   `Documents\FantasyManager`.
+3. **Double-click `FantasyManager.cmd`.** The window opens. To get a
+   **Fantasy Manager** icon on the Desktop and in the Start menu,
+   double-click `Create Shortcut.cmd` once.
 4. Type your **league ID** and **username** in the toolbar and press
    **Refresh**. For an ESPN league, choose **ESPN** in the first box and type
    your **team name** instead of a username ([ESPN leagues](#espn-leagues)).
@@ -98,8 +101,18 @@ your league, username and horizon, so next time the app opens straight to
 your league. Nothing is saved if the refresh fails, so a typo is never
 remembered.
 
-Nothing else needs installing: Windows PowerShell 5.1 is built in, and
-PowerShell 7 works too. Python is the only other thing you need.
+The download carries its own copy of Python (the `python` folder), used only
+by this app; Windows PowerShell 5.1 is built in.
+
+**Running from the source code instead.** Click **Code → Download ZIP** on
+the GitHub page (or `git clone`), and install **Python 3.8 or newer** from
+[python.org](https://www.python.org/downloads/) with **"Add python.exe to
+PATH"** ticked. Everything else is the same. A `python` folder next to
+`FantasyManager.ps1` is used first; otherwise the Python on your PATH is.
+
+**Updating.** Download the newer zip and extract it over the old folder (or
+into a new one). Your league, settings and history live outside the app
+folder, so they are kept.
 
 **The window**
 
@@ -709,7 +722,7 @@ to stdout.
 | Warning: `Game schedule unavailable ...` | Locks come from live points only. If the week's games are over, pass `--week N+1`. |
 | Warning: `STALE DATA ...` | Sleeper couldn't be reached, so a cached copy was used. The report still works; refresh later. |
 | Warning: `N league scoring categories have no matching projection stat ...` | Normal for some custom scoring. Those categories can't be projected; DEF/K switch to Sleeper's own totals. |
-| Windows: `Python 3.8+ not found` | Install Python from python.org with **Add python.exe to PATH** ticked, then reopen the app. Or set `-Python C:\path\to\python.exe` or `python=` in the config file. |
+| Windows: `Python 3.8+ not found` | Use the Windows download from the Releases page, which includes Python. From source: install Python from python.org with **Add python.exe to PATH** ticked, then reopen the app, or set `-Python C:\path\to\python.exe` or `python=` in the config file. |
 | Windows: the window doesn't open, or there is a security prompt | Unblock the ZIP before extracting (see [Windows](#2a-windows)), or run `powershell -ExecutionPolicy Bypass -File .\FantasyManager.ps1` to see any error. |
 | `Python 3.8 or newer is required` | Install Python 3 (see [macOS and Linux](#2b-macos-and-linux)), or point `FM_PYTHON` at one. |
 | `PROJECTION SOURCES: ESPN unavailable` | ESPN's projections couldn't be loaded. Nothing else is affected. Use `--compare none` to stop trying. |
@@ -739,6 +752,8 @@ include the effective configuration and every request.
 | `tests/make_fixtures.py` | Generates the synthetic test leagues in `tests/fixtures/` |
 | `tests/parity.sh` | Runs every fixture through both front ends and compares the reports (needs `pwsh`) |
 | `tests/windows.ps1`, `tests/make_expected.sh`, `tests/compare_reports.py` | Windows checks, including a GUI smoke test |
+| `tools/package.ps1`, `tools/check_package.ps1` | Build the Windows download (the app plus Python's embeddable package) and check it runs with no other Python |
+| `tools/make_icon.py`, `assets/` | The shortcut icon and the script that draws it |
 | `samples/` | Example reports generated from the test league |
 
 ```bash
@@ -780,6 +795,12 @@ The suite covers:
   the converter on its own.
 - Win probability: checked against the closed-form normal result,
   reproducible, locked players, and the underdog swap.
+
+**Releasing.** Set the version, merge, then push a tag such as `v3.5.0`. The
+`release` workflow builds the Windows download, checks it and publishes it
+on the Releases page; the tag must match the version in
+`FantasyManager.ps1`. Every push also builds the same zip as a workflow
+artifact.
 
 Both front ends run the same Python code (standard library only), so there is
 one place to change behaviour. When you do, update the version in
