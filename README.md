@@ -12,6 +12,10 @@ Point it at your league and it tells you:
   or someone else's.
 - **Matchup:** your live score, projected final and **chance to win**
   against this week's opponent.
+- **Playoff odds:** every team's chance to make the playoffs, and how much
+  this week's result moves yours.
+- **Opponent strength:** which of your players face a defense that has been
+  generous or stingy to their position.
 - **Trends:** free agents whose role is growing (breakout watch) and your
   players who are losing theirs.
 - **History:** how accurate the projections have been this season, and each
@@ -117,6 +121,7 @@ PowerShell 7 works too. Python is the only other thing you need.
     grade.
   - **Matchup:** scores, win probability, likely score range and any swap
     that improves your chances.
+  - **Playoffs:** every team's chance to make the playoffs.
   - **Sources:** players Sleeper and ESPN disagree on.
   - **Trends:** breakout watch and players losing their role.
   - **History:** projection accuracy and your roster's recent form.
@@ -259,8 +264,12 @@ league:
   rostered player who can't be matched is listed in a warning and has no
   projection.
 - **Waivers:** the free-agent pool is everyone not on a roster in your
-  league. The add-trend part of the ranking still comes from Sleeper's
-  platform-wide trending adds.
+  league. The add-trend part of the ranking comes from ESPN: players whose
+  ownership across ESPN leagues rose over the last week.
+- **Second opinion:** ESPN's projections are read through your league, so
+  ESPN scores them with your league's rules. The comparison is in league
+  points for every position, and `--projections blend` is a plain average
+  of the two.
 - **Trades:** the trade deadline is flagged by its date.
 
 ---
@@ -311,6 +320,14 @@ league.
 - **Matchup** adds the **win probability** with your current and the
   recommended lineup, the likely score range for both teams (10th-90th
   percentile), and any swap that improves your chances.
+- **Opponent strength** (under the lineup; Windows: the **Opponent**
+  column) shows each starter's opponent and how many fantasy points that
+  defense has allowed to his position this season, against the league
+  average: *easy* is 10%+ above average, *tough* 10%+ below. Free agents get
+  the same column on the Waivers tab.
+- **Playoff odds** list every team's record, chance to make the playoffs,
+  projected wins and average seed, and your own chance with a win or a loss
+  this week (Windows: the **Playoffs** tab).
 - **Trades** list your needs and surplus, then trade ideas that improve
   *both* lineups and are within the fairness tolerance.
 - **Projection sources** compare Sleeper's projections with ESPN's for this
@@ -538,6 +555,31 @@ big underdog may want the volatile player). Players are treated as
 independent, so same-game correlation and game script aren't modelled. The
 same week always gives the same numbers.
 
+**Opponent strength.** For every past week, each player's points (in your
+league's scoring) are added up against the defense he faced, by position.
+A defense's per-game average is divided by the league average, pulled
+toward 1.0 while it has few games, and kept between 0.7 and 1.3.
+- It needs three past weeks with results and the game schedule.
+- Players count for their current team, so a traded player's earlier games
+  are credited to the wrong opponent.
+- Projections are **not** adjusted by it (the projection feed already knows
+  the opponent). It labels matchups, and it is the **schedule fit** part of
+  the waiver score: the average over a free agent's opponents in the window.
+
+**Playoff odds.** The rest of the regular season is simulated 5,000 times
+from the standings and the league's remaining schedule:
+- This week uses each team's lineup as set, with live points for players
+  whose games have started.
+- Later weeks use half the team's best projected lineup and half its
+  scoring average so far, with a spread of about 18%.
+- Teams are seeded by wins, then points scored, and the league's number of
+  playoff teams qualify. Division winners' automatic berths and other
+  tiebreakers are not modelled.
+
+It is left out once the regular season is over, or when the league's
+standings, schedule or playoff settings can't be read. The same week always
+gives the same numbers.
+
 **Multi-week window.** Besides this week, projections for the next `--horizon`
 weeks are fetched and scored the same way. Waivers, drops and trades are
 judged on best lineups across the whole window. So a player on bye or briefly
@@ -721,6 +763,9 @@ The suite covers:
 - Locks, week rollover, the multi-week window, waivers and suggested trades.
 - Every trade-analyzer mode and error case.
 - All output formats, config precedence and config-file parsing.
+- Opponent strength and playoff odds: a league with four weeks of
+  results, standings and a remaining schedule; reproducible odds; the
+  cases where they are left out.
 - The real HTTP path against a local server (404 not retried, 5xx retried).
 - History: accuracy checked against an independent calculation, the
   database across runs, pre-kickoff snapshots, and a missing stats feed.
@@ -747,8 +792,8 @@ entry.
   platform). ESPN leagues must be viewable to the public: there is no ESPN
   sign-in.
 - Value beyond the window isn't modelled (use `--horizon ros` for the rest of
-  the season). Strength of schedule, correlation and game script aren't
-  modelled either. What's left out is disclosed in the report rather than
+  the season). Opponent strength labels matchups and ranks waivers but does
+  not change projections; correlation and game script aren't modelled. What's left out is disclosed in the report rather than
   guessed.
 - Draft picks and keeper or dynasty value beyond this season aren't priced.
 - The projection, schedule, stats and ESPN feeds are unofficial and may

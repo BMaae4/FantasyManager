@@ -440,7 +440,7 @@ ESPN_POS = {"QB": 1, "RB": 2, "WR": 3, "TE": 4, "K": 5, "DEF": 16}
 ESPN_TEAM_IDS = {"BUF": 2, "MIA": 15}
 
 
-def espn_payload(data: dict, week: int, points: dict) -> dict:
+def espn_payload(data: dict, week: int, points: dict, ownership: dict | None = None) -> dict:
     """ESPN kona_player_info-style response: {"players": [{"player": ...}]}.
     `points` maps Sleeper player id -> ESPN PPR projection."""
     entries = []
@@ -451,6 +451,7 @@ def espn_payload(data: dict, week: int, points: dict) -> dict:
             "id": espn_id or 900000 + len(entries), "fullName": info["full_name"],
             "defaultPositionId": ESPN_POS[info["position"]],
             "proTeamId": ESPN_TEAM_IDS.get(info["team"], 99),
+            "ownership": {"percentOwned": 50.0, "percentChange": (ownership or {}).get(pid, -0.1)},
             "stats": [
                 {"seasonId": 2025, "scoringPeriodId": week, "statSourceId": 1, "statSplitTypeId": 1,
                  "externalId": "2025%d" % week, "appliedTotal": value, "stats": {"53": 4.0}},
@@ -463,7 +464,7 @@ def espn_payload(data: dict, week: int, points: dict) -> dict:
     return {"players": entries}
 
 
-def espn_files(data: dict, weeks, overrides: dict) -> dict:
+def espn_files(data: dict, weeks, overrides: dict, ownership: dict | None = None) -> dict:
     """espn.json / espn_wN.json: ESPN within 5% of Sleeper, except `overrides`
     ({player_id: ESPN points}, every week). Players need espn_id set."""
     data = with_future(data)
@@ -479,8 +480,40 @@ def espn_files(data: dict, weeks, overrides: dict) -> dict:
             values[pid] = round(ppr * (1.05 if unit("e%s%d" % (pid, week)) > 0 else 0.95), 2)
         values.update(overrides)
         files[("espn" if week == 5 else "espn_w%d" % week) + ".json"] = json.dumps(
-            espn_payload(data, week, values), indent=1, sort_keys=True) + "\n"
+            espn_payload(data, week, values, ownership), indent=1, sort_keys=True) + "\n"
     return files
+
+
+# Standings after four weeks, and who plays whom in the weeks after week 5
+# (a regular season that ends in week 7).
+SEASON_RECORDS = {1: (3, 1, 452.5), 2: (2, 2, 430.25), 3: (2, 2, 401.0), 4: (1, 3, 388.75)}
+SEASON_PAIRINGS = {6: [(1, 3), (2, 4)], 7: [(1, 4), (2, 3)]}
+
+
+def season_schedule() -> list:
+    """NFL games for weeks 1-8: the same pairs in odd weeks, others in even
+    weeks, so every defense has several opponents."""
+    games = []
+    for week in range(1, 9):
+        order = TEAMS if week % 2 else [TEAMS[i] for i in (0, 2, 1, 3, 4, 6, 5, 7)]
+        for i in range(0, len(order), 2):
+            games.append({"week": week, "game_id": "g%d_%s" % (week, order[i]), "date": "2025-09-%02d" % (week * 3),
+                          "home": order[i], "away": order[i + 1], "status": "complete" if week < 5 else "pre_game"})
+    return games
+
+
+def with_season(data: dict) -> dict:
+    """Standings, playoff settings (2 of 4 teams, playoffs from week 8) and
+    the league's pairings for weeks 6 and 7."""
+    data["league"]["settings"].update({"playoff_week_start": 8, "playoff_teams": 2})
+    for roster in data["rosters"]:
+        wins, losses, points = SEASON_RECORDS[roster["roster_id"]]
+        roster["settings"].update({"wins": wins, "losses": losses, "ties": 0, "fpts": int(points),
+                                   "fpts_decimal": int(round((points - int(points)) * 100))})
+    for week, pairs in SEASON_PAIRINGS.items():
+        data["matchups_w%d" % week] = [{"roster_id": rid, "matchup_id": i + 1, "points": 0}
+                                       for i, pair in enumerate(pairs) for rid in pair]
+    return data
 
 
 ESPN_SLOT_IDS = {"QB": 0, "RB": 2, "WR": 4, "TE": 6, "FLEX": 23, "K": 17, "DEF": 16}
@@ -540,6 +573,8 @@ def espn_league_files(data: dict, weeks, host_bonus: float = 2.5) -> dict:
                 "id": 999001, "fullName": "Espn Only", "defaultPositionId": 3, "proTeamId": 2,
                 "injuryStatus": "QUESTIONABLE"}}})
         teams.append({"id": rid, "name": name, "abbrev": "".join(w[0] for w in name.split()).upper(),
+                      "record": {"overall": {"wins": SEASON_RECORDS[rid][0], "losses": SEASON_RECORDS[rid][1], "ties": 0,
+                                             "pointsFor": SEASON_RECORDS[rid][2]}},
                       "waiverRank": rid, "transactionCounter": {"acquisitionBudgetSpent": 0},
                       "roster": {"entries": rows}})
         matchup = next(m for m in data["matchups"] if m["roster_id"] == rid)
@@ -553,7 +588,8 @@ def espn_league_files(data: dict, weeks, host_bonus: float = 2.5) -> dict:
             "name": "ESPN Test League", "size": len(teams), "isPublic": True,
             "acquisitionSettings": {"acquisitionBudget": 100, "isUsingAcquisitionBudget": False},
             "rosterSettings": {"lineupSlotCounts": counts},
-            "scheduleSettings": {"playoffTeamCount": 4, "matchupPeriods": {str(w): [w] for w in range(1, 17)}},
+            "scheduleSettings": {"playoffTeamCount": 2, "matchupPeriodCount": 7,
+                                 "matchupPeriods": {str(w): [w] for w in range(1, 17)}},
             "scoringSettings": {"scoringItems": ESPN_SCORING_ITEMS},
             "tradeSettings": {"deadlineDate": 1700000000000},
         },
@@ -561,6 +597,9 @@ def espn_league_files(data: dict, weeks, host_bonus: float = 2.5) -> dict:
     }
     schedule = [{"id": mid, "matchupPeriodId": 5, "home": sides[0], "away": sides[1]}
                 for mid, sides in sorted(games.items())]
+    for week, pairs in sorted(SEASON_PAIRINGS.items()):
+        schedule += [{"id": week * 10 + i, "matchupPeriodId": week, "home": {"teamId": a}, "away": {"teamId": b}}
+                     for i, (a, b) in enumerate(pairs)]
     files = {"espn_league.json": league, "espn_matchups.json": {"id": ESPN_LEAGUE_ID, "schedule": schedule}}
     for week in weeks:
         key = "projections" if week == 5 else "projections_w%d" % week
@@ -891,9 +930,16 @@ def main() -> int:
     #     league-scored projections (2.5 above the PPR ones); the trade
     #     deadline has passed; week 8 has no ESPN kicker/defense projections.
     espn_lg = copy.deepcopy(espn)
-    espn_lg_raw = espn_files(espn_lg, (5,) + FUTURE_WEEKS, {})
+    espn_lg_raw = espn_files(espn_lg, (5,) + FUTURE_WEEKS, {"wr1": 8.0}, ownership={"fa_te1": 6.25, "fa_wr1": 1.5})
     espn_lg_raw.update(espn_league_files(espn_lg, (5, 6, 7)))
     write_case(out_dir, "espn_league", espn_lg, raw=espn_lg_raw)
+
+    # 35. the season so far: four weeks of results with a real NFL schedule
+    #     (opponent strength), standings, and the league's remaining
+    #     schedule through the last regular-season week (playoff odds).
+    outlook = with_season(with_history(copy.deepcopy(base)))
+    outlook["schedule"] = season_schedule()
+    write_case(out_dir, "season_outlook", outlook)
 
     print("fixtures written to %s" % out_dir)
     return 0

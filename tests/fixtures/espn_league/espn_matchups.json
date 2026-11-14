@@ -780,6 +780,46 @@
    },
    "id": 2,
    "matchupPeriodId": 5
+  },
+  {
+   "away": {
+    "teamId": 3
+   },
+   "home": {
+    "teamId": 1
+   },
+   "id": 60,
+   "matchupPeriodId": 6
+  },
+  {
+   "away": {
+    "teamId": 4
+   },
+   "home": {
+    "teamId": 2
+   },
+   "id": 61,
+   "matchupPeriodId": 6
+  },
+  {
+   "away": {
+    "teamId": 4
+   },
+   "home": {
+    "teamId": 1
+   },
+   "id": 70,
+   "matchupPeriodId": 7
+  },
+  {
+   "away": {
+    "teamId": 3
+   },
+   "home": {
+    "teamId": 2
+   },
+   "id": 71,
+   "matchupPeriodId": 7
   }
  ]
 }

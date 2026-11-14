@@ -6,6 +6,10 @@
     "defaultPositionId": 16,
     "fullName": "Alpha Defense",
     "id": 4000,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -45,6 +49,10 @@
     "defaultPositionId": 16,
     "fullName": "Hotel Defense",
     "id": 4001,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -84,6 +92,10 @@
     "defaultPositionId": 5,
     "fullName": "Free Kick One",
     "id": 4003,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -123,6 +135,10 @@
     "defaultPositionId": 5,
     "fullName": "Kai Alpha",
     "id": 4012,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -162,6 +178,10 @@
     "defaultPositionId": 16,
     "fullName": "Team2 DEF1",
     "id": 4020,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -201,6 +221,10 @@
     "defaultPositionId": 5,
     "fullName": "Team2 K1",
     "id": 4021,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -240,6 +264,10 @@
     "defaultPositionId": 16,
     "fullName": "Team3 DEF1",
     "id": 4032,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -279,6 +307,10 @@
     "defaultPositionId": 5,
     "fullName": "Team3 K1",
     "id": 4033,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -318,6 +350,10 @@
     "defaultPositionId": 16,
     "fullName": "Team4 DEF1",
     "id": 4044,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -357,6 +393,10 @@
     "defaultPositionId": 5,
     "fullName": "Team4 K1",
     "id": 4045,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {

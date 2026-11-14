@@ -353,6 +353,71 @@ def convert_matchups(doc: dict, league_doc: dict, week: int, index: PlayerIndex)
     return out
 
 
+def projection_filter(season: str, week: int, limit: int = 700) -> str:
+    """X-Fantasy-Filter for every position's league-scored weekly projection
+    (the most-owned `limit` players), with ownership."""
+    return json.dumps({"players": {
+        "filterSlotIds": {"value": fm_providers.ESPN_SLOT_IDS},
+        "filterStatsForTopScoringPeriodIds": {"value": 2, "additionalValue": [
+            "00%s" % season, "10%s" % season, "11%s%d" % (season, week), "01%s%d" % (season, week)]},
+        "limit": limit,
+        "sortPercOwned": {"sortPriority": 1, "sortAsc": False},
+    }}, separators=(",", ":"))
+
+
+def ownership_trend(payload: Any, players: Dict[str, dict]) -> List[dict]:
+    """Players whose ownership across ESPN leagues is rising, as the
+    trending-adds list the waiver score reads: [{player_id, count}], count
+    in hundredths of a percentage point gained over the last week."""
+    entries = payload.get("players") if isinstance(payload, dict) else payload
+    if not isinstance(entries, list):
+        return []
+    index = PlayerIndex(players)
+    out: List[dict] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        player = entry.get("player") if isinstance(entry.get("player"), dict) else entry
+        change = (player.get("ownership") or {}).get("percentChange") if isinstance(player.get("ownership"), dict) else None
+        if not isinstance(change, (int, float)) or isinstance(change, bool) or change <= 0:
+            continue
+        pid = index.resolve(player, add=False)
+        if pid is not None:
+            out.append({"player_id": pid, "count": int(round(change * 100))})
+    out.sort(key=lambda row: (-row["count"], row["player_id"]))
+    return out
+
+
+def season_info(league_doc: dict, matchup_doc: Optional[dict]) -> dict:
+    """Standings, the league's schedule by week and its playoff settings,
+    for the playoff odds."""
+    settings = (league_doc.get("settings") or {}).get("scheduleSettings") or {}
+    periods = settings.get("matchupPeriods") or {}
+    count = settings.get("matchupPeriodCount")
+    last = None
+    if isinstance(count, int) and count > 0:
+        weeks = periods.get(str(count))
+        last = max(weeks) if isinstance(weeks, list) and weeks else count
+    standings = []
+    for team in league_doc.get("teams") or []:
+        record = ((team.get("record") or {}).get("overall")) if isinstance(team, dict) else None
+        if isinstance(record, dict) and team.get("id") is not None:
+            standings.append({"roster_id": team["id"], "wins": record.get("wins") or 0, "losses": record.get("losses") or 0,
+                              "ties": record.get("ties") or 0, "points_for": record.get("pointsFor") or 0.0})
+    schedule: Dict[str, List[List[Any]]] = {}
+    for game in (matchup_doc or {}).get("schedule") or []:
+        if not isinstance(game, dict):
+            continue
+        home, away = game.get("home") or {}, game.get("away") or {}
+        if home.get("teamId") is None or away.get("teamId") is None:
+            continue
+        period = game.get("matchupPeriodId")
+        for week in periods.get(str(period)) or ([period] if isinstance(period, int) else []):
+            schedule.setdefault(str(week), []).append([home["teamId"], away["teamId"]])
+    return {"regular_season_last_week": last, "playoff_teams": settings.get("playoffTeamCount"),
+            "standings": standings, "schedule": schedule}
+
+
 def host_points(payload: Any, week: int, players: Dict[str, dict], season: Optional[str]) -> Dict[str, float]:
     """League-scored weekly projections for kickers and team defenses."""
     points, _, _ = fm_providers.parse_espn(payload, week, players, season, defense_by_id=True)

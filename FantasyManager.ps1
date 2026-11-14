@@ -90,7 +90,7 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $ToolName = 'fantasy_manager'
-$ToolVersion = '3.3.0'
+$ToolVersion = '3.4.0'
 
 # --------------------------------------------------------------------------
 # Shared application: lib/fm_app.py does configuration, fetching, caching,
@@ -518,6 +518,13 @@ $script:WindowXaml = @'
         <DataTrigger Binding="{Binding Action}" Value="LOCKED"><Setter Property="Foreground" Value="#8A939C"/></DataTrigger>
       </Style.Triggers>
     </Style>
+    <Style x:Key="MineRows" TargetType="DataGridRow">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Mine}" Value="True">
+          <Setter Property="Background" Value="#E8F0FE"/><Setter Property="FontWeight" Value="SemiBold"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
     <Style x:Key="GroupRows" TargetType="DataGridRow">
       <Style.Triggers>
         <DataTrigger Binding="{Binding Group}" Value="Priority"><Setter Property="Background" Value="#E6F4EA"/></DataTrigger>
@@ -650,7 +657,8 @@ $script:WindowXaml = @'
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
               <DataGridTextColumn Header="Gain" Binding="{Binding Gain}" Width="70" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
-              <DataGridTextColumn Header="Note" Binding="{Binding Note}" Width="90" ElementStyle="{StaticResource Trim}"/>
+              <DataGridTextColumn Header="Opponent" Binding="{Binding Matchup}" Width="172" ElementStyle="{StaticResource Trim}"/>
+              <DataGridTextColumn Header="Note" Binding="{Binding Note}" Width="80" ElementStyle="{StaticResource Trim}"/>
             </DataGrid.Columns>
           </DataGrid>
           <TextBlock Text="Risk / availability" FontWeight="SemiBold" Margin="2,12,0,6"/>
@@ -693,7 +701,8 @@ $script:WindowXaml = @'
               <DataGridTextColumn Header="Window" Binding="{Binding Window}" Width="66" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
               <DataGridTextColumn Header="Score" Binding="{Binding Score}" Width="56" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
               <DataGridTextColumn Header="Bid" Binding="{Binding Bid}" Width="90"/>
-              <DataGridTextColumn Header="Drop" Binding="{Binding Drop}" Width="150" ElementStyle="{StaticResource Trim}"/>
+              <DataGridTextColumn Header="Opponent" Binding="{Binding Matchup}" Width="150" ElementStyle="{StaticResource Trim}"/>
+              <DataGridTextColumn Header="Drop" Binding="{Binding Drop}" Width="140" ElementStyle="{StaticResource Trim}"/>
               <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="*" ElementStyle="{StaticResource Trim}"/>
             </DataGrid.Columns>
           </DataGrid>
@@ -864,6 +873,25 @@ $script:WindowXaml = @'
           </StackPanel>
         </ScrollViewer>
       </TabItem>
+      <TabItem Header="Playoffs">
+        <Grid>
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <TextBlock x:Name="PlayoffHeadline" Grid.Row="0" FontSize="16" FontWeight="SemiBold" Margin="2,2,0,2" TextWrapping="Wrap"/>
+          <TextBlock x:Name="PlayoffSummary" Grid.Row="1" Margin="2,0,0,10" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/>
+          <DataGrid x:Name="PlayoffGrid" Grid.Row="2" RowStyle="{StaticResource MineRows}">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Team" Binding="{Binding Team}" Width="240" ElementStyle="{StaticResource Trim}"/>
+              <DataGridTextColumn Header="W-L" Binding="{Binding Record}" Width="70"/>
+              <DataGridTextColumn Header="Points for" Binding="{Binding PointsFor}" Width="90" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Playoffs" Binding="{Binding Playoffs}" Width="90" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Projected wins" Binding="{Binding Wins}" Width="110" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Average seed" Binding="{Binding Seed}" Width="100" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="" Width="*"/>
+            </DataGrid.Columns>
+          </DataGrid>
+          <TextBlock x:Name="PlayoffNote" Grid.Row="3" Margin="2,8,0,0" Foreground="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap"/>
+        </Grid>
+      </TabItem>
       <TabItem Header="Sources">
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
@@ -874,8 +902,8 @@ $script:WindowXaml = @'
               <DataGridTextColumn Header="Pos" Binding="{Binding Pos}" Width="50"/>
               <DataGridTextColumn Header="Team" Binding="{Binding Team}" Width="60"/>
               <DataGridTextColumn Header="Where" Binding="{Binding Where}" Width="100"/>
-              <DataGridTextColumn Header="Sleeper (PPR)" Binding="{Binding Sleeper}" Width="100" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
-              <DataGridTextColumn Header="ESPN (PPR)" Binding="{Binding Espn}" Width="90" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="Sleeper" Binding="{Binding Sleeper}" Width="100" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
+              <DataGridTextColumn Header="ESPN" Binding="{Binding Espn}" Width="90" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
               <DataGridTextColumn Header="Difference" Binding="{Binding Diff}" Width="90" ElementStyle="{StaticResource Num}" HeaderStyle="{StaticResource NumHead}"/>
               <DataGridTextColumn Header="" Width="*"/>
             </DataGrid.Columns>
@@ -1119,7 +1147,7 @@ function Update-ReportView($ui, $report) {
     $ui.LineupGrid.ItemsSource = @($l.slots | ForEach-Object {
         [pscustomobject]@{
             Slot = Format-Slot $_.slot; Current = Format-Player $_.current; Recommended = Format-Player $_.recommended
-            Action = $_.action; Gain = Format-Points $_.gain
+            Action = $_.action; Gain = Format-Points $_.gain; Matchup = Format-Matchup (Get-Prop $_ 'matchup')
             Note = $(if ($_.below_threshold) { 'optional' } else { '' })
         }
     })
@@ -1154,7 +1182,7 @@ function Update-ReportView($ui, $report) {
                     Group = $g[1]; Player = $r.name; Pos = $r.position; Team = $(if ($r.team) { $r.team } else { 'FA' })
                     Proj = Format-Points $r.projection; Net = Format-Points $r.net_gain
                     Window = Format-Points (Get-Prop $r 'window_gain'); Score = Format-Points $r.score
-                    Bid = $bid; Drop = $(if ($drop) { $drop.name } else { '' })
+                    Bid = $bid; Drop = $(if ($drop) { $drop.name } else { '' }); Matchup = Format-Matchup (Get-Prop $r 'matchup')
                     Notes = (@($r.notes) -join '; ')
                 })
             }
@@ -1197,6 +1225,7 @@ function Update-ReportView($ui, $report) {
     Update-HistoryView $ui (Get-Prop $report 'history')
     Update-TrendsView $ui (Get-Prop $report 'opportunity')
     Update-SourcesView $ui (Get-Prop $report 'projection_sources')
+    Update-PlayoffsView $ui (Get-Prop $report 'playoffs')
 
     # diagnostics
     $proj = $meta.projections
@@ -1230,6 +1259,39 @@ function Get-WinProbabilityLines($wp) {
     return $lines + @('')
 }
 
+function Format-Matchup($m) {
+    # "vs NE - easy (+17%)": the opponent and how generous it has been to the position.
+    if ($null -eq $m) { return '' }
+    $pct = [int][Math]::Round(([double]$m.factor - 1.0) * 100)
+    return ('{0} {1} - {2} ({3}{4}%)' -f $(if ($m.home) { 'vs' } else { 'at' }), $m.opponent, $m.rating, $(if ($pct -ge 0) { '+' } else { '' }), $pct)
+}
+
+function Update-PlayoffsView($ui, $p) {
+    # Playoff odds (reports from 3.4.0 on).
+    $ui.PlayoffGrid.ItemsSource = @()
+    $ui.PlayoffSummary.Text = ''; $ui.PlayoffNote.Text = ''
+    if ($null -eq $p) { $ui.PlayoffHeadline.Text = 'No playoff odds in this report (from version 3.4.0).'; return }
+    if (-not $p.available) { $ui.PlayoffHeadline.Text = 'Playoff odds unavailable: ' + $p.reason; return }
+    $mine = $p.mine
+    $headline = 'Your chance to make the playoffs: {0}%' -f (Format-Points $mine.playoff_pct)
+    if ($null -ne $mine.if_win_this_week -and $null -ne $mine.if_lose_this_week) {
+        $headline += ('   ({0}% with a win this week, {1}% with a loss)' -f (Format-Points $mine.if_win_this_week), (Format-Points $mine.if_lose_this_week))
+    }
+    $ui.PlayoffHeadline.Text = $headline
+    $weeks = @($p.weeks)
+    $ui.PlayoffSummary.Text = ('{0} left in the regular season (through week {1}); {2} teams qualify. {3} simulations.' -f
+        $(if ($weeks.Count -eq 1) { 'Week ' + $weeks[0] } else { 'Weeks {0}-{1}' -f $weeks[0], $weeks[-1] }), $p.regular_season_ends, $p.playoff_teams, $p.simulations)
+    $ui.PlayoffNote.Text = $p.note
+    $ui.PlayoffGrid.ItemsSource = @(@($p.teams) | Where-Object { $_ } | ForEach-Object {
+        [pscustomobject]@{
+            Team = $_.team; Mine = [bool]$_.is_me
+            Record = $(if ($_.ties) { '{0}-{1}-{2}' -f $_.wins, $_.losses, $_.ties } else { '{0}-{1}' -f $_.wins, $_.losses })
+            PointsFor = Format-Points $_.points_for; Playoffs = (Format-Points $_.playoff_pct) + '%'
+            Wins = Format-Points $_.projected_wins; Seed = Format-Points $_.average_seed
+        }
+    })
+}
+
 function Update-SourcesView($ui, $p) {
     # Second projection source (reports from 2.12.0 on).
     if ($null -eq $p) {
@@ -1244,8 +1306,9 @@ function Update-SourcesView($ui, $p) {
     }
     $using = $(if ($p.mode -eq 'blend' -and @($p.blended_weeks).Count) { 'a 50/50 Sleeper + ESPN blend for weeks ' + (@($p.blended_weeks) -join ', ') }
                else { "Sleeper's projections (-Projections blend for a 50/50 consensus)" })
-    $ui.SourcesSummary.Text = ('Sleeper vs ESPN, week {0} (PPR points). Using {1}. Matched {2} players ({3} not matched); typical gap {4} points. Listed: 4+ points and 30%+ apart.' -f
-        $p.week, $using, $p.matched, $p.unmatched, (Format-Points $p.mean_abs_diff))
+    $unit = $(if ((Get-Prop $p 'scoring') -eq 'league') { "your league's scoring" } else { 'PPR points' })
+    $ui.SourcesSummary.Text = ('Sleeper vs ESPN, week {0} ({5}). Using {1}. Matched {2} players ({3} not matched); typical gap {4} points. Listed: 4+ points and 30%+ apart.' -f
+        $p.week, $using, $p.matched, $p.unmatched, (Format-Points $p.mean_abs_diff), $unit)
     $ui.SourcesGrid.ItemsSource = @(@($p.disagreements) | Where-Object { $_ } | ForEach-Object {
         [pscustomobject]@{ Player = $_.name; Pos = $_.position; Team = $_.team; Where = $_.where
             Sleeper = (Format-Points $_.sleeper_ppr); Espn = (Format-Points $_.espn_ppr); Diff = (Format-Signed $_.difference) }
@@ -1636,7 +1699,7 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
             'OppTeamText', 'OppScoreText', 'OppProjText', 'WarningsExpander', 'WarningsHeader', 'WarningsList',
             'LineupSummary', 'LineupGrid', 'RiskGrid', 'WaiverSummary', 'WaiverGrid', 'TradeSummary', 'TradeGrid',
             'MatchupDetail', 'MatchupBoard', 'MuMyTeam', 'MuMyScore', 'MuMyProj', 'MuMyRange', 'MuOppTeam', 'MuOppScore', 'MuOppProj', 'MuOppRange',
-            'MuWinPanel', 'MuWinMine', 'MuWinOpp', 'MuWinMyText', 'MuWinOppText', 'WinBar', 'WinBarMine', 'WinBarOpp', 'HistorySummary', 'HistoryAccGrid', 'HistoryFormGrid', 'TrendsSummary', 'BreakoutGrid', 'DecliningGrid', 'SourcesSummary', 'SourcesGrid', 'DiagSummary', 'DiagGrid', 'Tabs', 'AnalyzerTab', 'PartnerBox', 'GiveList', 'GetList',
+            'MuWinPanel', 'MuWinMine', 'MuWinOpp', 'MuWinMyText', 'MuWinOppText', 'WinBar', 'WinBarMine', 'WinBarOpp', 'HistorySummary', 'HistoryAccGrid', 'HistoryFormGrid', 'TrendsSummary', 'BreakoutGrid', 'DecliningGrid', 'SourcesSummary', 'SourcesGrid', 'PlayoffHeadline', 'PlayoffSummary', 'PlayoffGrid', 'PlayoffNote', 'DiagSummary', 'DiagGrid', 'Tabs', 'AnalyzerTab', 'PartnerBox', 'GiveList', 'GetList',
             'GradeButton', 'ClearTradeButton', 'TradePickSummary', 'YouGrade', 'ThemGrade', 'ThemLabel', 'AcceptText',
             'VerdictText', 'TradeDetail', 'YouLabel', 'LeagueModeRadio', 'OpenModeRadio', 'LeaguePanel', 'OpenPanel',
             'FromBox', 'GiveHeader', 'GetHeader', 'ScoringBox', 'TeamsBox', 'SearchA', 'SearchB', 'ResultsA', 'ResultsB',
@@ -1987,6 +2050,9 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         $ui.PlatformBox.SelectedIndex = $startIndex
         $toggled += ', back {0} {1}/{2}' -f $script:PlatformName, $ui.LeagueBox.Text, $ui.UserBox.Text
         [Console]::Out.WriteLine('platform toggle: ' + $toggled)
+        $playoffRows = @($ui.PlayoffGrid.ItemsSource | Where-Object { $null -ne $_ }).Count
+        $opponentRows = @($ui.LineupGrid.ItemsSource | Where-Object { $null -ne $_ -and (Get-Prop $_ 'Matchup') }).Count
+        [Console]::Out.WriteLine(('playoff rows {0}, lineup opponents {1}' -f $playoffRows, $opponentRows))
         [Console]::Out.WriteLine(('auto refresh: {0} min, timer {1}' -f (Get-AutoMinutes $ui), $(if ($script:AutoTimer.IsEnabled) { 'on' } else { 'off' })))
         [Console]::Out.WriteLine(('GUI smoke test ok: lineup rows {0}, waiver rows {1}, trade rows {2}, warnings {3}, give list {4}, get list {5}, trade grade {6}, mode {7}, pool results {8}, picked {9}' -f
             @($ui.LineupGrid.ItemsSource).Count, @($ui.WaiverGrid.ItemsSource).Count, @($ui.TradeGrid.ItemsSource).Count,
