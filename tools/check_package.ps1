@@ -19,7 +19,14 @@ $work = Join-Path ([IO.Path]::GetTempPath()) ('fm_pkg_' + [Guid]::NewGuid().ToSt
 New-Item -ItemType Directory -Path $work | Out-Null
 $failed = 0
 function Check([string]$name, [bool]$ok, [string]$detail = '') {
-    if ($ok) { Write-Host "ok   $name" } else { $script:failed++; Write-Host "FAIL $name $detail" }
+    if ($ok) { Write-Host "ok   $name"; return }
+    $script:failed++
+    Write-Host "FAIL $name $detail"
+    # On GitHub Actions, also show the failure as an annotation on the run.
+    if ($env:GITHUB_ACTIONS) {
+        $text = ("$name $detail" -replace '\s+', ' ')
+        Write-Host ('::error title=Windows download::{0}' -f $text.Substring(0, [Math]::Min(400, $text.Length)))
+    }
 }
 
 foreach ($file in 'FantasyManager.cmd', 'Create Shortcut.cmd', 'lib\fm_app.py', 'assets\FantasyManager.ico', 'python\python.exe') {
@@ -28,9 +35,12 @@ foreach ($file in 'FantasyManager.cmd', 'Create Shortcut.cmd', 'lib\fm_app.py', 
 
 # No Python but the bundled one: PATH holds Windows only, and no overrides.
 $savedPath = $env:PATH
-$env:PATH = (Join-Path $env:SystemRoot 'System32') + ';' + $env:SystemRoot + ';' + (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0')
+# (The Windows folder itself is left out: the "py" launcher installs there.)
+$env:PATH = (Join-Path $env:SystemRoot 'System32') + ';' + (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0')
 $env:FM_PYTHON = ''; $env:FM_LEAGUE_ID = '100000000000000001'; $env:FM_USERNAME = 'TestManager'
 $env:FM_CONFIG_FILE = Join-Path $work 'none.env'
+# Anything the app writes to stderr is part of the captured output, not an error here.
+$ErrorActionPreference = 'Continue'
 try {
     Check 'no other Python is reachable' (-not (Get-Command python, python3, py -ErrorAction SilentlyContinue))
     $report = Join-Path $work 'report.json'
