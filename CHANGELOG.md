@@ -2,6 +2,26 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 3.3.0
+
+### Added
+
+- Auto-refresh in the Windows app: a box on the bottom line refreshes the
+  report every 1, 2, 5, 10, 15, 30 or 60 minutes.
+  - An automatic refresh uses the cache as usual, saves no defaults and
+    shows no dialogs. A failure is reported on the bottom line and the
+    report on screen stays.
+  - It waits while another job runs or the Trade Analyzer is open.
+  - The bottom line shows when the last update was and when the next is
+    due.
+  - The interval is saved with **Remember** ticked (`auto_refresh=`, in
+    minutes), or set with `-AutoRefresh` / `FM_AUTO_REFRESH`.
+
+### Changed
+
+- The dropdown boxes (platform, horizon, team pickers, scoring,
+  auto-refresh) match the rest of the window: rounded, with a flat list.
+
 ## 3.2.0
 
 A visual pass over the Windows app. The analysis and the reports are

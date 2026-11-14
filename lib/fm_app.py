@@ -33,7 +33,7 @@ import fm_history  # noqa: E402
 import fm_providers  # noqa: E402
 
 TOOL_NAME = "fantasy_manager"
-TOOL_VERSION = "3.2.0"
+TOOL_VERSION = "3.3.0"
 
 # --------------------------------------------------------------------------
 # Defaults. There is no built-in league or user: they come from the command
@@ -127,6 +127,10 @@ Analysis options:
                            recent form)
       --history-db PATH    History database (default: history.sqlite in the cache
                            directory; in memory with --no-cache)
+
+Windows app:
+      --auto-refresh MIN   Refresh the window by itself every MIN minutes
+                           (0 = off, the default). Ignored on the command line
 
 Output options:
   -f, --format FORMAT      text|json|markdown (default: text)
@@ -288,7 +292,7 @@ VALUE_OPTIONS = {
     "--season-type": "season_type", "-n": "top_n", "--top": "top_n",
     "--threshold": "threshold", "--fairness": "fairness", "--locked": "locked",
     "--trade": "trade", "--value-trade": "value_trade", "--scoring": "scoring",
-    "--teams": "teams", "--platform": "platform", "--team": "team", "--horizon": "horizon", "--compare": "compare", "--projections": "projections_mode", "-f": "format", "--format": "format",
+    "--teams": "teams", "--auto-refresh": "auto_refresh", "--platform": "platform", "--team": "team", "--horizon": "horizon", "--compare": "compare", "--projections": "projections_mode", "-f": "format", "--format": "format",
     "-o": "output", "--output": "output", "--log-file": "log_file",
     "--cache-dir": "cache_dir", "--cache-ttl": "projections_ttl",
     "--fixtures": "fixtures", "--config": "config_file", "--history-db": "history_db",
@@ -492,6 +496,8 @@ def load_configuration(cli: Dict[str, str]) -> Config:
     c.offline = resolve("offline", "FM_OFFLINE", "0")
     c.fixtures = resolve("fixtures", "FM_FIXTURES", "")
     c.print_config = cli.get("print_config") == "1"
+    # Used by the Windows window only: minutes between automatic refreshes.
+    c.auto_refresh = resolve("auto_refresh", "FM_AUTO_REFRESH", "0")
     c.history = resolve("history", "FM_HISTORY", "1")
     c.history_db = resolve("history_db", "FM_HISTORY_DB", "")
     c.stats_base = resolve("stats_base", "FM_STATS_BASE", DEFAULT_STATS_BASE)
@@ -568,6 +574,8 @@ def validate_config(c: Config) -> None:
         die(EX_USAGE, "Projections must be sleeper or blend (got '%s')." % c.projections_mode)
     if c.projections_mode == "blend" and c.compare == "none":
         die(EX_USAGE, "--projections blend needs a second source; drop --compare none.")
+    if not is_uint(c.auto_refresh) or int(c.auto_refresh) > 1440:
+        die(EX_USAGE, "Auto refresh must be a number of minutes from 0 (off) to 1440 (got '%s')." % c.auto_refresh)
     if c.history not in ("0", "1"):
         die(EX_USAGE, "History must be 0 or 1 (got '%s')." % c.history)
     if LOG.level not in ("QUIET", "ERROR", "WARN", "INFO", "DEBUG"):
@@ -2036,7 +2044,7 @@ def write_stdout(text: str) -> None:
 
 def print_config(c: Config) -> None:
     keys = ("config_file", "platform", "league_id", "username", "team", "week", "season", "season_type", "horizon", "top_n",
-            "threshold", "fairness", "scoring", "teams", "locked", "format", "output", "cache_dir")
+            "threshold", "fairness", "scoring", "teams", "locked", "format", "output", "cache_dir", "auto_refresh")
     out = {k: getattr(c, k) for k in keys}
     out["log_level"] = LOG.level
     out["saved"] = c.saved

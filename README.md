@@ -125,6 +125,17 @@ PowerShell 7 works too. Python is the only other thing you need.
 Refresh runs in the background, so the window stays responsive while data
 loads.
 
+**Auto-refresh.** The box at the bottom right refreshes by itself every 1 to
+60 minutes, which is handy on game days for live scores and the win
+probability. An automatic refresh:
+- uses the cache as usual and never changes your saved defaults
+- waits while you are in the Trade Analyzer, so your picks aren't reset
+- never interrupts with a dialog: if it fails, the bottom line says so and
+  the report on screen stays
+
+The interval is saved with **Remember** ticked (`auto_refresh=5` in the
+config file, minutes; `0` is off), or set for one run with `-AutoRefresh 5`.
+
 **Windows command line** (optional; `-NoGui` produces JSON unless you add
 `-Format text` or `-Format markdown`):
 
@@ -466,6 +477,7 @@ default.**
 | Grade any-player trades | `--value-trade` | `-ValueTrade` | `value_trade` / `FM_VALUE_TRADE` | none |
 | Any-player scoring | `--scoring` | `-Scoring` | `scoring` / `FM_SCORING` | `ppr` |
 | Any-player league size | `--teams` | `-Teams` | `teams` / `FM_TEAMS` | `12` (4-32) |
+| Auto-refresh (Windows app) | `--auto-refresh` | `-AutoRefresh` | `auto_refresh` / `FM_AUTO_REFRESH` | `0` (off); minutes, up to 1440 |
 | Report format | `--format` | `-Format` | `format` / `FM_FORMAT` | `text` (`-NoGui`: `json`) |
 | Write report to | `--output` | `-OutFile` | `output` / `FM_OUTPUT` | screen |
 | Cache folder | `--cache-dir` | `-CacheDir` | `cache_dir` / `FM_CACHE_DIR` | see below |
