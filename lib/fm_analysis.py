@@ -19,13 +19,13 @@ import random
 import sys
 import time
 from itertools import combinations
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fm_history  # noqa: E402
 import fm_providers  # noqa: E402
 
-SCHEMA_VERSION = "2.0"
+SCHEMA_VERSION = "2.1"
 
 # Slots that do not start.
 NON_STARTING_SLOTS = {"BN", "BE", "IR", "TAXI", "RESERVE"}
@@ -119,6 +119,20 @@ MIN_HISTORY_GAMES = 30
 MIN_PLAYER_GAMES = 3
 PLAYER_SPREAD_PRIOR_GAMES = 6
 SIMULATIONS = 10000
+
+# Opponent strength: points a defense allows to a position, against the
+# league average. A team needs a few games before its own number counts
+# fully; the factor is kept within a sensible band.
+MATCHUP_POSITIONS = ("QB", "RB", "WR", "TE", "K", "DEF")
+MATCHUP_MIN_WEEKS = 3
+MATCHUP_PRIOR_GAMES = 3
+MATCHUP_LIMITS = (0.7, 1.3)
+MATCHUP_EASY, MATCHUP_TOUGH = 1.10, 0.90
+
+# Playoff odds: simulations of the rest of the regular season. A team's
+# weekly score is spread around its expected score by at least this share.
+SEASON_SIMULATIONS = 5000
+TEAM_SPREAD_SHARE = 0.18
 
 WAIVER_WEIGHTS = {
     "roster_improvement": 0.40,
@@ -1295,6 +1309,8 @@ class Analyzer:
                     "depth_chart_position": info.get("depth_chart_position"),
                     "depth_chart_order": info.get("depth_chart_order"),
                     "trending_adds_24h": trending.get(pid),
+                    "matchup": self.matchup_info(pid, eval_w),
+                    "schedule_fit": self.schedule_fit(pid),
                     "available": startable,
                     "notes": notes,
                     "rest_of_season_value": r2(window_gain) if window else None,
@@ -1309,7 +1325,7 @@ class Analyzer:
         components["opportunity"] = any(r["depth_chart_order"] is not None for r in rows)
         components["add_trend"] = bool(trending) and any(r["trending_adds_24h"] is not None for r in rows)
         components["rest_of_season_value"] = window
-        components["schedule_fit"] = False
+        components["schedule_fit"] = any(r["schedule_fit"] is not None for r in rows)
         omitted = sorted(k for k, v in components.items() if not v)
         active_weights = {k: WAIVER_WEIGHTS[k] for k, v in components.items() if v}
         total_weight = sum(active_weights.values()) or 1.0
@@ -1349,6 +1365,10 @@ class Analyzer:
             if "add_trend" in weights_used:
                 trend = row["trending_adds_24h"] or 0
                 score += weights_used["add_trend"] * ((trend / max_trend) if max_trend else 0.0)
+            if "schedule_fit" in weights_used and row["schedule_fit"] is not None:
+                # 0 for the toughest schedule in the band, 1 for the easiest.
+                low, high = MATCHUP_LIMITS
+                score += weights_used["schedule_fit"] * max(0.0, min(1.0, (row["schedule_fit"] - low) / (high - low)))
             row["score"] = round(score, 4)
             # Bids and priority use the per-week average gain over the window.
             per_week_gain = window_or_net(row) / (n if window else 1)
@@ -1418,6 +1438,7 @@ class Analyzer:
                 "note": "Bid suggestions are estimates, not market data.",
             },
             "window_weeks": self.window_weeks,
+            "trend_source": self.provenance.get("trend_source") or "sleeper",
             "weights_used": weights_used,
             "omitted_components": omitted,
             "candidates_considered": len(rows),
@@ -2251,6 +2272,7 @@ class Analyzer:
         Sets self.history_updates (rows for the history database) and
         self.history_form (recent form per player)."""
         self.history_updates: Dict[str, list] = {"projections": [], "actuals": []}
+        self.history_actuals: Dict[Tuple[int, str], float] = {}
         self.history_form: Dict[str, dict] = {}
         self.history_accuracy: Dict[str, dict] = {}
         self.history_player_misses: Dict[str, List[float]] = {}
@@ -2322,6 +2344,7 @@ class Analyzer:
                 self.history_updates["actuals"].append([w, str(pid), None, "stats", u])
                 self.usage_sources.setdefault(w, "nflverse")
 
+        self.history_actuals = act
         # This week's projections, recorded before each player's game starts.
         for pid, value in self.projection_points.items():
             if not self.is_locked(pid):
@@ -2488,6 +2511,7 @@ class Analyzer:
         """--projections blend: move each league-scored Sleeper projection
         halfway toward the second source (as a ratio of the PPR totals)."""
         self.blend_counts: Dict[int, int] = {}
+        self.unblended_points = dict(self.week_points[0])
         prov = self.bundle.get("providers")
         if self.config.get("projections_mode") != "blend" or not isinstance(prov, dict):
             return []
@@ -2498,6 +2522,13 @@ class Analyzer:
                 continue
             count = 0
             for pid, value in list(self.week_points[wi].items()):
+                if prov.get("scoring") == "league":
+                    # The second source is already in league points: a plain average.
+                    if isinstance(other.get(pid), (int, float)) and self.primary_position(pid) not in self.host_scored:
+                        w2 = fm_providers.BLEND_WEIGHT
+                        self.week_points[wi][pid] = (1 - w2) * value + w2 * float(other[pid])
+                        count += 1
+                    continue
                 factor = fm_providers.blend_factor(self.sleeper_ppr(pid, wi), other.get(pid))
                 if factor is not None:
                     self.week_points[wi][pid] = value * factor
@@ -2514,7 +2545,9 @@ class Analyzer:
             return None
         week = self.window_weeks[0] if self.window_weeks else int(self.config.get("week") or 0)
         other = (prov.get("weeks") or {}).get(str(week)) or {}
+        league_scored = prov.get("scoring") == "league"
         base = {"provider": prov.get("provider") or "espn", "week": week,
+                "scoring": "league" if league_scored else "ppr",
                 "mode": self.config.get("projections_mode") or "sleeper", "blended_weeks": blended,
                 "matched": (prov.get("matched") or {}).get(str(week), 0),
                 "unmatched": (prov.get("unmatched") or {}).get(str(week), 0)}
@@ -2528,7 +2561,14 @@ class Analyzer:
         waiver_ids = [str(r["player_id"]) for rows in ((waivers or {}).get("groups") or {}).values() for r in rows]
         diffs, rows = [], []
         for pid, espn in other.items():
-            sleeper = self.sleeper_ppr(pid)
+            if league_scored:
+                # League points from both: the projected stats scored with the
+                # league's rules (before any blend) against ESPN's own number.
+                if self.primary_position(pid) in self.host_scored:
+                    continue
+                sleeper = self.unblended_points.get(pid)
+            else:
+                sleeper = self.sleeper_ppr(pid)
             if sleeper is None:
                 continue
             if max(sleeper, espn) >= 5.0:
@@ -2547,8 +2587,10 @@ class Analyzer:
             "available": True, "reason": None, "compared": len(diffs),
             "mean_abs_diff": r2(sum(diffs) / len(diffs)) if diffs else None,
             "disagreements": rows,
-            "note": ("PPR points from each source (league scoring can't be applied to ESPN's totals). Disagreement: "
-                     "4+ points and 30%+ apart. Your roster, plus free agents projected 8+ by either source."),
+            "note": (("Both in your league's scoring: projected stats scored with the league's rules, against ESPN's "
+                      "own league-scored projection. " if league_scored else
+                      "PPR points from each source (league scoring can't be applied to ESPN's totals). ")
+                     + "Disagreement: 4+ points and 30%+ apart. Your roster, plus free agents projected 8+ by either source."),
         })
         return base
 
@@ -2586,6 +2628,221 @@ class Analyzer:
                         "players": players})
         return out
 
+    # -- opponent strength: points allowed to each position ----------------
+    def analyze_opponent_strength(self) -> dict:
+        """How many fantasy points each NFL defense has allowed to each
+        position this season, against the league average. Sets
+        self.defense_table ({position: {team: entry}}) and the opponents of
+        every team in each window week."""
+        self.defense_table: Dict[str, Dict[str, dict]] = {}
+        self.week_opponents: List[Dict[str, Tuple[str, bool]]] = []
+        by_week: Dict[int, Dict[str, Tuple[str, bool]]] = {}
+        for game in self.bundle.get("schedule") or []:
+            if not isinstance(game, dict) or not str(game.get("week", "")).isdigit():
+                continue
+            home, away = str(game.get("home") or "").upper(), str(game.get("away") or "").upper()
+            if home and away:
+                by_week.setdefault(int(game["week"]), {})[home] = (away, True)
+                by_week[int(game["week"])][away] = (home, False)
+        self.week_opponents = [by_week.get(int(w), {}) for w in self.window_weeks]
+
+        week = int(self.config.get("week") or 0)
+        missing = set((self.bundle.get("history") or {}).get("stats_missing") or [])
+        allowed: Dict[str, Dict[str, Dict[int, float]]] = {}
+        weeks_used = set()
+        for (w, pid), pts in self.history_actuals.items():
+            if w >= week or w in missing or not isinstance(pts, (int, float)):
+                continue
+            position = self.primary_position(pid)
+            team = str(self.player(pid).get("team") or "").upper()
+            opponent = (by_week.get(w) or {}).get(team)
+            if position not in MATCHUP_POSITIONS or opponent is None:
+                continue
+            games = allowed.setdefault(position, {}).setdefault(opponent[0], {})
+            games[w] = games.get(w, 0.0) + float(pts)
+            weeks_used.add(w)
+        base = {"available": False, "weeks": sorted(weeks_used), "positions": {},
+                "note": ("Fantasy points each defense has allowed to a position per game this season, in your league's "
+                         "scoring, against the league average (1.00). Projections are not adjusted by it; it ranks "
+                         "matchups and feeds the waiver score's schedule fit. Players count for their current team.")}
+        if len(weeks_used) < MATCHUP_MIN_WEEKS:
+            base["reason"] = ("needs %d past weeks of results (have %d)" % (MATCHUP_MIN_WEEKS, len(weeks_used))
+                              if by_week else "no game schedule")
+            return base
+        low, high = MATCHUP_LIMITS
+        for position, teams in allowed.items():
+            averages = {team: sum(games.values()) / len(games) for team, games in teams.items() if games}
+            league = sum(averages.values()) / len(averages) if averages else 0.0
+            if league <= 0:
+                continue
+            ranked = sorted(averages, key=lambda t: (-averages[t], t))
+            table = {}
+            for team in ranked:
+                n = len(teams[team])
+                raw = averages[team] / league
+                factor = (n * raw + MATCHUP_PRIOR_GAMES * 1.0) / (n + MATCHUP_PRIOR_GAMES)
+                table[team] = {"team": team, "games": n, "allowed": r2(averages[team]),
+                               "factor": round(max(low, min(high, factor)), 3), "rank": ranked.index(team) + 1,
+                               "of": len(ranked)}
+            self.defense_table[position] = table
+        base.update({"available": bool(self.defense_table),
+                     "positions": {pos: list(table.values()) for pos, table in sorted(self.defense_table.items())}})
+        return base
+
+    @staticmethod
+    def matchup_rating(factor: float) -> str:
+        return "easy" if factor >= MATCHUP_EASY else "tough" if factor <= MATCHUP_TOUGH else "neutral"
+
+    def matchup_info(self, pid: Optional[str], w: int = 0) -> Optional[dict]:
+        """The player's opponent in window week `w` and how generous that
+        defense has been to his position. None without a table or a game."""
+        table = getattr(self, "defense_table", None)
+        if pid is None or not table or w >= len(self.week_opponents):
+            return None
+        team = str(self.player(pid).get("team") or "").upper()
+        game = self.week_opponents[w].get(team)
+        entry = (table.get(self.primary_position(pid) or "") or {}).get(game[0]) if game else None
+        if entry is None:
+            return None
+        return {"opponent": game[0], "home": game[1], "factor": entry["factor"], "rating": self.matchup_rating(entry["factor"]),
+                "allowed": entry["allowed"], "rank": entry["rank"], "of": entry["of"]}
+
+    def schedule_fit(self, pid: str) -> Optional[float]:
+        """Average opponent factor over the window weeks with a game."""
+        factors = [info["factor"] for info in (self.matchup_info(pid, w) for w in range(self.n_weeks)) if info]
+        return round(sum(factors) / len(factors), 3) if factors else None
+
+    # -- playoff odds ------------------------------------------------------
+    def analyze_playoffs(self) -> Optional[dict]:
+        """Chance each team makes the playoffs: the rest of the regular
+        season simulated from the standings, the remaining schedule and
+        each team's expected weekly score."""
+        season = self.bundle.get("season")
+        if not isinstance(season, dict):
+            return None
+        week = int(self.config.get("week") or 0)
+        last = season.get("regular_season_last_week")
+        spots = season.get("playoff_teams")
+        base = {"available": False, "regular_season_ends": last, "playoff_teams": spots}
+        if not isinstance(last, int) or not isinstance(spots, int) or spots < 1:
+            base["reason"] = "the league's playoff settings are not available"
+            return base
+        if week > last:
+            base["reason"] = "the regular season is over"
+            return base
+        schedule = season.get("schedule") or {}
+        weeks = list(range(week, last + 1))
+        absent = [w for w in weeks if not schedule.get(str(w))]
+        if absent:
+            base["reason"] = "the league schedule for week(s) %s is not available" % ", ".join(str(w) for w in absent)
+            return base
+        standings = {row.get("roster_id"): row for row in season.get("standings") or [] if isinstance(row, dict)}
+        ids = [r.get("roster_id") for r in self.rosters]
+        if len(ids) <= spots or any(rid not in standings for rid in ids):
+            base["reason"] = "standings are not available for every team"
+            return base
+
+        # Expected score per team and week: this week from the lineups as
+        # set (live points for players already playing); later weeks half the
+        # best lineup's projection, half the season's scoring average.
+        mean: Dict[Any, List[float]] = {}
+        spread: Dict[Any, List[float]] = {}
+        entries = {m.get("roster_id"): m for m in self.matchups}
+        for roster in self.rosters:
+            rid = roster.get("roster_id")
+            row = standings[rid]
+            active = self.roster_active_players(roster)
+            games = sum(int(row.get(k) or 0) for k in ("wins", "losses", "ties"))
+            average = float(row.get("points_for") or 0.0) / games if games >= 3 else None
+            optimal = [self.optimize(active, w=w)[0] for w in range(self.n_weeks)]
+            later = sum(optimal[1:]) / len(optimal[1:]) if len(optimal) > 1 else optimal[0]
+            mean[rid], spread[rid] = [], []
+            for i, w in enumerate(weeks):
+                if i == 0:
+                    starters = [str(p) for p in ((entries.get(rid) or {}).get("starters") or []) if p not in (None, "", "0", 0)]
+                    if not starters:
+                        starters = list(self.optimize(active)[1].values())
+                    live = (entries.get(rid) or {}).get("players_points") or {}
+                    total, variance = 0.0, 0.0
+                    for pid in starters:
+                        if self.is_locked(pid):
+                            value = live.get(pid, self.live_points.get(pid, 0.0))
+                            total += float(value) if isinstance(value, (int, float)) else 0.0
+                        else:
+                            total += self.points(pid)
+                            variance += self.score_spread(pid) ** 2
+                    mean[rid].append(total)
+                    spread[rid].append(math.sqrt(variance))
+                    continue
+                projected = optimal[i] if i < len(optimal) else later
+                expected = projected if average is None else 0.5 * projected + 0.5 * average
+                mean[rid].append(expected)
+                spread[rid].append(max(15.0, TEAM_SPREAD_SHARE * expected))
+
+        rng = random.Random("season-%s-%s-%s" % (self.config.get("league_id"), self.config.get("season"), week))
+        n = SEASON_SIMULATIONS
+        made = {rid: 0 for rid in ids}
+        seeds = {rid: 0 for rid in ids}
+        wins_total = {rid: 0.0 for rid in ids}
+        me = self.my_roster_id
+        split = {"win": [0, 0], "loss": [0, 0]}  # [simulations, playoffs made]
+        start = {rid: (float(standings[rid].get("wins") or 0) + 0.5 * float(standings[rid].get("ties") or 0),
+                       float(standings[rid].get("points_for") or 0.0)) for rid in ids}
+        pairs = [[(a, b) for a, b in schedule[str(w)] if a in mean and b in mean] for w in weeks]
+        for _ in range(n):
+            wins = {rid: start[rid][0] for rid in ids}
+            points = {rid: start[rid][1] for rid in ids}
+            my_result = None
+            for i, games in enumerate(pairs):
+                for a, b in games:
+                    sa = max(0.0, mean[a][i] + spread[a][i] * rng.gauss(0.0, 1.0))
+                    sb = max(0.0, mean[b][i] + spread[b][i] * rng.gauss(0.0, 1.0))
+                    points[a] += sa
+                    points[b] += sb
+                    if sa > sb:
+                        wins[a] += 1
+                    elif sb > sa:
+                        wins[b] += 1
+                    else:
+                        wins[a] += 0.5
+                        wins[b] += 0.5
+                    if i == 0 and me in (a, b):
+                        mine, theirs = (sa, sb) if a == me else (sb, sa)
+                        my_result = "win" if mine > theirs else "loss"
+            order = sorted(ids, key=lambda rid: (-wins[rid], -points[rid], str(rid)))
+            for seed, rid in enumerate(order, 1):
+                seeds[rid] += seed
+                wins_total[rid] += wins[rid]
+                if seed <= spots:
+                    made[rid] += 1
+            if my_result is not None:
+                split[my_result][0] += 1
+                split[my_result][1] += 1 if order.index(me) < spots else 0
+
+        def pct(count: int, total: int) -> Optional[float]:
+            return round(100.0 * count / total, 1) if total else None
+
+        teams = []
+        for rid in ids:
+            row = standings[rid]
+            teams.append({"roster_id": rid, "team": self.team_name(rid) or "roster %s" % rid, "is_me": rid == me,
+                          "wins": int(row.get("wins") or 0), "losses": int(row.get("losses") or 0),
+                          "ties": int(row.get("ties") or 0), "points_for": r2(float(row.get("points_for") or 0.0)),
+                          "playoff_pct": pct(made[rid], n), "projected_wins": round(wins_total[rid] / n, 1),
+                          "average_seed": round(seeds[rid] / n, 1)})
+        teams.sort(key=lambda t: (-(t["playoff_pct"] or 0.0), t["average_seed"], str(t["team"])))
+        mine_row = next((t for t in teams if t["is_me"]), None)
+        base.update({
+            "available": True, "simulations": n, "weeks": weeks, "teams": teams,
+            "mine": {"playoff_pct": mine_row["playoff_pct"] if mine_row else None,
+                     "if_win_this_week": pct(split["win"][1], split["win"][0]),
+                     "if_lose_this_week": pct(split["loss"][1], split["loss"][0])},
+            "note": ("Each remaining regular-season week is simulated %d times. This week uses the lineups as set; later "
+                     "weeks use half each team's best projected lineup and half its scoring average. Seeds go by wins, "
+                     "then points scored; division winners' automatic berths and other tiebreakers are not modelled." % n),
+        })
+        return base
+
     def run(self) -> dict:
         if not self.starting_slots:
             raise SystemExit("league has no starting slots in roster_positions")
@@ -2601,8 +2858,11 @@ class Analyzer:
         history = self.analyze_history()
         blended = self.apply_blend()
         opportunity = self.analyze_opportunity()
+        opponent_strength = self.analyze_opponent_strength()
 
         lineup = self.analyze_lineup(my_roster)
+        for slot in lineup["slots"]:
+            slot["matchup"] = self.matchup_info((slot.get("recommended") or {}).get("player_id"))
         matchup = self.analyze_matchup()
         if matchup is not None:
             matchup["win_probability"] = self.simulate_matchup(matchup, lineup)
@@ -2681,6 +2941,8 @@ class Analyzer:
             "value_trades": value_trades,
             "history": history,
             "opportunity": opportunity,
+            "opponent_strength": opponent_strength,
+            "playoffs": self.analyze_playoffs(),
             "projection_sources": self.compare_sources(blended, lineup, waivers),
             "player_pool": self.player_pool(),
             "rosters": self.roster_summaries(),

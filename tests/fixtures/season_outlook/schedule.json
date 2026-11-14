@@ -1,0 +1,258 @@
+[
+ {
+  "away": "BBB",
+  "date": "2025-09-03",
+  "game_id": "g1_AAA",
+  "home": "AAA",
+  "status": "complete",
+  "week": 1
+ },
+ {
+  "away": "DDD",
+  "date": "2025-09-03",
+  "game_id": "g1_CCC",
+  "home": "CCC",
+  "status": "complete",
+  "week": 1
+ },
+ {
+  "away": "FFF",
+  "date": "2025-09-03",
+  "game_id": "g1_EEE",
+  "home": "EEE",
+  "status": "complete",
+  "week": 1
+ },
+ {
+  "away": "HHH",
+  "date": "2025-09-03",
+  "game_id": "g1_GGG",
+  "home": "GGG",
+  "status": "complete",
+  "week": 1
+ },
+ {
+  "away": "CCC",
+  "date": "2025-09-06",
+  "game_id": "g2_AAA",
+  "home": "AAA",
+  "status": "complete",
+  "week": 2
+ },
+ {
+  "away": "DDD",
+  "date": "2025-09-06",
+  "game_id": "g2_BBB",
+  "home": "BBB",
+  "status": "complete",
+  "week": 2
+ },
+ {
+  "away": "GGG",
+  "date": "2025-09-06",
+  "game_id": "g2_EEE",
+  "home": "EEE",
+  "status": "complete",
+  "week": 2
+ },
+ {
+  "away": "HHH",
+  "date": "2025-09-06",
+  "game_id": "g2_FFF",
+  "home": "FFF",
+  "status": "complete",
+  "week": 2
+ },
+ {
+  "away": "BBB",
+  "date": "2025-09-09",
+  "game_id": "g3_AAA",
+  "home": "AAA",
+  "status": "complete",
+  "week": 3
+ },
+ {
+  "away": "DDD",
+  "date": "2025-09-09",
+  "game_id": "g3_CCC",
+  "home": "CCC",
+  "status": "complete",
+  "week": 3
+ },
+ {
+  "away": "FFF",
+  "date": "2025-09-09",
+  "game_id": "g3_EEE",
+  "home": "EEE",
+  "status": "complete",
+  "week": 3
+ },
+ {
+  "away": "HHH",
+  "date": "2025-09-09",
+  "game_id": "g3_GGG",
+  "home": "GGG",
+  "status": "complete",
+  "week": 3
+ },
+ {
+  "away": "CCC",
+  "date": "2025-09-12",
+  "game_id": "g4_AAA",
+  "home": "AAA",
+  "status": "complete",
+  "week": 4
+ },
+ {
+  "away": "DDD",
+  "date": "2025-09-12",
+  "game_id": "g4_BBB",
+  "home": "BBB",
+  "status": "complete",
+  "week": 4
+ },
+ {
+  "away": "GGG",
+  "date": "2025-09-12",
+  "game_id": "g4_EEE",
+  "home": "EEE",
+  "status": "complete",
+  "week": 4
+ },
+ {
+  "away": "HHH",
+  "date": "2025-09-12",
+  "game_id": "g4_FFF",
+  "home": "FFF",
+  "status": "complete",
+  "week": 4
+ },
+ {
+  "away": "BBB",
+  "date": "2025-09-15",
+  "game_id": "g5_AAA",
+  "home": "AAA",
+  "status": "pre_game",
+  "week": 5
+ },
+ {
+  "away": "DDD",
+  "date": "2025-09-15",
+  "game_id": "g5_CCC",
+  "home": "CCC",
+  "status": "pre_game",
+  "week": 5
+ },
+ {
+  "away": "FFF",
+  "date": "2025-09-15",
+  "game_id": "g5_EEE",
+  "home": "EEE",
+  "status": "pre_game",
+  "week": 5
+ },
+ {
+  "away": "HHH",
+  "date": "2025-09-15",
+  "game_id": "g5_GGG",
+  "home": "GGG",
+  "status": "pre_game",
+  "week": 5
+ },
+ {
+  "away": "CCC",
+  "date": "2025-09-18",
+  "game_id": "g6_AAA",
+  "home": "AAA",
+  "status": "pre_game",
+  "week": 6
+ },
+ {
+  "away": "DDD",
+  "date": "2025-09-18",
+  "game_id": "g6_BBB",
+  "home": "BBB",
+  "status": "pre_game",
+  "week": 6
+ },
+ {
+  "away": "GGG",
+  "date": "2025-09-18",
+  "game_id": "g6_EEE",
+  "home": "EEE",
+  "status": "pre_game",
+  "week": 6
+ },
+ {
+  "away": "HHH",
+  "date": "2025-09-18",
+  "game_id": "g6_FFF",
+  "home": "FFF",
+  "status": "pre_game",
+  "week": 6
+ },
+ {
+  "away": "BBB",
+  "date": "2025-09-21",
+  "game_id": "g7_AAA",
+  "home": "AAA",
+  "status": "pre_game",
+  "week": 7
+ },
+ {
+  "away": "DDD",
+  "date": "2025-09-21",
+  "game_id": "g7_CCC",
+  "home": "CCC",
+  "status": "pre_game",
+  "week": 7
+ },
+ {
+  "away": "FFF",
+  "date": "2025-09-21",
+  "game_id": "g7_EEE",
+  "home": "EEE",
+  "status": "pre_game",
+  "week": 7
+ },
+ {
+  "away": "HHH",
+  "date": "2025-09-21",
+  "game_id": "g7_GGG",
+  "home": "GGG",
+  "status": "pre_game",
+  "week": 7
+ },
+ {
+  "away": "CCC",
+  "date": "2025-09-24",
+  "game_id": "g8_AAA",
+  "home": "AAA",
+  "status": "pre_game",
+  "week": 8
+ },
+ {
+  "away": "DDD",
+  "date": "2025-09-24",
+  "game_id": "g8_BBB",
+  "home": "BBB",
+  "status": "pre_game",
+  "week": 8
+ },
+ {
+  "away": "GGG",
+  "date": "2025-09-24",
+  "game_id": "g8_EEE",
+  "home": "EEE",
+  "status": "pre_game",
+  "week": 8
+ },
+ {
+  "away": "HHH",
+  "date": "2025-09-24",
+  "game_id": "g8_FFF",
+  "home": "FFF",
+  "status": "pre_game",
+  "week": 8
+ }
+]

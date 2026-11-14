@@ -39,6 +39,7 @@
    }
   },
   "scheduleSettings": {
+   "matchupPeriodCount": 7,
    "matchupPeriods": {
     "1": [
      1
@@ -89,7 +90,7 @@
      9
     ]
    },
-   "playoffTeamCount": 4
+   "playoffTeamCount": 2
   },
   "scoringSettings": {
    "scoringItems": [
@@ -191,6 +192,14 @@
    "abbrev": "TT",
    "id": 1,
    "name": "Test Titans",
+   "record": {
+    "overall": {
+     "losses": 1,
+     "pointsFor": 452.5,
+     "ties": 0,
+     "wins": 3
+    }
+   },
    "roster": {
     "entries": [
      {
@@ -414,6 +423,14 @@
    "abbrev": "T2",
    "id": 2,
    "name": "Team 2",
+   "record": {
+    "overall": {
+     "losses": 2,
+     "pointsFor": 430.25,
+     "ties": 0,
+     "wins": 2
+    }
+   },
    "roster": {
     "entries": [
      {
@@ -609,6 +626,14 @@
    "abbrev": "T3",
    "id": 3,
    "name": "Team 3",
+   "record": {
+    "overall": {
+     "losses": 2,
+     "pointsFor": 401.0,
+     "ties": 0,
+     "wins": 2
+    }
+   },
    "roster": {
     "entries": [
      {
@@ -790,6 +815,14 @@
    "abbrev": "T4",
    "id": 4,
    "name": "Team 4",
+   "record": {
+    "overall": {
+     "losses": 3,
+     "pointsFor": 388.75,
+     "ties": 0,
+     "wins": 1
+    }
+   },
    "roster": {
     "entries": [
      {

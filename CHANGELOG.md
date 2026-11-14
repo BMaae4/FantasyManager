@@ -2,6 +2,41 @@
 
 All notable changes to `fantasy_manager.sh`.
 
+## 3.4.0
+
+### Added
+
+- **Opponent strength.** Fantasy points each NFL defense has allowed to
+  each position this season, in the league's scoring, against the league
+  average.
+  - Each starter's opponent is rated easy, neutral or tough (text,
+    Markdown, JSON `lineup.slots[].matchup` and `opponent_strength`, and
+    an **Opponent** column on the Lineup and Waivers tabs).
+  - It is the **schedule fit** part of the waiver score, which was left
+    out before. Projections are not adjusted by it.
+  - Needs three past weeks of results and the game schedule.
+- **Playoff odds.** The rest of the regular season simulated 5,000 times
+  from the standings, the league's remaining schedule and each team's
+  expected score.
+  - Every team's chance to make the playoffs, projected wins and average
+    seed, plus your chance with a win or a loss this week (text, Markdown,
+    JSON `playoffs`, and a **Playoffs** tab in the Windows app).
+  - Works for Sleeper and ESPN leagues. Left out, with the reason, after
+    the regular season or when the league's schedule can't be read.
+- **ESPN leagues use more of ESPN's own data.**
+  - ESPN's projections are read through the league, so they are in league
+    scoring for every position. The source comparison is in league points,
+    and `--projections blend` is a plain average of the two.
+  - The waiver add trend comes from ESPN ownership changes instead of
+    Sleeper's trending adds (JSON `waivers.trend_source`).
+- JSON schema version 2.1.
+
+### Tests
+
+- New fixture `season_outlook` (four weeks of results on a real schedule,
+  standings, and pairings through the last regular-season week); the
+  `espn_league` fixture gains records, a schedule and ownership changes.
+
 ## 3.3.0
 
 ### Added

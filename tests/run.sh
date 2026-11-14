@@ -415,7 +415,7 @@ run_case ppr_basic --format json
 assert_json "json has metadata" '.metadata.league_id == "100000000000000001"'
 assert_json "json has diagnostics" '(.diagnostics.fetches | length) > 0'
 assert_json "json keys stable" \
-    '[keys[]] == ["custom_trades","diagnostics","history","lineup","matchup","metadata","opportunity","player_pool","projection_sources","rosters","schema_version","trades","value_trades","waivers","warnings"]'
+    '[keys[]] == ["custom_trades","diagnostics","history","lineup","matchup","metadata","opponent_strength","opportunity","player_pool","playoffs","projection_sources","rosters","schema_version","trades","value_trades","waivers","warnings"]'
 
 run_case ppr_basic --format json --quiet
 assert_status "--quiet exits 0" 0
@@ -1136,6 +1136,24 @@ STDOUT="$("$SCRIPT" --platform espn --team "My Team" --print-config 2>/dev/null)
 assert_json "--print-config shows platform and team" '.platform == "espn" and .team == "My Team"'
 run_case ppr_basic --format json
 assert_json "Sleeper leagues report their platform" '.metadata.platform == "sleeper" and .metadata.scoring.host_scored == null'
+run_case espn_league "${ESPN_ARGS[@]}" --team "Test Titans" --format json
+assert_json "ESPN standings and schedule feed the playoff odds" \
+    '.playoffs | .available and .weeks == [5,6,7] and .playoff_teams == 2 and ([.teams[] | select(.is_me) | [.wins, .losses, .points_for]] == [[3,1,452.5]])'
+assert_json "ESPN league: sources compared in league points" \
+    '.projection_sources | .scoring == "league" and .available
+     and ([.disagreements[] | [.player_id, .where, .sleeper_ppr, .espn_ppr]] == [["wr1","your starter",15,8]])'
+assert_json "ESPN league: waiver trend from ESPN ownership" \
+    '.waivers.trend_source == "espn" and ([.waivers.groups[][] | select(.player_id == "fa_te1") | .trending_adds_24h] == [625])'
+run_case espn_league "${ESPN_ARGS[@]}" --team "Test Titans" --format text
+assert_match "ESPN league: text sources in league points" "$STDOUT" 'PROJECTION SOURCES - Sleeper vs ESPN, week 5 \(league points\)'
+run_case espn_league "${ESPN_ARGS[@]}" --team "Test Titans" --format json --projections blend
+assert_json "ESPN league blend: a plain average of the two league-scored numbers" \
+    '[.lineup.slots[] | select(.recommended.player_id == "wr1") | .recommended.points] == [11.5]'
+assert_json "ESPN league blend leaves ESPN-scored kickers and defenses alone" \
+    '[.lineup.slots[] | select(.slot == "K" or .slot == "DEF") | .recommended.points] == [8.5, 9.5]'
+run_case espn_compare --format json
+assert_json "Sleeper league: sources stay in PPR, trend from Sleeper" \
+    '.projection_sources.scoring == "ppr" and .waivers.trend_source == "sleeper"'
 # The ESPN converter on its own: scoring items, slots and team lookup.
 CONVERTED="$(python3 - "$ROOT/lib" <<'PY'
 import sys
@@ -1164,6 +1182,60 @@ assert_match "converter: only offensive items without a stat are reported" "$CON
 assert_match "converter: slots, FAAB, final week and an unsupported slot" "$CONVERTED" \
     "\['QB', 'REC_FLEX', 'SUPER_FLEX', 'BN', 'BN', 'IR'\] 2 200 17 1"
 assert_match "converter: team by id, name, abbreviation or unique part" "$CONVERTED" '4 3 4 4 None None'
+
+# --------------------------------------------------------------------------
+section "opponent strength"
+# --------------------------------------------------------------------------
+run_case season_outlook --format json
+assert_status "season outlook exits 0" 0
+assert_json "points allowed to each position, from four past weeks" \
+    '.opponent_strength | .available and .weeks == [1,2,3,4] and (.positions | keys) == ["DEF","K","QB","RB","TE","WR"]'
+assert_json "every defense is ranked, and factors stay in the band" \
+    '[.opponent_strength.positions.RB[] | .rank] == [1,2,3,4,5,6,7,8]
+     and ([.opponent_strength.positions[][] | select(.factor < 0.7 or .factor > 1.3)] | length == 0)'
+assert_json "lineup rows carry the opponent and its rating" \
+    '[.lineup.slots[] | select(.recommended.player_id == "rb1") | [.matchup.opponent, .matchup.home, .matchup.rating, .matchup.rank, .matchup.of]] == [["BBB", true, "tough", 5, 8]]'
+assert_json "schedule fit joins the waiver score" \
+    '.waivers.omitted_components == [] and .waivers.weights_used.schedule_fit == 0.1
+     and ([.waivers.groups[][] | select(.schedule_fit != null)] | length > 0)
+     and ([.warnings[] | select(test("components omitted"))] | length == 0)'
+run_case season_outlook --format text
+assert_match "text opponent strength section" "$STDOUT" 'Ryan Alpha \(RB\) +vs BBB: tough \(-15%, 5th most allowed of 8\)'
+run_case season_outlook --format markdown
+assert_match "markdown opponent strength table" "$STDOUT" '\| Ryan Alpha \| RB \| vs BBB \| tough \| -15% \| 5th of 8 \|'
+run_case ppr_basic --format json
+assert_json "no past weeks: opponent strength explained, schedule fit left out" \
+    '(.opponent_strength | .available == false and (.reason | test("needs 3 past weeks")))
+     and (.waivers.omitted_components | index("schedule_fit") != null) and ([.lineup.slots[] | select(.matchup != null)] | length == 0)'
+run_case ppr_basic --format text
+assert_no_match "no opponent strength section without data" "$STDOUT" 'OPPONENT STRENGTH'
+
+# --------------------------------------------------------------------------
+section "playoff odds"
+# --------------------------------------------------------------------------
+run_case season_outlook --format json
+assert_json "rest of the regular season simulated" \
+    '.playoffs | .available and .weeks == [5,6,7] and .regular_season_ends == 7 and .playoff_teams == 2 and .simulations == 5000'
+assert_json "standings read; the leader is the favourite" \
+    '[.playoffs.teams[] | [.team, .wins, .losses, .points_for]] == [["Test Titans",3,1,452.5],["Team 2",2,2,430.25],["Team 3",2,2,401],["Team 4",1,3,388.75]]
+     and .playoffs.teams[0].is_me and .playoffs.teams[0].playoff_pct > 75'
+assert_json "two playoff spots are shared out" '([.playoffs.teams[].playoff_pct] | add) > 199.5 and ([.playoffs.teams[].playoff_pct] | add) < 200.5'
+assert_json "a win this week helps" \
+    '.playoffs.mine | .playoff_pct == ([.if_win_this_week, .if_lose_this_week] | min) or (.if_win_this_week > .playoff_pct and .playoff_pct > .if_lose_this_week)'
+FIRST_ODDS="$(jq -c '.playoffs.teams' <<< "$STDOUT")"
+run_case season_outlook --format json
+if [ "$(jq -c '.playoffs.teams' <<< "$STDOUT")" = "$FIRST_ODDS" ]; then pass "playoff odds are reproducible"; else fail "playoff odds are reproducible"; fi
+run_case season_outlook --format text
+assert_match "text playoff odds header" "$STDOUT" 'PLAYOFF ODDS - weeks 5-7 left, 2 teams qualify \(5000 simulations\)'
+assert_match "text playoff odds: my team marked" "$STDOUT" '> Test Titans +3-1 +452\.5'
+run_case season_outlook --format markdown
+assert_match "markdown playoff odds table" "$STDOUT" '\| \*\*Test Titans\*\* \| 3-1 \| 452\.5 \|'
+run_case season_outlook --format json --week 8
+assert_json "after the regular season: explained" '.playoffs | .available == false and .reason == "the regular season is over"'
+run_case ppr_basic --format json
+assert_json "no playoff settings: explained" '.playoffs | .available == false and (.reason | length > 0)'
+run_case ppr_basic --format text
+assert_no_match "no playoff odds section without data" "$STDOUT" 'PLAYOFF ODDS'
 
 # --------------------------------------------------------------------------
 section "auto-refresh setting (used by the Windows window)"

@@ -33,7 +33,7 @@ import fm_history  # noqa: E402
 import fm_providers  # noqa: E402
 
 TOOL_NAME = "fantasy_manager"
-TOOL_VERSION = "3.3.0"
+TOOL_VERSION = "3.4.0"
 
 # --------------------------------------------------------------------------
 # Defaults. There is no built-in league or user: they come from the command
@@ -941,6 +941,7 @@ def run_pipeline(c: Config) -> dict:
         return db, source, age
 
     host_points: Optional[dict] = None
+    season_info: Optional[dict] = None
     actuals_loader = None
     if c.platform == "espn":
         # The player database comes first: ESPN's players are mapped onto it.
@@ -948,6 +949,7 @@ def run_pipeline(c: Config) -> dict:
         espn = load_espn_league(c, f, season, week, players)
         league, rosters, my_roster_id, user_id = espn["league"], espn["rosters"], espn["my_roster_id"], espn["user_id"]
         c.username = espn["team_name"]
+        season_info = espn["season"]
         actuals_loader = espn["actuals_loader"]
         host_points = load_host_points(c, f, season, week, players)
     else:
@@ -987,6 +989,7 @@ def run_pipeline(c: Config) -> dict:
         LOG.info("User %s -> user_id %s, roster_id %s" % (c.username, user_id, ts(my_roster_id)))
 
         players, players_source, players_age = load_players()
+        season_info = load_sleeper_season(c, f, season, week, league, rosters, f.data["matchups"])
 
     # projections (this week)
     proj_url = "%s/%s/%d?season_type=%s&order_by=pts_ppr" % (c.projections_base, season, week, c.season_type)
@@ -1045,6 +1048,13 @@ def run_pipeline(c: Config) -> dict:
         LOG.debug("No transactions for week %d" % week)
 
     providers = load_second_source(c, f, season, week, future_weeks, players)
+    trend_source = "sleeper"
+    if providers and providers.get("trend"):
+        # ESPN leagues: who ESPN managers are adding, instead of Sleeper's.
+        f.data["trending_add"] = providers["trend"]
+        trending_available, trend_source = True, "espn"
+    if providers:
+        providers.pop("trend", None)
 
     store = open_history(c, f)
     history_key = c.league_id if c.platform == "sleeper" else "%s:%s" % (c.platform, c.league_id)
@@ -1084,6 +1094,7 @@ def run_pipeline(c: Config) -> dict:
                             "fetched_at": proj_fetched_at},
             "players": {"source": players_source, "cache_age_seconds": players_age},
             "trending_available": trending_available,
+            "trend_source": trend_source,
             "transactions_available": transactions_available,
             "schedule_available": schedule_available,
         },
@@ -1096,6 +1107,7 @@ def run_pipeline(c: Config) -> dict:
         "history": history,
         "providers": providers,
         "host_points": host_points,
+        "season": season_info,
         "diagnostics": f.diagnostics,
     }
 
@@ -1235,16 +1247,28 @@ def load_second_source(c: Config, f: Fetcher, season: str, week: int, future_wee
     if c.compare == "none":
         return None
     weeks = [week] + (list(future_weeks) if c.projections_mode == "blend" else [])
-    out: Dict[str, Any] = {"provider": "espn", "weeks": {}, "matched": {}, "unmatched": {},
-                           "url": fm_providers.espn_url(season, week, c.espn_base)}
+    # An ESPN league is read through the league itself: ESPN then scores its
+    # projections with the league's rules, for every position.
+    league = c.platform == "espn"
+
+    def url_for(w: int) -> str:
+        if league:
+            return fm_espn.league_url(c.espn_base, season, c.league_id, fm_espn.HOST_VIEWS, w)
+        return fm_providers.espn_url(season, w, c.espn_base)
+
+    out: Dict[str, Any] = {"provider": "espn", "weeks": {}, "matched": {}, "unmatched": {}, "url": url_for(week),
+                           "scoring": "league" if league else "ppr"}
     for i, w in enumerate(weeks):
         key = "espn" if i == 0 else "espn_w%d" % w
-        ok = f.fetch_json(key, fm_providers.espn_url(season, w, c.espn_base), ("object", "array"),
-                          "espn_%s_%d" % (season, w), int(c.projections_ttl), True,
-                          headers={"X-Fantasy-Filter": fm_providers.espn_filter(season, w)})
+        cache = "espn_league_%s_%s_%d" % (c.league_id, season, w) if league else "espn_%s_%d" % (season, w)
+        header = fm_espn.projection_filter(season, w) if league else fm_providers.espn_filter(season, w)
+        ok = f.fetch_json(key, url_for(w), ("object", "array"), cache, int(c.projections_ttl), True,
+                          headers={"X-Fantasy-Filter": header})
         if not ok:
             continue
-        points, matched, unmatched = fm_providers.parse_espn(f.data[key], w, players, season)
+        if league and i == 0:
+            out["trend"] = fm_espn.ownership_trend(f.data[key], players)
+        points, matched, unmatched = fm_providers.parse_espn(f.data[key], w, players, season, defense_by_id=league)
         if points:
             out["weeks"][str(w)] = points
             out["matched"][str(w)] = matched
@@ -1253,6 +1277,66 @@ def load_second_source(c: Config, f: Fetcher, season: str, week: int, future_wee
     if c.projections_mode == "blend" and str(week) not in out["weeks"]:
         f.add_warning("ESPN projections unavailable for week %d; --projections blend uses Sleeper only." % week)
     return out
+
+
+# --------------------------------------------------------------------------
+# Season: standings and the remaining league schedule (playoff odds)
+# --------------------------------------------------------------------------
+def matchup_pairs(matchups: Any) -> List[List[Any]]:
+    """Sleeper matchups -> [[roster_id, roster_id], ...] by matchup_id."""
+    by_id: Dict[Any, List[Any]] = {}
+    for entry in matchups if isinstance(matchups, list) else []:
+        if isinstance(entry, dict) and entry.get("matchup_id") is not None and entry.get("roster_id") is not None:
+            by_id.setdefault(entry["matchup_id"], []).append(entry["roster_id"])
+    return [pair for _, pair in sorted(by_id.items(), key=lambda kv: str(kv[0])) if len(pair) == 2]
+
+
+def load_sleeper_season(c: Config, f: Fetcher, season: str, week: int, league: dict, rosters: List[Any],
+                        matchups: Any) -> dict:
+    settings = league.get("settings") or {}
+    start = settings.get("playoff_week_start")
+    last = start - 1 if isinstance(start, int) and not isinstance(start, bool) and start > 1 else None
+    standings = []
+    for roster in rosters:
+        if not isinstance(roster, dict) or roster.get("roster_id") is None:
+            continue
+        rs = roster.get("settings") or {}
+        points = float(rs.get("fpts") or 0) + float(rs.get("fpts_decimal") or 0) / 100.0
+        standings.append({"roster_id": roster["roster_id"], "wins": rs.get("wins") or 0, "losses": rs.get("losses") or 0,
+                          "ties": rs.get("ties") or 0, "points_for": points})
+    schedule: Dict[str, List[List[Any]]] = {}
+    pairs = matchup_pairs(matchups)
+    if pairs:
+        schedule[str(week)] = pairs
+    future = [w for w in range(week + 1, (last or 0) + 1)]
+    if future:
+        # Later weeks' pairings do not change: keep them for a day.
+        path = os.path.join(c.cache_dir, "pairings_%s_%s.json" % (c.league_id, season)) if c.no_cache != "1" else None
+        cached: Dict[str, Any] = {}
+        if path and os.path.isfile(path) and c.refresh != "1" and Fetcher.cache_age(path) <= 86400:
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    cached = json.load(fh)
+            except (OSError, ValueError):
+                cached = {}
+        fetched = False
+        for w in future:
+            pairs = cached.get(str(w)) if isinstance(cached, dict) else None
+            if not pairs:
+                value = f.fetch_quiet("matchups_w%d" % w, "%s/league/%s/matchups/%d" % (c.api, c.league_id, w), "array")
+                pairs = matchup_pairs(value)
+                fetched = fetched or bool(pairs)
+            if pairs:
+                schedule[str(w)] = pairs
+        if path and fetched:
+            try:
+                os.makedirs(c.cache_dir, exist_ok=True)
+                with open(path, "w", encoding="utf-8") as fh:
+                    json.dump({k: v for k, v in schedule.items() if int(k) > week}, fh)
+            except OSError:
+                pass
+    return {"regular_season_last_week": last, "playoff_teams": settings.get("playoff_teams"),
+            "standings": standings, "schedule": schedule}
 
 
 # --------------------------------------------------------------------------
@@ -1282,6 +1366,8 @@ def load_espn_league(c: Config, f: Fetcher, season: str, week: int, players: Dic
     if not any(r["players"] for r in rosters):
         die(EX_DATA, "ESPN league %s returned no rosters (has it drafted yet?)." % c.league_id)
 
+    raw_matchups: Dict[int, dict] = {}
+
     def matchups_for(w: int, key: str, quiet: bool) -> Optional[List[dict]]:
         m_url = fm_espn.league_url(base, season, c.league_id, fm_espn.MATCHUP_VIEWS, w)
         if quiet:
@@ -1290,6 +1376,7 @@ def load_espn_league(c: Config, f: Fetcher, season: str, week: int, players: Dic
             value = f.data[key] if f.fetch_json(key, m_url, "object", "-", 0, False) else None
         if not isinstance(value, dict) or not isinstance(value.get("schedule"), list):
             return None
+        raw_matchups[w] = value
         return fm_espn.convert_matchups(value, doc, w, index) or None
 
     matchups = matchups_for(week, "espn_matchups", False)
@@ -1302,6 +1389,7 @@ def load_espn_league(c: Config, f: Fetcher, season: str, week: int, players: Dic
     name = str(team.get("name") or team.get("abbrev") or team["id"]).strip()
     LOG.info("ESPN league '%s': team %s -> roster_id %s" % (s(league.get("name")), name, ts(team["id"])))
     return {"league": league, "rosters": rosters, "my_roster_id": team["id"], "team_name": name,
+            "season": fm_espn.season_info(doc, raw_matchups.get(week)),
             "user_id": fm_espn.owner_id(team["id"]),
             "actuals_loader": lambda w: matchups_for(w, "espn_matchups_w%d" % w, True)}
 
@@ -1495,6 +1583,7 @@ def render_text(r: dict) -> str:
             out.append("    - " + s(rk.get("name")) + " (" + alt(rk.get("position"), "?") + "): " + join_status(rk)
                        + ("" if rk.get("note") is None else " - " + rk["note"]))
         out += [""]
+    out += lineup_matchups_text(lu)
 
     mu = r.get("matchup")
     if mu is None:
@@ -1509,6 +1598,7 @@ def render_text(r: dict) -> str:
                 + n1(mu.get("opponent_projected_final")) + "  (" + n1(mu.get("final_differential")) + ")"]
         out += win_probability_text(mu.get("win_probability"))
         out += ["  Note: " + mu["note"], ""]
+    out += playoffs_text(r.get("playoffs"))
     out += sources_text(r.get("projection_sources"))
 
     wv = r.get("waivers")
@@ -1680,6 +1770,7 @@ def render_markdown(r: dict) -> str:
         for rk in lu["risk"]:
             out.append("- **" + s(rk.get("name")) + "** (" + alt(rk.get("position"), "?") + "): " + join_status(rk))
         out += [""]
+    out += lineup_matchups_markdown(lu)
 
     mu = r.get("matchup")
     if mu is None:
@@ -1696,6 +1787,7 @@ def render_markdown(r: dict) -> str:
                 + n1(mu.get("opponent_projected_final")), ""]
         out += win_probability_markdown(mu.get("win_probability"))
         out += ["> " + mu["note"], ""]
+    out += playoffs_markdown(r.get("playoffs"))
     out += sources_markdown(r.get("projection_sources"))
 
     wv = r.get("waivers")
@@ -1812,6 +1904,91 @@ def render_markdown(r: dict) -> str:
     return "\n".join(out) + "\n"
 
 
+def ordinal(n: Any) -> str:
+    n = int(n)
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return "%d%s" % (n, suffix)
+
+
+def matchup_text(m: Optional[dict]) -> str:
+    """'vs NE: easy (+17%, 1st most allowed of 32)' for a player's opponent."""
+    if not m:
+        return ""
+    pct = int(round((float(m["factor"]) - 1.0) * 100))
+    return "%s %s: %s (%+d%%, %s most allowed of %s)" % ("vs" if m.get("home") else "at", m["opponent"], m["rating"],
+                                                         pct, ordinal(m["rank"]), ts(m["of"]))
+
+
+def lineup_matchups(lu: dict) -> List[Tuple[dict, dict]]:
+    return [(sl["recommended"], sl["matchup"]) for sl in lu["slots"] if sl.get("recommended") and sl.get("matchup")]
+
+
+def lineup_matchups_text(lu: dict) -> List[str]:
+    rows = lineup_matchups(lu)
+    if not rows:
+        return []
+    out = ["  OPPONENT STRENGTH (points allowed to the position this season, against the league average)"]
+    out += ["    " + pad(s(ref.get("name")) + " (" + alt(ref.get("position"), "?") + ")", 30) + matchup_text(m) for ref, m in rows]
+    return out + [""]
+
+
+def lineup_matchups_markdown(lu: dict) -> List[str]:
+    rows = lineup_matchups(lu)
+    if not rows:
+        return []
+    out = ["### Opponent strength", "",
+           "Points each opponent has allowed to the position this season, against the league average.", "",
+           "| Player | Pos | Opponent | Matchup | vs average | Rank |", "| --- | --- | --- | --- | ---: | ---: |"]
+    for ref, m in rows:
+        out.append("| " + s(ref.get("name")) + " | " + alt(ref.get("position"), "?") + " | "
+                   + ("vs " if m.get("home") else "at ") + m["opponent"] + " | " + m["rating"] + " | "
+                   + "%+d%%" % int(round((float(m["factor"]) - 1.0) * 100)) + " | " + ordinal(m["rank"]) + " of " + ts(m["of"]) + " |")
+    return out + [""]
+
+
+def record_text(t: dict) -> str:
+    return ts(t["wins"]) + "-" + ts(t["losses"]) + ("-" + ts(t["ties"]) if t.get("ties") else "")
+
+
+def playoffs_headline(p: dict) -> str:
+    mine = p.get("mine") or {}
+    text = "Your chance to make the playoffs: " + pct(mine.get("playoff_pct"))
+    if mine.get("if_win_this_week") is not None and mine.get("if_lose_this_week") is not None:
+        text += " (" + pct(mine["if_win_this_week"]) + " with a win this week, " + pct(mine["if_lose_this_week"]) + " with a loss)"
+    return text
+
+
+def playoffs_text(p: Optional[dict]) -> List[str]:
+    if not p or not p.get("available"):
+        return []
+    out = ["PLAYOFF ODDS - " + weeks_label(p["weeks"]) + " left, " + ts(p["playoff_teams"]) + " teams qualify ("
+           + ts(p["simulations"]) + " simulations)", LINE, "  " + playoffs_headline(p), "",
+           "  " + pad("TEAM", 28) + pad("W-L", 8) + pad("PF", 9) + pad("PLAYOFFS", 10) + pad("PROJ W", 8) + "AVG SEED"]
+    for t in p["teams"]:
+        out.append("  " + pad(("> " if t.get("is_me") else "  ") + s(t["team"]), 28) + pad(record_text(t), 8)
+                   + pad(n1(t.get("points_for")), 9) + pad(pct(t.get("playoff_pct")), 10) + pad(n1(t.get("projected_wins")), 8)
+                   + n1(t.get("average_seed")))
+    return out + ["  Note: " + p["note"], ""]
+
+
+def playoffs_markdown(p: Optional[dict]) -> List[str]:
+    if not p or not p.get("available"):
+        return []
+    out = ["## Playoff odds", "",
+           playoffs_headline(p) + ". " + weeks_label(p["weeks"]).capitalize() + " left; " + ts(p["playoff_teams"])
+           + " teams qualify.", "",
+           "| Team | W-L | Points for | Playoffs | Projected wins | Average seed |", "| --- | --- | ---: | ---: | ---: | ---: |"]
+    for t in p["teams"]:
+        name = "**" + s(t["team"]) + "**" if t.get("is_me") else s(t["team"])
+        out.append("| " + name + " | " + record_text(t) + " | " + n1(t.get("points_for")) + " | " + pct(t.get("playoff_pct"))
+                   + " | " + n1(t.get("projected_wins")) + " | " + n1(t.get("average_seed")) + " |")
+    return out + ["", "> " + p["note"], ""]
+
+
+def sources_unit(p: dict) -> str:
+    return "league points" if p.get("scoring") == "league" else "PPR points"
+
+
 def sources_using(p: dict) -> str:
     if p.get("mode") == "blend" and p.get("blended_weeks"):
         return "a 50/50 Sleeper + ESPN blend for " + weeks_label(p["blended_weeks"]) + ", in your league's scoring"
@@ -1825,7 +2002,7 @@ def sources_text(p: Optional[dict]) -> List[str]:
         return []
     if not p["available"]:
         return ["PROJECTION SOURCES: ESPN unavailable - " + s(p.get("reason")), ""]
-    out = ["PROJECTION SOURCES - Sleeper vs ESPN, week " + ts(p["week"]) + " (PPR points)", LINE,
+    out = ["PROJECTION SOURCES - Sleeper vs ESPN, week " + ts(p["week"]) + " (" + sources_unit(p) + ")", LINE,
            "  Using: " + sources_using(p),
            "  Matched " + ts(p["matched"]) + " players (" + ts(p["unmatched"]) + " not matched); typical gap "
            + n1(p.get("mean_abs_diff")) + " points.",
@@ -1843,7 +2020,7 @@ def sources_markdown(p: Optional[dict]) -> List[str]:
     if not p["available"]:
         return ["## Projection sources", "", "ESPN unavailable: " + s(p.get("reason")), ""]
     out = ["## Projection sources", "",
-           "Sleeper vs ESPN, week " + ts(p["week"]) + " (PPR points). Using " + sources_using(p) + ". Matched "
+           "Sleeper vs ESPN, week " + ts(p["week"]) + " (" + sources_unit(p) + "). Using " + sources_using(p) + ". Matched "
            + ts(p["matched"]) + " players (" + ts(p["unmatched"]) + " not matched); typical gap "
            + n1(p.get("mean_abs_diff")) + " points.", ""]
     if not p["disagreements"]:

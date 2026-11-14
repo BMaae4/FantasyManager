@@ -6,6 +6,10 @@
     "defaultPositionId": 16,
     "fullName": "Alpha Defense",
     "id": 4000,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -45,6 +49,10 @@
     "defaultPositionId": 16,
     "fullName": "Hotel Defense",
     "id": 4001,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -84,6 +92,10 @@
     "defaultPositionId": 2,
     "fullName": "Free Retired One",
     "id": 4002,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -123,6 +135,10 @@
     "defaultPositionId": 5,
     "fullName": "Free Kick One",
     "id": 4003,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -162,6 +178,10 @@
     "defaultPositionId": 3,
     "fullName": "Free Hurt One",
     "id": 4004,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -201,6 +221,10 @@
     "defaultPositionId": 1,
     "fullName": "Free Quarter One",
     "id": 4005,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -240,6 +264,10 @@
     "defaultPositionId": 3,
     "fullName": "Free Doubt One",
     "id": 4006,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -279,6 +307,10 @@
     "defaultPositionId": 2,
     "fullName": "Free Run One",
     "id": 4007,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -318,6 +350,10 @@
     "defaultPositionId": 2,
     "fullName": "Free Run Two",
     "id": 4008,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -357,6 +393,10 @@
     "defaultPositionId": 4,
     "fullName": "Free Tight One",
     "id": 4009,
+    "ownership": {
+     "percentChange": 6.25,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -396,6 +436,10 @@
     "defaultPositionId": 3,
     "fullName": "Free Wide One",
     "id": 4010,
+    "ownership": {
+     "percentChange": 1.5,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -435,6 +479,10 @@
     "defaultPositionId": 3,
     "fullName": "Free Wide Two",
     "id": 4011,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -474,6 +522,10 @@
     "defaultPositionId": 5,
     "fullName": "Kai Alpha",
     "id": 4012,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -513,6 +565,10 @@
     "defaultPositionId": 1,
     "fullName": "Quinn Alpha",
     "id": 4013,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -552,6 +608,10 @@
     "defaultPositionId": 1,
     "fullName": "Quinn Bravo",
     "id": 4014,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -591,6 +651,10 @@
     "defaultPositionId": 2,
     "fullName": "Ryan Alpha",
     "id": 4015,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -630,6 +694,10 @@
     "defaultPositionId": 2,
     "fullName": "Ryan Bravo",
     "id": 4016,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -669,6 +737,10 @@
     "defaultPositionId": 2,
     "fullName": "Ryan Charlie",
     "id": 4017,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -708,6 +780,10 @@
     "defaultPositionId": 2,
     "fullName": "Ryan Delta",
     "id": 4018,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -747,6 +823,10 @@
     "defaultPositionId": 2,
     "fullName": "Ryan Echo",
     "id": 4019,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -786,6 +866,10 @@
     "defaultPositionId": 16,
     "fullName": "Team2 DEF1",
     "id": 4020,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -825,6 +909,10 @@
     "defaultPositionId": 5,
     "fullName": "Team2 K1",
     "id": 4021,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -864,6 +952,10 @@
     "defaultPositionId": 1,
     "fullName": "Team2 QB1",
     "id": 4022,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -903,6 +995,10 @@
     "defaultPositionId": 1,
     "fullName": "Team2 QB2",
     "id": 4023,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -942,6 +1038,10 @@
     "defaultPositionId": 2,
     "fullName": "Team2 RB1",
     "id": 4024,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -981,6 +1081,10 @@
     "defaultPositionId": 2,
     "fullName": "Team2 RB2",
     "id": 4025,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1020,6 +1124,10 @@
     "defaultPositionId": 2,
     "fullName": "Team2 RB3",
     "id": 4026,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1059,6 +1167,10 @@
     "defaultPositionId": 4,
     "fullName": "Team2 TE1",
     "id": 4027,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1098,6 +1210,10 @@
     "defaultPositionId": 4,
     "fullName": "Team2 TE2",
     "id": 4028,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1137,6 +1253,10 @@
     "defaultPositionId": 3,
     "fullName": "Team2 WR1",
     "id": 4029,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1176,6 +1296,10 @@
     "defaultPositionId": 3,
     "fullName": "Team2 WR2",
     "id": 4030,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1215,6 +1339,10 @@
     "defaultPositionId": 3,
     "fullName": "Team2 WR3",
     "id": 4031,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1254,6 +1382,10 @@
     "defaultPositionId": 16,
     "fullName": "Team3 DEF1",
     "id": 4032,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1293,6 +1425,10 @@
     "defaultPositionId": 5,
     "fullName": "Team3 K1",
     "id": 4033,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1332,6 +1468,10 @@
     "defaultPositionId": 1,
     "fullName": "Team3 QB1",
     "id": 4034,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1371,6 +1511,10 @@
     "defaultPositionId": 1,
     "fullName": "Team3 QB2",
     "id": 4035,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1410,6 +1554,10 @@
     "defaultPositionId": 2,
     "fullName": "Team3 RB1",
     "id": 4036,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1449,6 +1597,10 @@
     "defaultPositionId": 2,
     "fullName": "Team3 RB2",
     "id": 4037,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1488,6 +1640,10 @@
     "defaultPositionId": 2,
     "fullName": "Team3 RB3",
     "id": 4038,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1527,6 +1683,10 @@
     "defaultPositionId": 4,
     "fullName": "Team3 TE1",
     "id": 4039,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1566,6 +1726,10 @@
     "defaultPositionId": 4,
     "fullName": "Team3 TE2",
     "id": 4040,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1605,6 +1769,10 @@
     "defaultPositionId": 3,
     "fullName": "Team3 WR1",
     "id": 4041,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1644,6 +1812,10 @@
     "defaultPositionId": 3,
     "fullName": "Team3 WR2",
     "id": 4042,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1683,6 +1855,10 @@
     "defaultPositionId": 3,
     "fullName": "Team3 WR3",
     "id": 4043,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1722,6 +1898,10 @@
     "defaultPositionId": 16,
     "fullName": "Team4 DEF1",
     "id": 4044,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1761,6 +1941,10 @@
     "defaultPositionId": 5,
     "fullName": "Team4 K1",
     "id": 4045,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1800,6 +1984,10 @@
     "defaultPositionId": 1,
     "fullName": "Team4 QB1",
     "id": 4046,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1839,6 +2027,10 @@
     "defaultPositionId": 1,
     "fullName": "Team4 QB2",
     "id": 4047,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1878,6 +2070,10 @@
     "defaultPositionId": 2,
     "fullName": "Team4 RB1",
     "id": 4048,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1917,6 +2113,10 @@
     "defaultPositionId": 2,
     "fullName": "Team4 RB2",
     "id": 4049,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1956,6 +2156,10 @@
     "defaultPositionId": 2,
     "fullName": "Team4 RB3",
     "id": 4050,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -1995,6 +2199,10 @@
     "defaultPositionId": 4,
     "fullName": "Team4 TE1",
     "id": 4051,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -2034,6 +2242,10 @@
     "defaultPositionId": 4,
     "fullName": "Team4 TE2",
     "id": 4052,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -2073,6 +2285,10 @@
     "defaultPositionId": 3,
     "fullName": "Team4 WR1",
     "id": 4053,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -2112,6 +2328,10 @@
     "defaultPositionId": 3,
     "fullName": "Team4 WR2",
     "id": 4054,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -2151,6 +2371,10 @@
     "defaultPositionId": 3,
     "fullName": "Team4 WR3",
     "id": 4055,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -2190,6 +2414,10 @@
     "defaultPositionId": 4,
     "fullName": "Tom Alpha",
     "id": 4056,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -2229,6 +2457,10 @@
     "defaultPositionId": 4,
     "fullName": "Tom Bravo",
     "id": 4057,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -2268,10 +2500,14 @@
     "defaultPositionId": 3,
     "fullName": "Wes Alpha",
     "id": 4058,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
-      "appliedTotal": 14.25,
+      "appliedTotal": 8.0,
       "externalId": "20256",
       "scoringPeriodId": 6,
       "seasonId": 2025,
@@ -2307,6 +2543,10 @@
     "defaultPositionId": 3,
     "fullName": "Wes Bravo",
     "id": 4059,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
@@ -2346,6 +2586,10 @@
     "defaultPositionId": 3,
     "fullName": "Wes Charlie",
     "id": 900060,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 2,
     "stats": [
      {
@@ -2385,6 +2629,10 @@
     "defaultPositionId": 3,
     "fullName": "Wes Delta",
     "id": 4061,
+    "ownership": {
+     "percentChange": -0.1,
+     "percentOwned": 50.0
+    },
     "proTeamId": 99,
     "stats": [
      {
