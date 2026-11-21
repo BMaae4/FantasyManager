@@ -104,7 +104,8 @@ $Defaults = [ordered]@{
     horizon   = '3'
 }
 
-$EX_OK = 0; $EX_USAGE = 2; $EX_DEPENDENCY = 3; $EX_DATA = 4
+# Exit code 2 (usage error) is raised by lib/fm_app.py, never by this script.
+$EX_OK = 0; $EX_DEPENDENCY = 3; $EX_DATA = 4
 
 $IsWindowsHost = ($PSVersionTable.PSVersion.Major -lt 6) -or ((Get-Variable -Name IsWindows -ValueOnly -ErrorAction SilentlyContinue) -eq $true)
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -1556,7 +1557,6 @@ function Update-OpenPicked($ui) {
 
 function Add-OpenPick($ui, [string]$side, $item) {
     if ($null -eq $item) { return }
-    $other = $(if ($side -eq 'A') { 'B' } else { 'A' })
     $id = $item.Entry.player_id
     if (@($script:OpenPicks.A + $script:OpenPicks.B | Where-Object { $_.player_id -eq $id }).Count) { return }
     $script:OpenPicks[$side] = @($script:OpenPicks[$side]) + @($item.Entry)
@@ -1941,17 +1941,17 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         $ui["Results$side"].Tag = $side
         $ui["Picked$side"].Tag = $side
         $ui["Results$side"].Add_SelectionChanged({
-            param($sender, $e)
-            $item = $sender.SelectedItem
+            param($src, $e)
+            $item = $src.SelectedItem
             if ($null -eq $item) { return }
-            Add-OpenPick $script:Ui ([string]$sender.Tag) $item
-            $sender.SelectedIndex = -1
+            Add-OpenPick $script:Ui ([string]$src.Tag) $item
+            $src.SelectedIndex = -1
         })
         $ui["Picked$side"].Add_SelectionChanged({
-            param($sender, $e)
-            $item = $sender.SelectedItem
+            param($src, $e)
+            $item = $src.SelectedItem
             if ($null -eq $item) { return }
-            Remove-OpenPick $script:Ui ([string]$sender.Tag) $item
+            Remove-OpenPick $script:Ui ([string]$src.Tag) $item
         })
     }
     $ui.ClearTradeButton.Add_Click({
@@ -2043,6 +2043,7 @@ function Show-ReportWindow([string]$InitialReport, [switch]$SmokeTest) {
         $openText = Get-TradeText $ui
         $pickedCount = @($ui.PickedA.ItemsSource).Count + @($ui.PickedB.ItemsSource).Count
         $script:OpenPicks = $savedPicks; Update-OpenPicked $ui
+        [Console]::Out.WriteLine('open trade: ' + $(if ($openText) { $openText } else { '(none)' }))
         # Switch the platform and back: each one shows its own league and user/team.
         $startIndex = $ui.PlatformBox.SelectedIndex
         $ui.PlatformBox.SelectedIndex = 1 - $startIndex
